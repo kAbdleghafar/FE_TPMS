@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tpmsfem"
+version = "0.1.0"
+description = "GPU-accelerated finite element analysis of TPMS lattice implants (stress, strain, AM residual stress)"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "meshio>=5.3"]
+
+[project.optional-dependencies]
+gpu = ["cupy-cuda12x>=13"]
+mesh = ["scikit-image>=0.21", "gmsh>=4.11", "tetgen>=0.6"]
+amg = ["pyamg>=5"]
+plot = ["matplotlib>=3.7"]
+dev = ["pytest>=7", "scikit-image>=0.21", "gmsh>=4.11", "tetgen>=0.6", "pyamg>=5", "matplotlib>=3.7"]
+
+[project.scripts]
+tpmsfem = "tpmsfem.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

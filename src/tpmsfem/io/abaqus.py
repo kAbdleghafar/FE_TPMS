@@ -1,0 +1,217 @@
+"""Export a :class:`SolidModel` to an Abaqus / CalculiX input deck.
+
+The deck reproduces *exactly* the discrete problem tpmsfem solves -- same
+nodes, elements, materials, constrained dofs and **consistent nodal loads**
+(exported as ``*CLOAD``) -- so code-to-code differences come only from the
+element formulation and solver, not from load/BC interpretation.
+
+Eigenstrains (thermal / inherent strain) are exported the way commercial codes
+apply them: orthotropic expansion coefficients equal to the eigenstrain and a
+nodal temperature rising from 0 to 1. For element-wise eigenstrains in a single
+step this is exact; layer-by-layer AM is exported with ``*MODEL CHANGE`` and
+matches :class:`~tpmsfem.residual.am.AMProcess` with ``mode="nodal"``.
+
+Element types: hex8 -> C3D8 (use ``bbar=True`` in tpmsfem to match Abaqus'
+selectively-reduced C3D8; CalculiX' C3D8 is fully integrated), tet4 -> C3D4,
+tet10 -> C3D10. Shear eigenstrain components are not exported (ORTHO only).
+"""
+from __future__ import annotations
+
+import io
+from typing import Optional
+
+import numpy as np
+
+from ..backend import asnumpy
+from ..mesh.mesh import CELL_INFO
+
+
+def _fmt_lines(ids, arr, per_line=None, fmt="{:.9e}"):
+    out = io.StringIO()
+    for i, row in zip(ids, arr):
+        out.write(f"{i}, " + ", ".join(fmt.format(v) if isinstance(v, float) else str(v) for v in row) + "\n")
+    return out.getvalue()
+
+
+def _id_list(ids, per_line=16):
+    ids = np.asarray(ids) + 1
+    lines = [", ".join(str(v) for v in ids[i:i + per_line]) for i in range(0, len(ids), per_line)]
+    return "\n".join(lines) + "\n"
+
+
+def _material_block(name, mat, alpha=None, force_nonlinear=False):
+    s = f"*MATERIAL, NAME={name}\n*ELASTIC\n{mat.E:.9e}, {mat.nu:.6f}\n"
+    if force_nonlinear and not mat.is_plastic:
+        # CalculiX allows element birth only in nonlinear steps: a plastic card
+        # that can never be reached keeps the response linear-elastic.
+        s += "** unreachable yield stress: forces a (materially) nonlinear step in CalculiX\n"
+        s += "*PLASTIC\n1.0e12, 0.\n"
+    elif mat.is_plastic:
+        ep_max = 1.0
+        s += f"*PLASTIC\n{mat.yield_stress:.9e}, 0.\n{mat.yield_stress + mat.hardening * ep_max:.9e}, {ep_max:.1f}\n"
+    if alpha is not None:
+        s += f"*EXPANSION, TYPE=ORTHO\n{alpha[0]:.9e}, {alpha[1]:.9e}, {alpha[2]:.9e}\n"
+    return s
+
+
+def _groups(model, use_eig: bool):
+    """Group elements by (material id, element eigenstrain tensor)."""
+    mat_ids = model.mat_ids
+    if not use_eig:
+        keys = [(int(m), None) for m in mat_ids]
+    else:
+        d = asnumpy(model.eig_dir)
+        if np.any(np.abs(d[:, 3:]) > 0):
+            raise NotImplementedError("shear eigenstrain components cannot be exported as ORTHO expansion")
+        keys = [(int(m), tuple(np.round(d[i, :3], 15))) for i, m in enumerate(mat_ids)]
+    groups = {}
+    for i, k in enumerate(keys):
+        groups.setdefault(k, []).append(i)
+    return {k: np.asarray(v) for k, v in groups.items()}
+
+
+def _outputs(dialect, plastic, node_sets=("NALL",)):
+    if dialect == "calculix":
+        s = "*NODE FILE\nU, RF\n*EL FILE\nS, E" + (", PEEQ" if plastic else "") + "\n"
+        s += "*NODE PRINT, NSET=NALL\nU\n*EL PRINT, ELSET=EALL\nS\n"
+        return s
+    s = "*OUTPUT, FIELD\n*NODE OUTPUT\nU, RF\n*ELEMENT OUTPUT, DIRECTIONS=YES\nS, E" + (", PEEQ" if plastic else "") + "\n"
+    s += "*ELEMENT OUTPUT, POSITION=CENTROIDAL\nS\n"
+    return s
+
+
+def _boundary_block(fixed_host, values, op_new=False):
+    """*BOUNDARY lines (zero BCs grouped through node sets is left to the
+    caller; here one line per node/dof keeps the deck exact and simple)."""
+    dofs = np.flatnonzero(fixed_host)
+    s = "*BOUNDARY" + (", OP=NEW" if op_new else "") + "\n"
+    for d in dofs:
+        node, comp = divmod(int(d), 3)
+        v = float(values[d])
+        s += f"{node + 1}, {comp + 1}, {comp + 1}" + (f", {v:.9e}" if v != 0.0 else "") + "\n"
+    return s
+
+
+def write_inp(model, path: str, dialect: str = "abaqus", title: str = "tpmsfem export",
+              am=None, plastic_increments: int = 10, include_loads: bool = True) -> str:
+    """Write ``model`` (its *current* targets) to ``path``.
+
+    Parameters
+    ----------
+    dialect : ``"abaqus"`` or ``"calculix"`` (output requests differ).
+    am : optional :class:`~tpmsfem.residual.am.AMProcess` -> layer-by-layer
+        deck with element birth (``*MODEL CHANGE``) and a plate-removal step.
+        The process object only supplies layers / plate nodes / inherent strain;
+        it need not have been run.
+    """
+    mesh = model.mesh
+    etype = CELL_INFO[mesh.cell_type]["abaqus"]
+    eig_target = asnumpy(model.eig_target)
+    use_eig = (am is not None) or bool(np.any(eig_target != 0))
+    if am is None and use_eig and np.any(np.ptp(eig_target, axis=1) > 1e-14):
+        raise NotImplementedError("non-uniform eigenstrain within elements: use am=... or element mode")
+
+    f = io.StringIO()
+    f.write(f"*HEADING\n{title}\n** generated by tpmsfem; units: mm, N, MPa\n")
+    f.write("*NODE, NSET=NALL\n")
+    f.write(_fmt_lines(np.arange(1, mesh.n_points + 1), mesh.points))
+    f.write(f"*ELEMENT, TYPE={etype}, ELSET=EALL\n")
+    f.write(_fmt_lines(np.arange(1, mesh.n_cells + 1), mesh.cells + 1))
+
+    # --- materials / sections ----------------------------------------------
+    if am is not None:
+        model_for_groups_eig = np.tile(np.asarray(am.inherent_strain, float), (model.ne, 1))
+        saved = model.eig_dir
+        model.eig_dir = model_for_groups_eig
+        groups = _groups(model, True)
+        model.eig_dir = saved
+    else:
+        groups = _groups(model, use_eig)
+        if use_eig:  # fold the per-element scale into the expansion coefficients
+            scale = eig_target[:, 0]
+            d = asnumpy(model.eig_dir)[:, :3] * scale[:, None]
+            regroup = {}
+            for i, mid in enumerate(model.mat_ids):
+                regroup.setdefault((int(mid), tuple(np.round(d[i], 15))), []).append(i)
+            groups = {k: np.asarray(v) for k, v in regroup.items()}
+    for gi, ((mid, alpha), cells) in enumerate(sorted(groups.items(), key=lambda kv: kv[1][0])):
+        mat = model.materials[mid]
+        name = f"G{gi}_{mat.name}".upper()[:80]
+        f.write(f"*ELSET, ELSET=E_{name}\n" + _id_list(cells))
+        has_alpha = alpha is not None and any(a != 0 for a in alpha)
+        f.write(_material_block(name, mat, np.asarray(alpha) if has_alpha else None,
+                                force_nonlinear=(am is not None and dialect == "calculix")))
+        f.write(f"*SOLID SECTION, ELSET=E_{name}, MATERIAL={name}\n\n")
+
+    static = "*STATIC\n" if not model.plastic else f"*STATIC\n{1.0 / plastic_increments}, 1.0, 1e-6, {1.0 / plastic_increments}\n"
+    step_hdr = "*STEP" + (f", INC=10000" if model.plastic else "") + "\n"
+    out = _outputs(dialect, model.plastic)
+    if use_eig:
+        f.write("*INITIAL CONDITIONS, TYPE=TEMPERATURE\nNALL, 0.0\n")
+
+    if am is None:
+        f.write(step_hdr + static)
+        f.write(_boundary_block(model.fixed_host, asnumpy(model.u_bc_target)))
+        if include_loads:
+            fe = asnumpy(model.f_ext_target)
+            nz = np.flatnonzero(np.abs(fe) > 0)
+            if len(nz):
+                f.write("*CLOAD\n")
+                for d in nz:
+                    node, comp = divmod(int(d), 3)
+                    f.write(f"{node + 1}, {comp + 1}, {fe[d]:.12e}\n")
+        if use_eig:
+            f.write("*TEMPERATURE\nNALL, 1.0\n")
+        f.write(out + "*END STEP\n")
+    else:
+        layers = am.layer_of_cell
+        nl = int(layers.max()) + 1
+        for k in range(nl):
+            cells = np.flatnonzero(layers == k)
+            if len(cells):
+                f.write(f"*ELSET, ELSET=L{k + 1}\n" + _id_list(cells))
+                f.write(f"*NSET, NSET=NL{k + 1}\n" + _id_list(np.unique(mesh.cells[cells])))
+                below = np.unique(mesh.cells[layers < k]) if k > 0 else np.array([], int)
+                new = np.setdiff1d(np.unique(mesh.cells[cells]), below)
+                if k > 0 and len(new):
+                    f.write(f"*NSET, NSET=NEW{k + 1}\n" + _id_list(new))
+        f.write("*NSET, NSET=PLATE\n" + _id_list(am.plate_nodes))
+        present = [k for k in range(nl) if np.any(layers == k)]
+        inc = ", INC=10000" if model.plastic else ""
+        for j, k in enumerate(present):
+            if j == 0:
+                name = "" if dialect == "calculix" else f", NAME=LAYER{k + 1}"
+                f.write(f"** ---- layer {k + 1}: remove later layers, weld to plate, apply eps*\n"
+                        f"*STEP{name}{inc}\n" + static)
+                if len(present) > 1:
+                    f.write("*MODEL CHANGE, TYPE=ELEMENT, REMOVE\n" if dialect == "calculix" else "*MODEL CHANGE, REMOVE\n")
+                    f.write("\n".join(f"L{q + 1}" for q in present[1:]) + "\n")
+                f.write("*BOUNDARY\nPLATE, 1, 3, 0.0\n")
+            else:
+                # Two steps per layer: birth (nothing else changes) then eps*.
+                # CalculiX makes born elements strain-free at the *end* of their
+                # birth step, so loading in the same step would be absorbed.
+                name = "" if dialect == "calculix" else f", NAME=ADD{k + 1}"
+                f.write(f"** ---- layer {k + 1}: strain-free birth\n*STEP{name}{inc}\n" + static)
+                f.write("*MODEL CHANGE, TYPE=ELEMENT, ADD=STRAIN FREE\n" if dialect == "calculix"
+                        else "*MODEL CHANGE, ADD=STRAIN FREE\n")
+                f.write(f"L{k + 1}\n")
+                # CalculiX initialises newly activated nodes by extrapolating the
+                # temperature field; pin them to 0 so eps* starts from zero.
+                f.write(f"*TEMPERATURE\nNEW{k + 1}, 0.0\n" + out + "*END STEP\n")
+                name = "" if dialect == "calculix" else f", NAME=LAYER{k + 1}"
+                f.write(f"** ---- layer {k + 1}: inherent strain\n*STEP{name}{inc}\n" + static)
+            f.write(f"*TEMPERATURE\nNL{k + 1}, 1.0\n")
+            f.write(out + "*END STEP\n")
+        name = "" if dialect == "calculix" else ", NAME=REMOVAL"
+        f.write(f"** ---- removal from the build plate (3-2-1 support)\n*STEP{name}\n" + static)
+        f.write("*BOUNDARY, OP=NEW\n")
+        for node, comps in am.three_two_one():
+            f.write(f"{node + 1}, {min(comps) + 1}, {max(comps) + 1}\n" if comps != (0, 2)
+                    else f"{node + 1}, 1, 1\n{node + 1}, 3, 3\n")
+        f.write(out + "*END STEP\n")
+
+    text = f.getvalue()
+    with open(path, "w") as fh:
+        fh.write(text)
+    return path
