@@ -57,6 +57,19 @@ development container had no GPU). The code uses only NumPy-compatible CuPy APIs
 run `pytest` with `TPMSFEM_BACKEND=cupy` and report results. Abaqus decks have been
 validated through CalculiX but not run in Abaqus itself.
 
+### Against published results (Barsoum and El-Rich groups)
+
+[docs/literature_benchmarks.md](docs/literature_benchmarks.md) re-implements published TPMS
+results from the paper text and compares them:
+
+* **Van Viet, Zaki & El-Rich, PLoS One 2025** (graded gyroid femur/cranial implants): all four
+  stiffnesses stated in the paper are reproduced within **-1.1 % to +3.2 %**.
+* **Ahmed, Barsoum & Abu Al-Rub, Metals 2022** (IN718 TPMS lattices):
+  * Periodic-cell moduli match the literature values their Table 3 lists, to within a few
+    percent for IWP-S and IWP-L and 4-12 % for P-S.
+  * Their 3x3x3 Ansys moduli are 14-70 % below ours. The page analyses why (unstated boundary
+    conditions, cell phase, slope extraction) and runs the residual-stress trend study.
+
 ## Install
 
 ```bash

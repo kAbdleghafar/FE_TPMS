@@ -54,7 +54,7 @@ TOPOLOGIES = {
 # voxels per 10 mm cell, chosen so the finest grid has >= ~3.5 voxels across the
 # thinnest wall while keeping the CPU memory of the AMG solver below ~10 GB
 RES_FINITE = {0.10: (40, 60, 90), 0.20: (28, 42, 63), 0.30: (24, 36, 54)}
-RES_FINITE_FULL = {0.10: (32, 48, 72), 0.20: (24, 36, 54), 0.30: (20, 30, 45)}   # gyroid (no symmetry)
+RES_FINITE_FULL = {0.10: (32, 48, 64), 0.20: (24, 36, 48), 0.30: (20, 30, 40)}   # gyroid (no symmetry, full model)
 RES_PERIODIC = {0.10: (48, 72, 108), 0.20: (40, 60, 90), 0.30: (32, 48, 72)}
 
 
@@ -84,7 +84,7 @@ def run_finite(topo, rho, n, solver):
     if sym:
         md.fix(np.flatnonzero(x > 15 - 1e-9), (0,), 0.0)
         md.fix(np.flatnonzero(y > 15 - 1e-9), (1,), 0.0)
-    if solver == "auto" and md.ndof > 2_200_000:
+    if solver == "auto" and md.ndof > 2_500_000:
         solver = "pcg"          # assembled AMG would exceed ~10 GB on the CPU; matrix-free Jacobi-PCG
     info = md.solve(solver=solver)
     F = md.reactions()[top, 2].sum() * (4 if sym else 1)
@@ -125,21 +125,38 @@ def compute(config, store, topos, rhos, solver):
 
 
 def summarize(store, config, topos, rhos):
+    """Per case: raw values on the three grids, values corrected to the target
+    relative density, and the Richardson extrapolation of the corrected values.
+
+    Voxelisation changes the volume fraction by a few 0.1 % from grid to grid
+    (e.g. 0.101 / 0.105 / 0.102 for a 10 % target); that alone moves a lattice
+    modulus by ~n x the same fraction. Each grid value is therefore scaled to
+    the target density with the local Gibson-Ashby exponent of that topology
+    (E ~ rho^n, n from a fit of the raw finest-grid values) before extrapolation.
+    """
     rows = {}
     for topo in topos:
+        cases = {}
         for rho in rhos:
             if config == "finite":
                 res = (RES_FINITE if TOPOLOGIES[topo][3] else RES_FINITE_FULL)[rho]
             else:
                 res = RES_PERIODIC[rho]
             vals = [store.get(f"{config}|{topo}|{rho:.2f}|{n}") for n in res]
-            if any(v is None for v in vals):
-                continue
-            h = [L / n for n in res][::-1]                       # fine -> coarse
-            f = [v["E_rel"] for v in vals][::-1]
-            rows[(topo, rho)] = dict(fine=f[0], rich=richardson(h, f), vf=vals[-1]["vf"],
+            if all(v is not None for v in vals):
+                cases[rho] = (res, vals)
+        if len(cases) >= 2:
+            _, n_exp = power_fit([v[1][-1]["vf"] for v in cases.values()], [v[1][-1]["E_rel"] for v in cases.values()])
+        else:
+            n_exp = 1.5
+        for rho, (res, vals) in cases.items():
+            h = [L / n for n in res][::-1]                                   # fine -> coarse
+            raw = [v["E_rel"] for v in vals][::-1]
+            corr = [v["E_rel"] * (rho / v["vf"]) ** n_exp for v in vals][::-1]
+            rows[(topo, rho)] = dict(fine=corr[0], rich=richardson(h, corr), vf=vals[-1]["vf"], n_exp=n_exp,
                                      elements=vals[-1]["elements"],
-                                     grids=" / ".join(f"{v['E_rel']:.4f}" for v in vals))
+                                     grids=" / ".join(f"{x:.4f}" for x in corr[::-1]),
+                                     raw=" / ".join(f"{x:.4f}" for x in raw[::-1]))
     return rows
 
 
@@ -150,7 +167,7 @@ def report(store, topos, rhos):
         if not rows:
             continue
         lines.append(f"\n### {'3x3x3 specimen (paper set-up)' if config == 'finite' else 'periodic unit cell'}\n")
-        lines.append("| topology | rho | E/E0 on 3 grids | E/E0 best | uncertainty | published | diff |")
+        lines.append("| topology | rho | E/E0 on 3 grids (density-corrected) | E/E0 best | uncertainty | published | diff |")
         lines.append("|---|---:|---|---:|---:|---:|---:|")
         fits = {}
         for topo in topos:

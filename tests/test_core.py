@@ -165,3 +165,22 @@ def test_network_upper_side_density_and_topology():
     assert (lat(X, Y, Z) < 0).mean() == pytest.approx(0.2, abs=0.01)
     pt = lambda *p: float(lat(*(np.array([v]) for v in p))[0])
     assert pt(0.0, 0.0, 0.0) < 0 and pt(0.5, 0.5, 0.5) < 0 and pt(0.5, 0.0, 0.0) > 0
+
+
+def test_save_load_state_roundtrip():
+    mat = tf.Material("j2", 200_000.0, 0.3, yield_stress=300.0, hardening=5_000.0)
+    m = voxelize(box((0, 0, 0), (2, 1, 1)), (0, 0, 0), (2, 1, 1), 0.5)
+    md = tf.SolidModel(m, mat)
+    x, y, z = m.points.T
+    md.fix(np.flatnonzero(x < 1e-9))
+    md.fix(np.flatnonzero(x > 2 - 1e-9), (0,), 0.01)
+    md.solve(n_inc=2, solver="direct")
+    st = md.save_state()
+    u_ref, ep_ref = md.displacement().copy(), md.plastic_strain()[1].copy()
+    md.fix(np.flatnonzero(x > 2 - 1e-9), (0,), -0.01)
+    md.solve(n_inc=4, solver="direct")
+    md.load_state(st)
+    assert np.allclose(md.displacement(), u_ref) and np.allclose(md.plastic_strain()[1], ep_ref)
+    md.fix(np.flatnonzero(x > 2 - 1e-9), (0,), 0.01)      # same target as the saved state
+    info = md.solve(solver="direct")
+    assert info.newton_iterations == [0]                  # already in equilibrium

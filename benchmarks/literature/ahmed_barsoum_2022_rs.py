@@ -18,7 +18,6 @@ Steps per topology (rho = 30 %, quarter model of the 3x3x3 specimen):
     python benchmarks/literature/ahmed_barsoum_2022_rs.py [--n 24] [--layer-voxels 2]
 """
 import argparse
-import copy
 import json
 import os
 import sys
@@ -93,12 +92,11 @@ def run(topo, rho, n, layer_voxels, eps_star, verbose):
     res["rs_vm_p50"], res["rs_vm_p95"] = float(np.percentile(vm, 50)), float(np.percentile(vm, 95))
     res["rs_plastic_fraction"] = float((alpha.mean(axis=1) > 0).mean())
     res["build_seconds"] = time.perf_counter() - t0
-    md._cache = {}
-    built = copy.deepcopy(md)
+    built = md.save_state()
     for sign, label in ((+1, "tension"), (-1, "compression")):
         t0 = time.perf_counter()
-        m2 = md if sign > 0 else built
-        e, s = test_curve(m2, top, sign)
+        md.load_state(built)
+        e, s = test_curve(md, top, sign)
         res[f"E_{label}_RS"] = float(np.polyfit(e, s, 1)[0]) / IN718_EP.E
         res[f"curve_{label}_RS"] = [e.tolist(), s.tolist()]
         print(f"{topo} rho={rho} {label + '_RS':16s}: E/E0 = {res[f'E_{label}_RS']:.5f}  "

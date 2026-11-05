@@ -37,6 +37,7 @@ class StepInfo:
     converged: bool
     increments: int
     newton_iterations: list = field(default_factory=list)
+    cutbacks: int = 0
     krylov_iterations: int = 0
     residuals: list = field(default_factory=list)
     seconds: float = 0.0
@@ -122,6 +123,8 @@ class SolidModel:
             self.theta = xp.ones((self.ne, self.nq), dtype=dtype)
             self.theta_bar = z(self.ne, self.nq)
             self.nrm = z(self.ne, self.nq, 6)
+            self._theta_el = xp.ones((self.ne, self.nq), dtype=dtype)    # elastic predictor
+            self._theta_bar_el = z(self.ne, self.nq)
         self.active_host = np.ones(self.ne, bool)
         self.active = xp.ones(self.ne, dtype=dtype)
 
@@ -370,6 +373,30 @@ class SolidModel:
     def clear_loads(self):
         self.f_ext_target[:] = 0.0
 
+    _STATE = ("u", "sig", "eps_ref", "eig_dir", "eig_target", "eig_applied", "eig_cur", "active",
+              "active_host", "fixed_host", "u_bc_target", "f_ext_target", "f_ext_applied", "f_int",
+              "eps_p", "alpha", "eps_p_t", "alpha_t", "theta", "theta_bar", "nrm")
+
+    def save_state(self) -> dict:
+        """Copy of the full mechanical state (displacements, stresses, plastic
+        history, element activity, loads and constraints) -- e.g. to run several
+        load cases from one as-built residual-stress state, or to checkpoint."""
+        out = {}
+        for k in self._STATE:
+            v = getattr(self, k, None)
+            out[k] = None if v is None else v.copy()
+        out["_has_eig"] = self._has_eig
+        return out
+
+    def load_state(self, state: dict):
+        """Restore a state captured with :meth:`save_state`."""
+        for k in self._STATE:
+            if k in state and hasattr(self, k):
+                v = state[k]
+                setattr(self, k, None if v is None else v.copy())
+        self._has_eig = state.get("_has_eig", self._has_eig)
+        self._version += 1          # constraints/activity may differ: rebuild cached solvers
+
     def reset_state(self):
         """Return to the unloaded, stress-free initial state (keeps mesh,
         materials, constraints and the cached preconditioner) -- e.g. to run
@@ -510,9 +537,11 @@ class SolidModel:
 
     def solve(self, n_inc: int = 1, tol: float = 1e-6, max_iter: int = 30,
               solver: str = "auto", lin_rtol: Optional[float] = None, verbose: bool = False,
-              name: str = "") -> StepInfo:
+              name: str = "", max_cutbacks: int = 6) -> StepInfo:
         """Ramp loads/BCs/eigenstrains from their applied to their target values
-        in ``n_inc`` increments and find equilibrium (Newton-Raphson).
+        in ``n_inc`` increments and find equilibrium (Newton-Raphson). An
+        increment that does not converge is restarted with half the size
+        (up to ``max_cutbacks`` times).
 
         solver: ``pcg`` (matrix-free Jacobi-PCG, GPU), ``amg`` (pyamg-
         preconditioned CG, CPU), ``direct`` (sparse LU, CPU) or ``auto``.
@@ -540,8 +569,10 @@ class SolidModel:
         ub1 = xp.where(fixed_dev, self.u_bc_target, self.u)
         scale = float(self.mu.max()) * float(np.mean(np.ptp(self.mesh.points, axis=0))) ** 2
         info = StepInfo(False, n_inc, solver=solver)
-        for inc in range(1, n_inc + 1):
-            t = inc / n_inc
+        t_done, dt, cutbacks = 0.0, 1.0 / n_inc, 0
+        while t_done < 1.0 - 1e-12:
+            t = min(1.0, t_done + dt)
+            u_start = self.u.copy()
             fext = f0 + t * (f1 - f0)
             self.eig_cur = e0 + t * (e1 - e0)
             self.u = xp.where(fixed_dev, ub0 + t * (ub1 - ub0), self.u)
@@ -557,23 +588,46 @@ class SolidModel:
                           self._force_scale, 1e-14 * scale)
                 info.residuals.append(nR / ref)
                 if verbose:
-                    print(f"  [{name}] inc {inc}/{n_inc} it {it}: |R|/ref = {nR / ref:.3e}")
+                    print(f"  [{name}] t={t:.4f} it {it}: |R|/ref = {nR / ref:.3e}")
                 if nR <= tol * ref:
                     converged = True
                     break
-                if it == max_iter:
+                if it == max_iter or not np.isfinite(nR):
                     break
+                # First iteration of an increment: elastic predictor. The residual
+                # is evaluated with the new boundary values imposed, where
+                # elements next to a loaded boundary see a spurious strain jump
+                # and look plastic, and on unloading the last plastic tangent is
+                # nearly singular for small hardening; either way Newton can
+                # cycle. The consistent tangent takes over from iteration 1.
+                swap = self.plastic and it == 0
+                if swap:
+                    saved = (self.theta, self.theta_bar)
+                    self.theta, self.theta_bar = self._theta_el, self._theta_bar_el
                 du, kinfo = self._solve_linear(R, solver, free_host, free_dev, lin_rtol)
+                if swap:
+                    self.theta, self.theta_bar = saved
                 info.krylov_iterations += kinfo.iterations
                 if not kinfo.converged and verbose:
                     print(f"  [{name}] warning: linear solver stopped at rel. residual {kinfo.rel_residual:.2e}")
                 self.u = self.u + du
             info.newton_iterations.append(it)
             if not converged:
-                info.seconds = time.perf_counter() - t_start
-                raise RuntimeError(f"Newton did not converge in step {name!r}: {info}")
+                # automatic cut-back: restart the increment from its initial state
+                self.u = u_start
+                if cutbacks >= max_cutbacks:
+                    info.seconds = time.perf_counter() - t_start
+                    raise RuntimeError(f"Newton did not converge in step {name!r}: {info}")
+                cutbacks += 1
+                dt *= 0.5
+                if verbose:
+                    print(f"  [{name}] cut-back {cutbacks}: increment {dt:.4g}")
+                continue
             self._commit()
             self.f_int = fint
+            t_done = t
+        info.increments = len(info.newton_iterations)
+        info.cutbacks = cutbacks
         self.f_ext_applied = f1
         self.eig_applied = e1
         self.eig_cur = self.eig_applied
@@ -588,6 +642,7 @@ class SolidModel:
             self.alpha, self.alpha_t = self.alpha_t, self.alpha
             self.eps_p_t[...] = self.eps_p
             self.alpha_t[...] = self.alpha
+
 
     # ======================================================================
     # results (host arrays)
