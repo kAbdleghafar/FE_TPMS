@@ -75,7 +75,9 @@ class SolidModel:
         xi, w, N, _ = reference(ct)
         self.nq = len(w)
         self.Nq = N                                            # (nq, nn) host
-        self.chunk = chunk_size or max(1024, int(2_000_000 // (self.nq * self.nn)))
+        # chunk temporaries: ~2M qp-values on CPU (cache), ~32M on GPU (fewer kernel launches)
+        budget = 32_000_000 if on_gpu() else 2_000_000
+        self.chunk = chunk_size or max(1024, int(budget // (self.nq * self.nn)))
 
         # --- geometry ---------------------------------------------------------
         self.shared = mesh.is_voxel
@@ -495,7 +497,7 @@ class SolidModel:
         if solver == "auto":
             if on_gpu():
                 solver = "pcg"
-            elif self.ndof <= 60_000:
+            elif self.ndof <= 15_000:
                 solver = "direct"
             else:
                 try:

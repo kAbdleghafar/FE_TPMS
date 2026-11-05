@@ -1,0 +1,126 @@
+# tpmsfem
+
+**Open-source, GPU-accelerated finite element analysis of TPMS lattice implants:
+stress/strain under physiological loads and additive-manufacturing residual stress,
+with interfaces to open-source meshers and a code-to-code benchmarking workflow
+against commercial solvers.**
+
+```
+implicit TPMS geometry ──► voxel hex8 mesher ─────────────┐
+ (gyroid, diamond, P, IWP,   (GPU classification)          │
+  graded density, implants) ─► marching cubes ─► Gmsh /     ├─► matrix-free FE solver ─► VTU (ParaView)
+                                 TetGen / fTetWild (tet4/10)│    NumPy | CuPy (CUDA)   ─► Abaqus / CalculiX deck
+ any .msh/.inp/.vtu/.med via meshio ───────────────────────┘    elastic | J2 plastic   ─► benchmark metrics
+                                                                 element birth + eigenstrain (LPBF)
+```
+
+| | |
+|---|---|
+| Geometry | Gyroid, Schwarz-P, diamond, IWP, Neovius, FKS; sheet or network; density-calibrated and functionally graded; composable SDF booleans; parametric femoral stem (lattice core / porous coating) and acetabular cup |
+| Meshing | Built-in voxel (hex8) mesher with island removal and GPU classification; marching cubes → **Gmsh**, **TetGen**, **fTetWild** (tet4/tet10); anything **meshio** reads |
+| Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
+| Physics | Small-strain elasticity; J2 plasticity with linear isotropic hardening (radial return + consistent tangent); eigenstrains (thermal / inherent strain); element birth (strain-free activation) |
+| Residual stress | LPBF **inherent-strain layer-by-layer** build + build-plate removal (3-2-1 support) → residual stress and distortion |
+| Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes), Jacobi-PCG on CPU **or GPU**; AMG (pyamg) or sparse direct on CPU; Newton–Raphson for plasticity |
+| Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
+
+## Status: what is verified
+
+All numbers are reproducible with `pytest` and the scripts in `examples/`.
+
+**Code vs. mathematics** (`tests/test_verification.py`)
+
+| test | result |
+|---|---|
+| Patch test, distorted hex8 (standard and B-bar), tet4, tet10 | exact to round-off |
+| Lamé thick sphere under pressure, Gmsh tet10 | max radial-displacement error 0.53 % |
+| Hill elastic–perfectly-plastic thick sphere (J2, 5 increments) | outer displacement error 0.07 % |
+| Uniaxial J2 with linear hardening, then elastic unloading | exact (1e-6) |
+| Bilayer strip with eigenstrain (curvature) | 0.78 % |
+| Clamped / free body with eigenstrain | exact |
+| Cantilever, voxel hex8 (h = L/40 → L/80) | 4.3 % → 1.6 % (shear locking of linear hexes, converging) |
+
+**Code vs. code** (`examples/04_benchmark_vs_calculix.py`, CalculiX 2.21, identical decks)
+
+| case | element | dofs | U rel-L2 | S rel-L2 | von Mises p99 |
+|---|---|---:|---:|---:|---:|
+| gyroid sheet lattice, compression + shear | hex8 | 127,941 | 8.6e-07 | 5.2e-08 | identical |
+| lattice-core femoral stem, ISO 7206-4 load | hex8 | 132,930 | 1.4e-06 | 5.1e-08 | identical |
+| porous cup, **LPBF layer-by-layer + plate removal** | hex8 | 52,008 | 1.7e-06 | 7.3e-08 | identical |
+| thick sphere under pressure | tet10 | 46,329 | 1.2e-06 | 3.7e-08 | identical |
+
+(1e-6 is the precision floor of CalculiX' `.frd` output.) The Abaqus decks for the same
+cases are written next to the CalculiX ones; see [docs/benchmarking.md](docs/benchmarking.md).
+
+**Not yet verified:** the CuPy (GPU) path has not been executed by the authors yet (the
+development container had no GPU). The code uses only NumPy-compatible CuPy APIs; please
+run `pytest` with `TPMSFEM_BACKEND=cupy` and report results. Abaqus decks have been
+validated through CalculiX but not run in Abaqus itself.
+
+## Install
+
+```bash
+pip install -e ".[dev]"            # CPU: numpy/scipy + meshers, AMG, pytest
+pip install cupy-cuda12x           # GPU (CUDA 12); then TPMSFEM_BACKEND=cupy
+sudo apt install calculix-ccx      # optional: open-source reference solver
+```
+
+Gmsh's wheel needs `libglu1-mesa` (and X libs) on minimal Linux images.
+
+## Quick start
+
+```python
+import numpy as np
+import tpmsfem as tf
+from tpmsfem.geometry import TPMS, lattice_cube
+from tpmsfem.mesh import voxelize
+from tpmsfem.fem.materials import TI6AL4V_LPBF
+from tpmsfem.post import save_vtu
+
+lat  = TPMS("gyroid", cell_size=4.0, kind="sheet", density=0.3)       # or density=lambda x,y,z: ...
+mesh = voxelize(lattice_cube(lat, 8.0), (0, 0, 0), (8, 8, 8), h=0.1)  # GPU-classified voxels
+md   = tf.SolidModel(mesh, TI6AL4V_LPBF.elastic())
+
+z = mesh.points[:, 2]
+md.fix(np.flatnonzero(z < 1e-9))                                      # clamp bottom
+md.fix(np.flatnonzero(z > 8 - 1e-9), (2,), -0.008)                    # 0.1 % compression
+info = md.solve()                                                     # pcg on GPU, amg/direct on CPU
+save_vtu(md, "gyroid.vtu")
+```
+
+Residual stress from LPBF:
+
+```python
+from tpmsfem.residual.am import AMProcess
+am = AMProcess(md, layer_height=0.5, inherent_strain=(-4e-3, -4e-3, -2e-3, 0, 0, 0))  # calibrate!
+am.build()               # layer-by-layer, welded to the plate
+am.remove_from_plate()   # spring-back, final residual stress
+```
+
+## Examples
+
+| script | what it does |
+|---|---|
+| `examples/01_tpms_effective_stiffness.py` | E_eff vs. density for gyroid/diamond/P sheets, Gibson–Ashby fit, mesh-convergence GCI |
+| `examples/02_femoral_stem_iso7206.py` | solid vs. lattice-core stem under ISO 7206-4-style load: stiffness (stress shielding), stress percentiles, Abaqus/CalculiX decks |
+| `examples/03_cup_am_residual_stress.py` | porous cup built rim-down: layer history, residual stress on/off plate, rim out-of-roundness & flatness; `--plastic` for J2 |
+| `examples/04_benchmark_vs_calculix.py` | the code-to-code benchmark above; writes Abaqus decks + our results for commercial comparison |
+| `benchmarks/perf_scaling.py` | matrix-free throughput and solve time vs. size, per backend (CPU/GPU) |
+
+## Documentation
+
+* [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
+* [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
+* [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
+
+## Limitations (read before using results for design decisions)
+
+* Small strain, quasi-static, isotropic materials. The material presets are typical
+  literature values. Replace them with data from your as-built material.
+* Inherent strains must be **calibrated** (e.g. cantilever/bridge distortion tests); the defaults are illustrative.
+* Voxel meshes have stair-stepped surfaces: single-element stress maxima are mesh-dependent.
+  Report percentiles, and use tet10 meshes of the smoothed surface for hot-spot or fatigue assessment.
+  Use at least 4 voxels across the thinnest wall and check with a GCI study.
+* Jacobi-PCG iteration counts grow with model size. Geometric multigrid is the main item on the roadmap.
+
+License: Apache-2.0
