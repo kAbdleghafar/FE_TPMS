@@ -57,8 +57,12 @@ if __name__ == "__main__":
     ap.add_argument("--rho", type=float, default=0.3)
     ap.add_argument("--n", type=int, default=24, help="voxels per cell; the secant/initial RATIO is what is used")
     a = ap.parse_args()
-    res = {}
+    out = "results/literature/ahmed_barsoum_2022_secant.json"
+    res = json.load(open(out)) if os.path.exists(out) else {}          # resumable
     for topo in a.topologies.split(","):
+        if topo in res:
+            print(f"{topo}: cached", flush=True)
+            continue
         t0 = time.perf_counter()
         ne, pts = curve(topo, a.rho, a.n)
         e = np.array([p[0] for p in pts])
@@ -73,5 +77,5 @@ if __name__ == "__main__":
                          curve=[list(p) for p in pts], seconds=time.perf_counter() - t0)
         print(f"==> {topo}: initial E/E0 {E0:.4f}; secant/initial " +
               ", ".join(f"{k}: {v:.3f}" for k, v in ratio.items()) + f"; published E/E0 {pub:.4f}", flush=True)
-    os.makedirs("results/literature", exist_ok=True)
-    json.dump(res, open("results/literature/ahmed_barsoum_2022_secant.json", "w"), indent=1)
+        os.makedirs("results/literature", exist_ok=True)
+        json.dump(res, open(out, "w"), indent=1)

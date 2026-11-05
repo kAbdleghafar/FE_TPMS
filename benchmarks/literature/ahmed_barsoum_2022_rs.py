@@ -118,9 +118,14 @@ if __name__ == "__main__":
     a = ap.parse_args()
     eps = tuple(float(v) for v in a.eps.split(",")) + (0.0, 0.0, 0.0)
     print(tf.device_info(), flush=True)
-    allres = {}
+    allres = json.load(open(a.out)) if os.path.exists(a.out) else {}     # resumable
     for topo in a.topologies.split(","):
+        if topo in allres:
+            print(f"{topo}: cached", flush=True)
+            continue
         allres[topo] = run(topo, a.rho, a.n, a.layer_voxels, eps, a.verbose)
+        os.makedirs(os.path.dirname(a.out), exist_ok=True)
+        json.dump(allres, open(a.out, "w"), indent=1)
         r = allres[topo]
         print(f"==> {topo}: modulus reduction from residual stress: tension {100 * r['reduction_tension']:.1f} %, "
               f"compression {100 * r['reduction_compression']:.1f} % (RS von Mises p95 {r['rs_vm_p95']:.0f} MPa, "

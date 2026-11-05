@@ -54,7 +54,9 @@ TOPOLOGIES = {
 # voxels per 10 mm cell, chosen so the finest grid has >= ~3.5 voxels across the
 # thinnest wall while keeping the CPU memory of the AMG solver below ~10 GB
 RES_FINITE = {0.10: (40, 60, 90), 0.20: (28, 42, 63), 0.30: (24, 36, 54)}
-RES_FINITE_FULL = {0.10: (32, 48, 64), 0.20: (24, 36, 48), 0.30: (20, 30, 40)}   # gyroid (no symmetry, full model)
+# gyroid: no mirror symmetry -> full model; grids limited by CPU memory (finest 10 % grid has
+# only ~1.5 voxels across the wall and is flagged as under-resolved in the report)
+RES_FINITE_FULL = {0.10: (32, 40, 48), 0.20: (28, 34, 40), 0.30: (24, 30, 36)}
 RES_PERIODIC = {0.10: (48, 72, 108), 0.20: (40, 60, 90), 0.30: (32, 48, 72)}
 
 
