@@ -133,6 +133,7 @@ class SolidModel:
         self.f_int = z(self.ndof)
 
         self._version = 0
+        self._force_scale = 0.0
         self._cache = {}
         self.history = []
         self._precompute_reference_stiffness()
@@ -220,6 +221,7 @@ class SolidModel:
         """Assemble f_int(u) and update the trial material state."""
         xp = self.xp
         f = xp.zeros(self.ndof, dtype=self.dtype)
+        fabs = xp.zeros(self.ndof, dtype=self.dtype)
         for sl in self._chunks():
             eps = self._elem_strain(u[self.dofs[sl]], sl)
             if self.eps_ref is not None:
@@ -241,6 +243,10 @@ class SolidModel:
             self.sig[sl] = sig
             fe = self._elem_force_from_stress(sig, sl)
             f += scatter_add(self.ndof, self.dofs[sl], fe)
+            fabs += scatter_add(self.ndof, self.dofs[sl], xp.abs(fe))
+        # force scale that does not cancel (cf. Abaqus' time-averaged force):
+        # used as convergence reference when f_int and f_ext vanish
+        self._force_scale = float(xp.linalg.norm(fabs))
         return f
 
     def tangent(self, v):
@@ -281,7 +287,7 @@ class SolidModel:
         xp = self.xp
         sp = sparse_module()
         nd = 3 * self.nn
-        rows, cols, vals = [], [], []
+        K = None
         for sl in self._chunks():
             dofs = self.dofs[sl]
             nc = dofs.shape[0]
@@ -300,12 +306,12 @@ class SolidModel:
                 if saved is not None:
                     self.theta[sl], self.theta_bar[sl] = saved
             Ke *= self.active[sl][:, None, None]
-            rows.append(xp.broadcast_to(dofs[:, :, None], (nc, nd, nd)).ravel())
-            cols.append(xp.broadcast_to(dofs[:, None, :], (nc, nd, nd)).ravel())
-            vals.append(Ke.ravel())
-        K = sp.coo_matrix((xp.concatenate(vals), (xp.concatenate(rows), xp.concatenate(cols))),
-                          shape=(self.ndof, self.ndof))
-        return K.tocsr()
+            rows = xp.broadcast_to(dofs[:, :, None], (nc, nd, nd)).ravel()
+            cols = xp.broadcast_to(dofs[:, None, :], (nc, nd, nd)).ravel()
+            # sum chunk by chunk: peak memory ~ one chunk of COO triplets + the CSR
+            Kc = sp.coo_matrix((Ke.ravel(), (rows, cols)), shape=(self.ndof, self.ndof)).tocsr()
+            K = Kc if K is None else K + Kc
+        return K
 
     # ======================================================================
     # boundary conditions, loads, eigenstrains, activation
@@ -363,6 +369,25 @@ class SolidModel:
 
     def clear_loads(self):
         self.f_ext_target[:] = 0.0
+
+    def reset_state(self):
+        """Return to the unloaded, stress-free initial state (keeps mesh,
+        materials, constraints and the cached preconditioner) -- e.g. to run
+        several load cases on the same model."""
+        self.u[:] = 0.0
+        self.sig[:] = 0.0
+        self.f_int[:] = 0.0
+        self.f_ext_target[:] = 0.0
+        self.f_ext_applied[:] = 0.0
+        self.eig_dir[:] = 0.0
+        self.eig_target[:] = 0.0
+        self.eig_applied = self.xp.zeros_like(self.eig_target)
+        self.eig_cur = self.eig_applied
+        self.eps_ref = None
+        if self.plastic:
+            for a in (self.eps_p, self.alpha, self.eps_p_t, self.alpha_t, self.theta_bar, self.nrm):
+                a[:] = 0.0
+            self.theta[:] = 1.0
 
     def set_eigenstrain(self, cells, eps6, scale=1.0):
         """Eigenstrain (thermal/inherent strain) tensor(s) [xx,yy,zz,yz,xz,xy] on
@@ -528,7 +553,8 @@ class SolidModel:
                 nR = float(xp.linalg.norm(R))
                 if it == 0:
                     R0 = nR   # e.g. released reactions: f_int -> 0 at equilibrium after removal
-                ref = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0, 1e-14 * scale)
+                ref = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0,
+                          self._force_scale, 1e-14 * scale)
                 info.residuals.append(nR / ref)
                 if verbose:
                     print(f"  [{name}] inc {inc}/{n_inc} it {it}: |R|/ref = {nR / ref:.3e}")

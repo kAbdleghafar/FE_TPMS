@@ -4,7 +4,10 @@ Each surface is the zero set of a periodic function ``f(X, Y, Z)`` with
 ``X = 2*pi*x/L``. Two solid variants are supported:
 
 * ``"sheet"``   (matrix / shell lattice): solid where ``|f| < c``
-* ``"network"`` (skeletal / strut-like):  solid where ``f < c``
+* ``"network"`` (skeletal / ligament):    solid where ``f < c`` (``side="lower"``)
+  or ``f > c`` (``side="upper"``). For the asymmetric I-WP the two sides are
+  different lattices: ``upper`` is the body-centred "I" labyrinth (ligaments
+  along the cube diagonals), ``lower`` the "WP" labyrinth.
 
 The level ``c`` is set directly or, more usefully, from a target *relative
 density* (scalar or a spatial function for functionally graded lattices); a
@@ -92,8 +95,11 @@ def density_table(surface: str, kind: str, n_levels: int = 201):
         elif kind == "network":
             levels = np.linspace(-fmax, fmax, n_levels)
             rho = np.array([(vals < c).mean() for c in levels])
+        elif kind == "network_upper":          # solid where f > c: store as a function of -c
+            levels = np.linspace(-fmax, fmax, n_levels)
+            rho = np.array([(vals > -c).mean() for c in levels])
         else:
-            raise ValueError("kind must be 'sheet' or 'network'")
+            raise ValueError("kind must be 'sheet', 'network' or 'network_upper'")
         # typical |grad f| near the surface, used to turn f into ~distance
         near = np.abs(vals) < 0.15 * fmax
         g0 = float(np.mean(grad[near])) if near.any() else 1.0
@@ -102,15 +108,20 @@ def density_table(surface: str, kind: str, n_levels: int = 201):
 
 
 def level_for_density(surface: str, kind: str, rho):
-    """Level ``c`` giving relative density ``rho`` (array-friendly, host side)."""
+    """Level ``c`` giving relative density ``rho`` (array-friendly, host side).
+
+    For ``kind="network_upper"`` (solid where f > c) the returned value is the
+    actual level ``c``."""
     levels, dens, _ = density_table(surface, kind)
     rho = np.clip(np.asarray(rho, float), dens[0] + 1e-6, dens[-1] - 1e-6)
-    return np.interp(rho, dens, levels)
+    c = np.interp(rho, dens, levels)
+    return -c if kind == "network_upper" else c
 
 
 def relative_density(surface: str, kind: str, level: float) -> float:
     levels, dens, _ = density_table(surface, kind)
-    return float(np.interp(level, levels, dens))
+    x = -level if kind == "network_upper" else level
+    return float(np.interp(x, levels, dens))
 
 
 class TPMS(Field):
@@ -131,9 +142,13 @@ class TPMS(Field):
     def __init__(self, surface: str = "gyroid", cell_size=3.0, kind: str = "sheet",
                  density: Optional[Union[float, Callable]] = 0.3,
                  level: Optional[Union[float, Callable]] = None,
-                 origin=(0.0, 0.0, 0.0), rotation=None):
+                 origin=(0.0, 0.0, 0.0), rotation=None, side: str = "lower"):
         if surface not in SURFACES:
             raise KeyError(f"unknown TPMS {surface!r}; choose from {sorted(SURFACES)}")
+        if kind == "network" and side == "upper":
+            kind = "network_upper"
+        elif side not in ("lower", "upper"):
+            raise ValueError("side must be 'lower' or 'upper'")
         self.surface = surface
         self.kind = kind
         L = np.broadcast_to(np.asarray(cell_size, float), (3,)).copy()
@@ -158,7 +173,8 @@ class TPMS(Field):
             lv = xp.asarray(self._levels)
             dn = xp.asarray(self._dens)
             rho = xp.clip(rho, float(self._dens[0]) + 1e-6, float(self._dens[-1]) - 1e-6)
-            return xp.interp(rho, dn, lv)
+            c = xp.interp(rho, dn, lv)
+            return -c if self.kind == "network_upper" else c
         return float(level_for_density(self.surface, self.kind, self.density))
 
     def _eval(self, x, y, z):
@@ -174,6 +190,8 @@ class TPMS(Field):
         c = self._level_at(x, y, z)
         if self.kind == "sheet":
             phi = xp.abs(f) - c
+        elif self.kind == "network_upper":
+            phi = c - f
         else:
             phi = f - c
         return phi * self._scale

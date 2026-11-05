@@ -62,6 +62,8 @@ class Mesh:
         return self.cell_type == "hex8" and "voxel_size" in self.meta
 
     def centroids(self) -> np.ndarray:
+        if self.is_voxel and "ijk" in self.cell_data:     # exact, also for periodic meshes
+            return self.meta["origin"] + (self.cell_data["ijk"] + 0.5) * self.meta["voxel_size"]
         nc = CELL_INFO[self.cell_type]["nc"]
         return self.points[self.cells[:, :nc]].mean(axis=1)
 

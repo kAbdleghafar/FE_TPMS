@@ -1,0 +1,17 @@
+{
+  "citation": "Van Viet N., Zaki W., El-Rich M. Tuneable multidirectional mechanical attributes of novel sectionally nonlinearly functionally graded femur and cranial bone implants with triply periodic minimal surfaces. PLoS One 20(9) (2025) e0332104. doi:10.1371/journal.pone.0332104 (PMC12419660)",
+  "transcribed_from": "PMC full text: Table 1, Eqs. 1-2, Section 3 (Fig. 8, Fig. 14 descriptions), Table 2",
+  "material_Ti": {"E_GPa": 104, "nu": 0.3},
+  "method": "Abaqus, C3D10, ~45,000 elements per cell; periodic BCs; for uniaxial x/y loading the faces normal to z are free",
+  "gyroid_thickness_parameters_table1": {"tmax": 1.5, "tmin": 0.2, "tminc_eq_tmaxt": 0.5},
+  "grading": {
+    "cranial_eq1": "t = (tmax - tmin) |(z - Lz/2)/(Lz/2)|^g0 + tmin",
+    "femur_eq2": "z > Lz/2: t = (tmaxc - tminc)((z - Lz/2)/(Lz/2))^gc + tminc ; z < Lz/2: t = (tmaxt - tmint)(z/(Lz/2))^gt + tmint"
+  },
+  "reported_E_y_GPa": {
+    "cranial": {"g0=2": 25.3, "g0=7": 11.5},
+    "femur_gt2": {"gc=0.5": 35.2, "gc=7": 14.0}
+  },
+  "not_stated": ["unit-cell dimensions / number of gyroid periods per cell", "phase of the gyroid relative to the grading",
+                 "how t maps to the level set (assumed sheet |f| <= t, consistent with tmax = max|f| = 1.5 for the gyroid)"]
+}

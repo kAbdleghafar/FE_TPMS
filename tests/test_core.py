@@ -154,3 +154,14 @@ def test_cross_code_calculix_am_process(tmp_path):
     S = read_dat_stress(r["dat"], m.n_cells, 8)
     assert rel_l2(md.displacement(), U) < 1e-5
     assert rel_l2(md.stress(), S) < 1e-5
+
+
+def test_network_upper_side_density_and_topology():
+    # IWP ligament on the f > c side: body-centred "I" labyrinth (corners and centre solid)
+    lat = TPMS("iwp", cell_size=1.0, kind="network", side="upper", density=0.2)
+    n = 48
+    s = (np.arange(n) + 0.5) / n
+    X, Y, Z = np.meshgrid(s, s, s, indexing="ij")
+    assert (lat(X, Y, Z) < 0).mean() == pytest.approx(0.2, abs=0.01)
+    pt = lambda *p: float(lat(*(np.array([v]) for v in p))[0])
+    assert pt(0.0, 0.0, 0.0) < 0 and pt(0.5, 0.5, 0.5) < 0 and pt(0.5, 0.0, 0.0) > 0

@@ -1,0 +1,26 @@
+{
+  "citation": "Ahmed N., Barsoum I., Abu Al-Rub R.K. Numerical Investigation on the Effect of Residual Stresses on the Effective Mechanical Properties of 3D-Printed TPMS Lattices. Metals 2022, 12, 1344. doi:10.3390/met12081344 (CC BY 4.0)",
+  "transcribed_from": "Table 1 (p. 6), Table 2 (p. 6), Table 3 (p. 14), Sections 2.2-2.4 (pp. 6-10)",
+  "material_IN718_room_temperature": {"E0_GPa": 165, "nu0": 0.3, "yield_MPa": 648, "density_kg_m3": 8220},
+  "geometry": {"cells": [3, 3, 3], "cell_size_mm": 10, "relative_densities": [0.10, 0.20, 0.30],
+               "level_sets": {"P-S": "cos x + cos y + cos z = c", "G-S": "sin x cos y + sin y cos z + sin z cos x = c",
+                              "IWP": "2(cos x cos y + cos y cos z + cos z cos x) - (cos 2x + cos 2y + cos 2z) = c"},
+               "sheet": "c = 0 surface thickened (P-S, G-S, IWP-S)", "ligament": "IWP-L: smaller of the two domains split by the surface is solid"},
+  "mechanical_model": {"loading": "uniaxial z (build direction), displacement +-3 mm on top via remote point (10% strain)",
+                       "bottom": "symmetric BC in z on the base plane", "mesh": "tetrahedral, 0.25 mm", "software": "Ansys Workbench",
+                       "modulus": "slope of the elastic part of the stress-strain curve, stress = F / (30 mm x 30 mm)"},
+  "table3_gibson_ashby_E_over_E0": {
+    "P-S":   {"tension": [0.34, 1.45], "tension_RS": [0.26, 1.38], "compression": [0.34, 1.47], "compression_RS": [0.28, 1.46], "literature": [0.61, 1.57], "literature_ref": "Lee et al. 2017 (periodic unit cell)"},
+    "G-S":   {"tension": [0.29, 1.33], "tension_RS": [0.22, 1.25], "compression": [0.29, 1.35], "compression_RS": [0.27, 1.32], "literature": [0.51, 1.38], "literature_ref": "Al-Ketan et al. 2018 [23]"},
+    "IWP-S": {"tension": [0.36, 1.27], "tension_RS": [0.33, 1.25], "compression": [0.38, 1.33], "compression_RS": [0.36, 1.32], "literature": [0.79, 1.48], "literature_ref": "Al-Ketan et al. 2018 [26]"},
+    "IWP-L": {"tension": [0.72, 2.41], "tension_RS": [0.51, 2.40], "compression": [0.72, 2.43], "compression_RS": [0.61, 2.41], "literature": [1.28, 2.64], "literature_ref": "Al-Ketan et al. 2018 [26]"}
+  },
+  "table3_gibson_ashby_yield_over_sigma0": {
+    "P-S":   {"tension": [0.76, 1.33], "tension_RS": [0.72, 1.30], "compression": [0.74, 1.36], "compression_RS": [0.70, 1.33]},
+    "G-S":   {"tension": [0.68, 1.29], "tension_RS": [0.67, 1.29], "compression": [0.60, 1.20], "compression_RS": [0.60, 1.20]},
+    "IWP-S": {"tension": [0.76, 1.20], "tension_RS": [0.77, 1.20], "compression": [0.75, 1.20], "compression_RS": [0.76, 1.20]},
+    "IWP-L": {"tension": [1.26, 2.13], "tension_RS": [1.27, 2.13], "compression": [1.27, 2.13], "compression_RS": [1.23, 2.11]}
+  },
+  "text_findings": ["E reduction due to RS > 25% for IWP-L in tension (all densities)", "P-S > 15% reduction at higher density (tension)",
+                    "least reduction for IWP-S; nominal for G-S and IWP-S in compression", "yield strength and SEA hardly affected by RS"]
+}
