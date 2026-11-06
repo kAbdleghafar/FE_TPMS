@@ -1,0 +1,15 @@
+{
+  "benchmark": "NIST Additive Manufacturing Benchmark Test Series 2018, AMB2018-01 (IN625 bridge, EOS M270 'CBM')",
+  "pages": ["https://www.nist.gov/ambench/amb2018-01-description", "https://www.nist.gov/ambench/chal-amb2018-01-pd",
+            "https://www.nist.gov/ambench/chal-amb2018-01-rs", "https://www.nist.gov/ambench/results-chal-amb2018-01-rs-part-residual-strains"],
+  "geometry_stl": "https://s3.amazonaws.com/nist-midas/1889/AMB2018_01_Part.STL",
+  "process": {"layer_um": 20, "layers": 625, "infill_power_W": 195, "infill_speed_mm_s": 800, "hatch_um": 100, "contour_power_W": 100, "contour_speed_mm_s": 900, "scan": "x/y alternating every layer"},
+  "deflection": {"part": "AMB2018-01-625-CBM-B1-P3", "ridge1_mm": 1.276, "note": "after EDM separation of the 12 legs; full profile only in a figure"},
+  "contour": {"part": "AMB2018-01-625-CBM-B2-P3", "section": "CL7 at x = 31 mm", "stress": "sigma_xx(Y, Z)",
+              "data": "https://www.nist.gov/document/amb2018-01-625-cbm-b2-p3contourl7stressestxt",
+              "report": "https://www.nist.gov/document/20180519amb2018-01-rs-mechpdf",
+              "material_assumed_by_measurers": {"E_GPa": 207, "nu": 0.278, "Sy_MPa": "700-800"},
+              "specimen_mm": {"L": 80.72, "W": 12.19, "H": 25.35}},
+  "diffraction_data": "doi:10.18434/mds2-3052 (IN625_Neutron_Strain_Results.txt: X Z eps_yy eps_xx eps_zz; IN625_EDXRD_Strain_Results.txt: X Z eps_xx eps_zz eps_45 gamma_xz [microstrain])",
+  "measurement_paper": "Phan T.Q. et al., Integrating Materials and Manufacturing Innovation 8 (2019) 318-334, doi:10.1007/s40192-019-00149-0 (not accessible from this environment)"
+}

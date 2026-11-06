@@ -1,0 +1,18 @@
+{
+  "citation": "Naghavi S.A., Tamaddon M., Marghoub A., Wang K., Babamiri B.B., Hazeli K., Xu W., Lu X., Sun C., Wang L., Moazen M., Wang L., Li D., Liu C. Mechanical Characterisation and Numerical Modelling of TPMS-Based Gyroid and Diamond Ti6Al4V Scaffolds for Bone Implants: An Integrated Approach for Translational Consideration. Bioengineering 9(10) (2022) 504. doi:10.3390/bioengineering9100504 (CC BY, PMC9598079)",
+  "group": "Institute of Orthopaedic & Musculoskeletal Science, University College London (corresponding author C. Liu); with Xi'an Jiaotong University, USTB Beijing, U Arizona, SJTU",
+  "transcribed_from": "Table 3 (designs), Table 5 (micro-CT), Table 6 (FE and experimental moduli), Sections 2.1, 2.3.2, 2.4",
+  "solid": {"E_compression_GPa": 35.77, "E_tension_GPa": 95.06, "nu": 0.3, "note": "Gibson-Ashby fit uses Es = 35.77 GPa"},
+  "specimens_compression_mm": {"gyroid": {"D": 11.04, "H": 16.56}, "diamond": {"D": 14.05, "H": 21.08}},
+  "wall_thickness_mm": 0.3,
+  "designs": {
+    "G600": {"cell_mm": 1.808, "porosity": 0.540, "E_FE_GPa": 9.54, "E_exp_GPa": 8.46},
+    "G800": {"cell_mm": 2.208, "porosity": 0.620, "E_FE_GPa": 6.96, "E_exp_GPa": 6.81},
+    "G1000": {"cell_mm": 2.608, "porosity": 0.674, "E_FE_GPa": 5.39, "E_exp_GPa": 5.69},
+    "D800": {"cell_mm": 2.195, "porosity": 0.527, "E_FE_GPa": 10.78, "E_exp_GPa": 10.22},
+    "D900": {"cell_mm": 2.400, "porosity": 0.564, "E_FE_GPa": 9.89, "E_exp_GPa": 9.37},
+    "D1100": {"cell_mm": 2.811, "porosity": 0.622, "E_FE_GPa": 8.06, "E_exp_GPa": 7.59}
+  },
+  "FE_setup": "Abaqus 2019, C3D10, 0.065 mm (gyroid compression ~15.5 M elements), rigid platens tied, bottom encastre, top RP displaced 1 mm axially",
+  "microCT_G800": {"porosity": 0.549, "sheet_horizontal_um": 498.6, "sheet_vertical_um": 312.6}
+}

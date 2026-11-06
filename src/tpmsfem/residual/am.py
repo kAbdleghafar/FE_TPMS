@@ -59,18 +59,31 @@ class AMProcess:
     n_inc: int = 1                        # increments per layer (use >1 with plasticity)
     solver: str = "auto"
     birth_reference: str = "qp"           # "qp" | "element_mean" (CalculiX semantics, nodal mode)
+    substrate: Optional[np.ndarray] = None  # cells of an elastic build plate (present from the start)
     records: list = field(default_factory=list)
 
     def __post_init__(self):
         mesh = self.model.mesh
         z = mesh.points[:, 2]
-        self.z0 = float(z.min()) if self.z0 is None else self.z0
         if self.plate_tol is None:
             self.plate_tol = 1e-6 * float(np.ptp(mesh.points))
         zc = mesh.centroids()[:, 2]
+        is_sub = np.zeros(mesh.n_cells, bool)
+        if self.substrate is not None:
+            is_sub[np.asarray(self.substrate)] = True
+        self.is_substrate = is_sub
+        if self.z0 is None:
+            # build starts on top of the plate (or at the bottom of the part if the plate is rigid)
+            self.z0 = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].max()) if is_sub.any() else float(z.min())
         self.layer_of_cell = np.floor((zc - self.z0) / self.layer_height + 1e-9).astype(np.int64)
+        self.layer_of_cell[is_sub] = -1
         self.n_layers = int(self.layer_of_cell.max()) + 1
-        self.plate_nodes = mesh.nodes_where(lambda x, y, zz: zz <= self.z0 + self.plate_tol)
+        if is_sub.any():
+            # supports during the build: the bottom face of the (bolted) plate
+            zb = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].min())
+            self.plate_nodes = mesh.nodes_where(lambda x, y, zz: zz <= zb + self.plate_tol)
+        else:
+            self.plate_nodes = mesh.nodes_where(lambda x, y, zz: zz <= self.z0 + self.plate_tol)
         if len(self.plate_nodes) == 0:
             raise ValueError("no nodes on the build plate; check z0")
         self.removed = False
@@ -85,9 +98,12 @@ class AMProcess:
         """Simulate the layer-by-layer build (all layers by default)."""
         m = self.model
         eps = np.asarray(self.inherent_strain, float)
-        m.deactivate(np.arange(m.ne))
-        m.fix(self.plate_nodes)                        # welded to the build plate
-        m.set_eigenstrain(np.arange(m.ne), eps, scale=0.0)
+        part = np.flatnonzero(~self.is_substrate)
+        m.deactivate(part)
+        if self.is_substrate.any():
+            m.activate(np.flatnonzero(self.is_substrate), strain_free=False)
+        m.fix(self.plate_nodes)                        # welded to / bolted on the build plate
+        m.set_eigenstrain(part, eps, scale=0.0)
         theta = np.zeros(m.n_nodes)
         n = self.n_layers if layers is None else min(layers, self.n_layers)
         for k in range(n):

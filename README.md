@@ -57,20 +57,27 @@ development container had no GPU). The code uses only NumPy-compatible CuPy APIs
 run `pytest` with `TPMSFEM_BACKEND=cupy` and report results. Abaqus decks have been
 validated through CalculiX but not run in Abaqus itself.
 
-### Against published results (Barsoum and El-Rich groups)
+### Against published results
 
-[docs/literature_benchmarks.md](docs/literature_benchmarks.md) re-implements published TPMS
-results from the paper text and compares them:
+[docs/literature_benchmarks.md](docs/literature_benchmarks.md) re-implements published results from
+four independent groups and compares them:
 
-* **Van Viet, Zaki & El-Rich, PLoS One 2025** (graded gyroid femur/cranial implants): all four
-  stiffnesses stated in the paper are reproduced within **-1.1 % to +3.2 %**.
-* **Ahmed, Barsoum & Abu Al-Rub, Metals 2022** (IN718 TPMS lattices, SLM residual stress):
-  * Periodic-cell moduli match the literature values in their Table 3: IWP-S and IWP-L within
-    about 5-8 %, P-S within 4-12 %.
-  * Their 3x3x3 Ansys moduli equal our elastic-plastic secant modulus at 0.7-0.9 % strain
-    (P-S, IWP-S).
-  * The residual-stress-induced modulus loss (5-17 %) is reproduced, but not its topology
-    ranking. That needs a thermo-mechanical AM model (roadmap).
+* **Van Viet, Zaki & El-Rich (Khalifa U.), PLoS One 2025** (graded gyroid femur/cranial implants):
+  all four stiffnesses stated in the paper are reproduced within **-1.1 % to +3.2 %**.
+* **Ahmed, Barsoum & Abu Al-Rub (Khalifa U.), Metals 2022** (IN718 TPMS lattices, SLM residual stress):
+  * Periodic-cell moduli match the literature values in their Table 3 (IWP-S and IWP-L within
+    about 5-8 %, P-S within 4-12 %).
+  * Their 3x3x3 Ansys moduli equal our elastic-plastic secant modulus at 0.7-0.9 % strain.
+  * The residual-stress modulus loss is reproduced in magnitude, but not its topology ranking.
+* **NIST AM-Bench 2018** (IN625 LPBF bridge): with one inherent strain calibrated on the measured
+  deflection, the model predicts the *measured* residual stresses:
+  * contour-method σ_xx, r = 0.77 in the part and 0.85 in the plate;
+  * synchrotron ε_xx / ε_zz, r = 0.75 / 0.89;
+  * neutron ε_xx in the bridge body, r = 0.81. It fails in the thin legs (r = 0.13).
+* **Naghavi, ..., Liu (UCL), Bioengineering 2022** (Ti6Al4V gyroid/diamond bone scaffolds):
+  * Design trends match their Abaqus FE within ±4 % after one common factor; the absolute values
+    are 15-21 % lower, which points to the solid modulus used in their FE.
+  * We are 10-20 % below their experiments, consistent with as-built densification.
 
 ## Install
 

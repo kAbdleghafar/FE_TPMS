@@ -13,3 +13,11 @@ python benchmarks/literature/ahmed_barsoum_2022_sensitivity.py
 for r in "0.3 24" "0.2 28" "0.1 40"; do set -- $r; python benchmarks/literature/ahmed_barsoum_2022_secant.py --rho $1 --n $2; done
 python benchmarks/literature/ahmed_barsoum_2022_rs.py
 python benchmarks/literature/ahmed_barsoum_2022_analysis.py
+# other groups
+python benchmarks/literature/nist_ambench2018.py --variant plate
+python benchmarks/literature/nist_ambench2018.py --variant rigid
+python benchmarks/literature/nist_ambench2018.py --report
+python benchmarks/literature/nist_ambench2018_plots.py
+python benchmarks/literature/naghavi_2022.py --config periodic
+python benchmarks/literature/naghavi_2022.py --config specimen
+python benchmarks/literature/naghavi_2022.py --report

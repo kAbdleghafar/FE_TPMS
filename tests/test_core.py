@@ -184,3 +184,22 @@ def test_save_load_state_roundtrip():
     md.fix(np.flatnonzero(x > 2 - 1e-9), (0,), 0.01)      # same target as the saved state
     info = md.solve(solver="direct")
     assert info.newton_iterations == [0]                  # already in equilibrium
+
+
+def test_stl_voxelization(tmp_path):
+    from tpmsfem.mesh import voxelize_stl
+    from tpmsfem.mesh.surface import implicit_to_surface, write_stl
+
+    # axis-aligned box with round-number coordinates (rays would hit edges without jitter)
+    import meshio
+    pts = np.array([[x, y, z] for x in (0, 2) for y in (0, 1) for z in (0, 3)], float)
+    hexa = np.array([[0, 4, 6, 2, 1, 5, 7, 3]])
+    box_stl = tmp_path / "box.stl"
+    meshio.Mesh(pts, [("hexahedron", hexa)]).write(str(tmp_path / "box.vtu"))
+    v, f = implicit_to_surface(box((0, 0, 0), (2, 1, 3)), (-0.2,) * 3, (2.2, 1.2, 3.2), 0.05)
+    m = voxelize_stl((v, f), 0.1, lo=(0, 0, 0), hi=(2, 1, 3))
+    assert m.n_cells == pytest.approx(20 * 10 * 30, rel=0.02)
+    v, f = implicit_to_surface(sphere(radius=1.0), (-1.2,) * 3, (1.2,) * 3, 0.05)
+    write_stl(str(tmp_path / "s.stl"), v, f)
+    m = voxelize_stl(str(tmp_path / "s.stl"), 0.05)
+    assert m.n_cells * 0.05**3 == pytest.approx(4 / 3 * np.pi, rel=0.02)

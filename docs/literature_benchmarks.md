@@ -1,7 +1,12 @@
-# Benchmarks against published results (Barsoum; El-Rich)
+# Benchmarks against published results
 
-This page compares tpmsfem with finite element results published by the Khalifa
-University groups of **Imad Barsoum** and **Marwan El-Rich**. Every published
+This page compares tpmsfem with results published by four independent groups:
+
+* the Khalifa University groups of **Imad Barsoum** and **Marwan El-Rich** (§1, §2);
+* the **NIST AM-Bench 2018** residual-stress benchmark (§3);
+* **Chaozong Liu's group at UCL** (Ti6Al4V scaffolds, §4).
+
+ Every published
 number below is transcribed from the paper, with its location; the transcriptions
 are in `benchmarks/literature/data/*.json`. Every tpmsfem number is reproduced by
 `benchmarks/literature/run_all.sh`. Raw results are written to `results/literature/`.
@@ -33,6 +38,8 @@ the target density with the topology's own Gibson–Ashby exponent before extrap
 | Ahmed, **Barsoum** & Abu Al-Rub 2022 | periodic-cell E vs. the literature fits their Table 3 lists (Lee et al.; Al-Ketan et al.) | IWP-S **−8 … +0.3 %**, IWP-L **−5 … +5 %**, P-S **−12 … −4 %**; G-S +20 … +48 % against an *experimental* reference |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | 3×3×3 specimen E vs. their Ansys Table 3 fits | our elastic moduli are higher: +14 … +40 % (P-S), +41 … +70 % (IWP-S), +32 … +37 % (IWP-L), +81 … +100 % (G-S). For P-S and IWP-S the paper's values equal our elastic-plastic secant modulus at 0.7–0.9 % strain (§2.3) |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | modulus reduction by SLM residual stress | effect and magnitude (5–17 %) reproduced; **topology ranking not reproduced** with a uniform inherent strain (§2.4) |
+| **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, *predicted* after calibrating one inherent strain on the measured deflection | contour σ_xx r = 0.77 (part) / 0.85 (plate); synchrotron ε_xx r = 0.75, ε_zz r = 0.89; neutron ε_xx r = 0.81 in the solid body, **0.13 in the legs** (§3) |
+| Naghavi, …, **Liu** (UCL) 2022 | compressive modulus of Ti6Al4V sheet gyroid/diamond bone scaffolds (6 designs), vs their Abaqus FE and experiments | **−15 … −21 %** vs their FE across all six designs (a near-constant factor of 1.23 ± 0.03); relative trends within ±4 %; −10 … −20 % vs experiments (§4) |
 
 ---
 
@@ -278,10 +285,160 @@ lesson of this benchmark.
 
 ---
 
+## 3. NIST AM-Bench 2018: IN625 bridge, LPBF residual stress and distortion
+
+AM-Bench (NIST) is the reference validation set for AM process models. It measured
+the 2018 metal bridge AMB2018-01 in IN625. That bridge is 75 × 5 × 12.5 mm with 12 legs and 11 ridges,
+built on an EOS M270 with 20 µm layers, 195 W and 800 mm/s.
+* **Measured data used here** (all public):
+  * The ridge deflection after EDM-cutting the 12 legs from the plate (the end block stays
+    attached): **1.276 mm at ridge 1**, part 625-CBM-B1-P3 (CHAL-AMB2018-01-PD). The full
+    profile is only shown in a figure; NIST has not yet posted the spreadsheet.
+  * The contour-method σ_xx map at x = 31 mm through part and plate strip, part 625-CBM-B2-P3
+    (UC Davis / Hill Engineering, who used E = 207 GPa, ν = 0.278).
+  * Neutron-diffraction elastic strains ε_xx, ε_yy, ε_zz on eight lines, 1.5 mm gauge (NIST NCNR).
+  * Synchrotron EDXRD maps of ε_xx and ε_zz, 0.25 mm beam (CHESS); data doi:10.18434/mds2-3052.
+* **Geometry:** NIST's STL, voxelised directly. `voxelize_stl` was added for this; it works for
+  any implant CAD.
+
+**Protocol.** One number is used for calibration: the ridge-1 deflection. Everything
+else is a prediction. This is the usual way AM-Bench models are judged.
+
+**Model.**
+* **Build:** an elastic inherent-strain build in 0.5 mm super-layers (25 layers, strain-free
+  birth), with in-plane isotropic ε* because the scan direction alternates between x and y.
+* **Plate:** an 81 × 12 × 13 mm IN625 strip, bolted (bottom fixed) during the build and then
+  cut free on a 3-2-1 support.
+* **Leg cut:** EDM through the legs as a one-voxel kerf at the plate interface.
+* **Vertical inherent strain has no effect.** With strain-free layer birth a purely vertical
+  eigenstrain is compatible and produces neither stress nor deflection (the vertical unit run
+  gives exactly zero). The calibration is therefore truly one parameter: ε*_xx = ε*_yy.
+* **Linearity.** The model is linear, so the calibrated result is an exact rescaling of one
+  unit run.
+
+**Results**, elastic plate strip, h = 0.5 mm. Measured strains above 5000 µε (a few
+synchrotron edge points, impossible for elastic IN625) were rejected:
+
+| quantity (measurement) | points | measured RMS | RMSE | bias | correlation r |
+|---|---:|---:|---:|---:|---:|
+| calibrated in-plane inherent strain | | | | | eps*_xx = eps*_yy = -3.64e-03 |
+| sigma_xx at x = 31 mm (contour, UC Davis) | 987 | 199 MPa | 136 MPa | +23 MPa | 0.77 |
+| sigma_xx in the plate strip at x = 31 mm (contour) | 2548 | 124 MPa | 84 MPa | -15 MPa | 0.85 |
+| eps_xx (neutron, NIST NCNR) | 204 | 721 µε | 643 µε | +384 µε | 0.70 |
+|   eps_xx, solid body z >= 7 mm (neutron) | 129 | 840 µε | 619 µε | +506 µε | 0.81 |
+|   eps_xx, legs z < 5 mm (neutron) | 45 | 394 µε | 599 µε | +265 µε | 0.13 |
+| eps_yy (neutron) | 204 | 642 µε | 499 µε | +6 µε | 0.55 |
+| eps_zz (neutron) | 204 | 1391 µε | 1253 µε | -799 µε | 0.50 |
+| eps_xx (synchrotron EDXRD, CHESS) | 2219 | 916 µε | 769 µε | +399 µε | 0.75 |
+| eps_zz (synchrotron EDXRD) | 2220 | 1838 µε | 878 µε | -388 µε | 0.89 |
+
+Predicted ridge deflections 1..11 (mm, kappa=0): 1.276, 0.972, 0.726, 0.529, 0.371, 0.242, 0.141, 0.064, 0.014, -0.001, -0.003
+
+![contour comparison](img/ambench2018_contour.png)
+![neutron comparison](img/ambench2018_neutron.png)
+![deflection](img/ambench2018_deflection.png)
+
+**Reading the results.**
+* **Captured:** with one calibrated number, the model reproduces the measured residual-stress
+  architecture. That means tension at the top surface, a compressive core, compression at the
+  top of the plate and tension at its bottom (contour r = 0.77 and 0.85). It also reproduces
+  the synchrotron ε_zz map (r = 0.89) and the neutron ε_xx in the solid body (r = 0.81).
+* **Not captured:** the legs (neutron ε_xx, r = 0.13). The model puts them in longitudinal
+  tension where diffraction measures compression. It also over-predicts the tensile ε_xx near
+  the free end of the body by about 500 µε. Both regions sit at the plate interface and the
+  free end, where an elastic, uniform inherent strain is weakest: they have the steepest
+  thermal history and local plasticity. Two other contributors:
+  * the 0.5 mm voxels resolve the 0.5 mm legs only coarsely;
+  * the plate condition during the neutron scan is not documented in the sources we could
+    access.
+* **The plate matters.** The same model on a *rigid* plate, even at h = 0.25 mm, needs a
+  larger inherent strain to reach the measured deflection. It then over-predicts the stresses
+  badly (contour bias +332 MPa):
+
+| quantity (measurement) | points | measured RMS | RMSE | bias | correlation r |
+|---|---:|---:|---:|---:|---:|
+| calibrated in-plane inherent strain | | | | | eps*_xx = eps*_yy = -4.44e-03 |
+| sigma_xx at x = 31 mm (contour, UC Davis) | 987 | 199 MPa | 473 MPa | +332 MPa | 0.73 |
+| eps_xx (neutron, NIST NCNR) | 204 | 721 µε | 2387 µε | +2059 µε | 0.67 |
+|   eps_xx, solid body z >= 7 mm (neutron) | 129 | 840 µε | 2750 µε | +2647 µε | 0.77 |
+|   eps_xx, legs z < 5 mm (neutron) | 45 | 394 µε | 1439 µε | +949 µε | -0.03 |
+| eps_yy (neutron) | 204 | 642 µε | 803 µε | -201 µε | 0.64 |
+| eps_zz (neutron) | 204 | 1391 µε | 2340 µε | -1814 µε | 0.34 |
+| eps_xx (synchrotron EDXRD, CHESS) | 2219 | 916 µε | 2128 µε | +1611 µε | 0.69 |
+| eps_zz (synchrotron EDXRD) | 2220 | 1838 µε | 2259 µε | -1306 µε | 0.84 |
+
+Predicted ridge deflections 1..11 (mm, kappa=0): 1.276, 0.983, 0.739, 0.550, 0.393, 0.267, 0.163, 0.084, 0.027, 0.002, -0.008
+
+**Next steps for this benchmark:**
+* elasto-plastic inherent strain (IN625 yield 700–800 MPa; the measured peak stresses reach
+  about 630 MPa);
+* layer-dependent or thermal-history-based inherent strains;
+* a finer grid with the plate, which is a GPU job: about 1 M elements at h = 0.25 mm;
+* comparison with the full deflection profile once NIST publishes the spreadsheet.
+
+---
+
+## 4. Naghavi, …, Liu (UCL), Bioengineering 9 (2022) 504: Ti6Al4V bone scaffolds
+
+*"Mechanical characterisation and numerical modelling of TPMS-based gyroid and diamond
+Ti6Al4V scaffolds for bone implants"*, doi:10.3390/bioengineering9100504, open access
+(PMC9598079). University College London (Royal National Orthopaedic Hospital), with Xi'an
+Jiaotong University and others.
+
+**What they did.**
+* **Designs:** sheet gyroid (G600/G800/G1000) and sheet diamond (D800/D900/D1100) scaffolds
+  with 0.3 mm walls, unit cells of 1.8–2.8 mm and design porosities of 53–67 % (Table 3).
+  Made by SLM on an EOS M280.
+* **Specimens:** compression cylinders, D 11.04 × H 16.56 mm (gyroid) and D 14.05 × H 21.08 mm
+  (diamond).
+* **FE:** Abaqus with C3D10 elements of 0.065 mm (15–32 M elements) and rigid platens tied to
+  the scaffold. The solid is their measured compressive bulk modulus, E_s = 35.77 GPa (also
+  the basis of their Gibson–Ashby fit), with ν = 0.3. Table 6 lists FE and experimental moduli.
+
+**What we did.**
+* **Periodic cell:** converged E_zz of each design (one periodic cell, 3 grids up to
+  90 voxels per cell), with relative density = 1 − design porosity.
+* **Cylinders:** full cylinder models with tied rigid platens for G800 and D900, on three
+  grids each (75k–466k elements). Their ratio to the periodic value is the finite-specimen
+  factor F, applied to the other designs of the same topology.
+* **Geometry check:** a sheet of true 0.30 mm thickness reproduces the paper's porosities
+  within 1 % for all six designs, so the density-based level set is the stated geometry.
+
+| design | rho | E periodic, 3 grids [GPa] | E periodic best | specimen factor F | E predicted [GPa] | FE (Abaqus C3D10) | experiment | vs FE | vs experiment |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| G600 | 0.460 | 7.60 / 7.69 / 7.72 | 7.74 | 0.980 | 7.58 | 9.54 | 8.46 | -20.5 % | -10.4 % |
+| G800 | 0.380 | 5.78 / 5.74 / 5.78 | 5.78 | 0.980 | **5.67** (cylinder model; grids 5.79 / 5.66 / 5.67) | 6.96 | 6.81 | -18.5 % | -16.8 % |
+| G1000 | 0.326 | 4.59 / 4.64 / 4.65 | 4.66 | 0.980 | 4.57 | 5.39 | 5.69 | -15.3 % | -19.7 % |
+| D800 | 0.473 | 8.98 / 8.94 / 8.98 | 8.98 | 0.976 | 8.77 | 10.78 | 10.22 | -18.6 % | -14.2 % |
+| D900 | 0.436 | 7.77 / 8.05 / 8.03 | 8.03 | 0.976 | **7.84** (cylinder model; grids 7.94 / 7.96 / 7.84) | 9.89 | 9.37 | -20.7 % | -16.3 % |
+| D1100 | 0.378 | 6.61 / 6.65 / 6.62 | 6.62 | 0.976 | 6.46 | 8.06 | 7.59 | -19.9 % | -14.9 % |
+
+**Reading the results.**
+* **The specimen is almost as stiff as the infinite lattice** (F = 0.98). Tied platens and
+  free cut surfaces nearly cancel at 5–7 cells across.
+* **Systematic offset from their FE.** We are 15–21 % below their FE for every design, both
+  topologies and all porosities: FE/ours = 1.23 ± 0.03. With one common factor removed, all
+  six designs agree within ±4 %. So the relative design trends (pore size, gyroid vs diamond)
+  are reproduced and only the absolute level differs.
+* **The offset looks like a material constant.** A constant factor is the signature of a
+  material-constant difference rather than geometry, mesh or boundary conditions. Their FE
+  values correspond to a solid modulus of about 44 GPa in our model. The paper's 35.77 GPa is
+  itself unusual for Ti6Al4V, about 110 GPa in the literature; it was measured in compression,
+  and machine compliance lowers such values. The paper also says the FE material input was
+  "stress–strain data from the bulk characterisation", without stating which elastic slope was
+  used. We cannot resolve this from the text.
+* **Against the experiments** we are 10–20 % low. That is expected for ideal CAD geometry:
+  their micro-CT shows as-built horizontal struts 33–66 % thicker than designed, and porosity
+  7 points lower (G800: 54.9 % measured vs 62 % designed).
+
+---
+
 ## Reproducing
 
 ```bash
 ./benchmarks/literature/run_all.sh                       # all of the above (resumable)
+python benchmarks/literature/nist_ambench2018.py --variant plate   # AM-Bench (downloads NIST data)
+python benchmarks/literature/naghavi_2022.py --config periodic && python benchmarks/literature/naghavi_2022.py --config specimen
 python benchmarks/literature/ahmed_barsoum_2022.py --report
 python benchmarks/literature/van_viet_elrich_2025.py --report-only
 ```
