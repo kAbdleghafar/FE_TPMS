@@ -328,9 +328,11 @@ class SolidModel:
         if value.ndim == 1 and len(value) == len(nodes) and len(nodes) != len(comps):
             value = value[:, None]                      # one value per node
         vals = np.broadcast_to(value, dofs.shape)       # scalar, per-comp, or (n, ncomp)
+        new_set = not self.fixed_host[dofs.ravel()].all()
         self.fixed_host[dofs.ravel()] = True
         self.u_bc_target[self.xp.asarray(dofs.ravel())] = self.xp.asarray(vals.ravel(), dtype=self.dtype)
-        self._version += 1
+        if new_set:                 # changing only prescribed *values* keeps cached solvers valid
+            self._version += 1
 
     def release(self, nodes, comps=(0, 1, 2)):
         nodes = np.atleast_1d(np.asarray(nodes, np.int64))
@@ -575,15 +577,37 @@ class SolidModel:
             u_start = self.u.copy()
             fext = f0 + t * (f1 - f0)
             self.eig_cur = e0 + t * (e1 - e0)
-            self.u = xp.where(fixed_dev, ub0 + t * (ub1 - ub0), self.u)
+            du_bc = xp.where(fixed_dev, ub0 + t * (ub1 - ub0), self.u) - self.u
+            # --- predictor (elastic tangent, consistent Dirichlet linearisation) ---
+            # The prescribed-displacement increment enters through K * du_bc
+            # instead of evaluating f_int at the configuration with the jump
+            # imposed: that would put a spurious strain spike (and fake
+            # plasticity) into the elements next to a loaded boundary. The
+            # elastic tangent is also the robust choice on unloading, where
+            # the last plastic tangent is nearly singular for small hardening.
+            fint = self.internal_force(self.u)
+            if self.plastic:
+                saved = (self.theta, self.theta_bar)
+                self.theta, self.theta_bar = self._theta_el, self._theta_bar_el
+            has_bc = float(xp.abs(du_bc).max()) > 0
+            Rp = (fext - fint - (self.tangent(du_bc) if has_bc else 0.0)) * free_dev
+            R0 = float(xp.linalg.norm(Rp))
+            ref0 = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0,
+                       self._force_scale, 1e-14 * scale)
+            if R0 > tol * ref0:
+                du, kinfo = self._solve_linear(Rp, solver, free_host, free_dev, lin_rtol)
+                info.krylov_iterations += kinfo.iterations
+            else:
+                du = xp.zeros_like(self.u)
+            if self.plastic:
+                self.theta, self.theta_bar = saved
+            self.u = self.u + du_bc + du
+            # --- Newton-Raphson with the consistent tangent ---
             converged = False
-            R0 = 0.0
             for it in range(max_iter + 1):
                 fint = self.internal_force(self.u)
                 R = (fext - fint) * free_dev
                 nR = float(xp.linalg.norm(R))
-                if it == 0:
-                    R0 = nR   # e.g. released reactions: f_int -> 0 at equilibrium after removal
                 ref = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0,
                           self._force_scale, 1e-14 * scale)
                 info.residuals.append(nR / ref)
@@ -594,19 +618,7 @@ class SolidModel:
                     break
                 if it == max_iter or not np.isfinite(nR):
                     break
-                # First iteration of an increment: elastic predictor. The residual
-                # is evaluated with the new boundary values imposed, where
-                # elements next to a loaded boundary see a spurious strain jump
-                # and look plastic, and on unloading the last plastic tangent is
-                # nearly singular for small hardening; either way Newton can
-                # cycle. The consistent tangent takes over from iteration 1.
-                swap = self.plastic and it == 0
-                if swap:
-                    saved = (self.theta, self.theta_bar)
-                    self.theta, self.theta_bar = self._theta_el, self._theta_bar_el
                 du, kinfo = self._solve_linear(R, solver, free_host, free_dev, lin_rtol)
-                if swap:
-                    self.theta, self.theta_bar = saved
                 info.krylov_iterations += kinfo.iterations
                 if not kinfo.converged and verbose:
                     print(f"  [{name}] warning: linear solver stopped at rel. residual {kinfo.rel_residual:.2e}")
