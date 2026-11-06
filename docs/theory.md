@@ -58,7 +58,7 @@ by a V-cycle on nested voxel grids.
 
 Measured on a gyroid lattice, 4 CPU cores:
 * iteration counts stay at 20–29 from 0.19 M to 1.17 M dofs;
-* 1.17 M dofs solve in 32 s, against 102 s for AMG and about 14 min for Jacobi-PCG;
+* 1.17 M dofs solve in 32 s, against 102 s for AMG and 186 s for Jacobi-PCG (1,855 iterations);
 * a layer-by-layer AM build is 3.8× faster than with AMG.
 
 Other preconditioners: Jacobi (any backend); on the CPU, smoothed-aggregation AMG (pyamg,
