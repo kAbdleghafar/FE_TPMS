@@ -22,7 +22,10 @@ fidelity, benchmark credibility).
 ## Medium term
 
 6. **Thermo-mechanical layer-by-layer AM** (transient heat conduction per super-layer +
-   thermo-elasto-plasticity) as a higher-fidelity alternative to inherent strain.
+   thermo-elasto-plasticity) as a higher-fidelity alternative to inherent strain. The
+   Barsoum benchmark (docs/literature_benchmarks.md §2.4) shows a uniform inherent strain
+   cannot rank TPMS topologies by residual-stress sensitivity; this is therefore the top
+   physics item.
 7. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).
 8. **Contact**: press-fit of the cup into bone (interference fit), stem–bone interface, as
    mortar or penalty contact with an augmented Lagrangian on the GPU.

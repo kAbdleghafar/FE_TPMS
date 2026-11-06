@@ -64,11 +64,13 @@ results from the paper text and compares them:
 
 * **Van Viet, Zaki & El-Rich, PLoS One 2025** (graded gyroid femur/cranial implants): all four
   stiffnesses stated in the paper are reproduced within **-1.1 % to +3.2 %**.
-* **Ahmed, Barsoum & Abu Al-Rub, Metals 2022** (IN718 TPMS lattices):
-  * Periodic-cell moduli match the literature values their Table 3 lists, to within a few
-    percent for IWP-S and IWP-L and 4-12 % for P-S.
-  * Their 3x3x3 Ansys moduli are 14-70 % below ours. The page analyses why (unstated boundary
-    conditions, cell phase, slope extraction) and runs the residual-stress trend study.
+* **Ahmed, Barsoum & Abu Al-Rub, Metals 2022** (IN718 TPMS lattices, SLM residual stress):
+  * Periodic-cell moduli match the literature values in their Table 3: IWP-S and IWP-L within
+    about 5-8 %, P-S within 4-12 %.
+  * Their 3x3x3 Ansys moduli equal our elastic-plastic secant modulus at 0.7-0.9 % strain
+    (P-S, IWP-S).
+  * The residual-stress-induced modulus loss (5-17 %) is reproduced, but not its topology
+    ranking. That needs a thermo-mechanical AM model (roadmap).
 
 ## Install
 

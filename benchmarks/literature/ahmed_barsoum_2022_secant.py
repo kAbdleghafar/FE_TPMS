@@ -60,8 +60,9 @@ if __name__ == "__main__":
     out = "results/literature/ahmed_barsoum_2022_secant.json"
     res = json.load(open(out)) if os.path.exists(out) else {}          # resumable
     for topo in a.topologies.split(","):
-        if topo in res:
-            print(f"{topo}: cached", flush=True)
+        key = f"{topo}|rho={a.rho:.2f}"
+        if key in res:
+            print(f"{key}: cached", flush=True)
             continue
         t0 = time.perf_counter()
         ne, pts = curve(topo, a.rho, a.n)
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         t3 = B.REF["table3_gibson_ashby_E_over_E0"][topo]
         pub = np.mean([t3["tension"][0] * a.rho ** t3["tension"][1], t3["compression"][0] * a.rho ** t3["compression"][1]])
         ratio = {k: v / E0 for k, v in secant.items()}
-        res[topo] = dict(rho=a.rho, n=a.n, elements=ne, initial=E0, secant=secant, secant_over_initial=ratio,
+        res[key] = dict(topology=topo, rho=a.rho, n=a.n, elements=ne, initial=E0, secant=secant, secant_over_initial=ratio,
                          published=pub,
                          curve=[list(p) for p in pts], seconds=time.perf_counter() - t0)
         print(f"==> {topo}: initial E/E0 {E0:.4f}; secant/initial " +
