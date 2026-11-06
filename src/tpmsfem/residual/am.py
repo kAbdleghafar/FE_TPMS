@@ -64,28 +64,9 @@ class AMProcess:
 
     def __post_init__(self):
         mesh = self.model.mesh
-        z = mesh.points[:, 2]
-        if self.plate_tol is None:
-            self.plate_tol = 1e-6 * float(np.ptp(mesh.points))
-        zc = mesh.centroids()[:, 2]
-        is_sub = np.zeros(mesh.n_cells, bool)
-        if self.substrate is not None:
-            is_sub[np.asarray(self.substrate)] = True
-        self.is_substrate = is_sub
-        if self.z0 is None:
-            # build starts on top of the plate (or at the bottom of the part if the plate is rigid)
-            self.z0 = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].max()) if is_sub.any() else float(z.min())
-        self.layer_of_cell = np.floor((zc - self.z0) / self.layer_height + 1e-9).astype(np.int64)
-        self.layer_of_cell[is_sub] = -1
+        self.layer_of_cell, self.z0, self.plate_nodes, self.is_substrate, self.plate_tol = layer_partition(
+            mesh, self.layer_height, self.substrate, self.z0, self.plate_tol)
         self.n_layers = int(self.layer_of_cell.max()) + 1
-        if is_sub.any():
-            # supports during the build: the bottom face of the (bolted) plate
-            zb = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].min())
-            self.plate_nodes = mesh.nodes_where(lambda x, y, zz: zz <= zb + self.plate_tol)
-        else:
-            self.plate_nodes = mesh.nodes_where(lambda x, y, zz: zz <= self.z0 + self.plate_tol)
-        if len(self.plate_nodes) == 0:
-            raise ValueError("no nodes on the build plate; check z0")
         self.removed = False
 
     # ------------------------------------------------------------------
@@ -148,21 +129,8 @@ class AMProcess:
         return rec
 
     def three_two_one(self):
-        """[(node, comps), ...] of a 3-2-1 support on the plate nodes.
-
-        A (x,y,z) and B (2 comps) span the longest in-plane chord, C (z) is the
-        node farthest from line AB, so all six rigid-body modes are removed
-        without over-constraining the part."""
-        p = self.model.mesh.points[self.plate_nodes]
-        c = p.mean(axis=0)
-        ia = int(np.argmax(np.linalg.norm(p - c, axis=1)))
-        ib = int(np.argmax(np.linalg.norm(p - p[ia], axis=1)))
-        ab = (p[ib] - p[ia]) / np.linalg.norm(p[ib] - p[ia])
-        rel = p - p[ia]
-        ic = int(np.argmax(np.linalg.norm(rel - np.outer(rel @ ab, ab), axis=1)))
-        A, B, Cn = (int(self.plate_nodes[i]) for i in (ia, ib, ic))
-        comps_b = (1, 2) if abs(ab[0]) >= abs(ab[1]) else (0, 2)
-        return [(A, (0, 1, 2)), (B, comps_b), (Cn, (2,))]
+        """[(node, comps), ...] of a 3-2-1 support on the plate nodes."""
+        return three_two_one(self.model.mesh.points, self.plate_nodes)
 
     def _record(self, k, info, seconds):
         m = self.model
@@ -176,6 +144,49 @@ class AMProcess:
                            float(np.linalg.norm(u[act_nodes], axis=1).max()),
                            float(vm.max()) if len(vm) else 0.0,
                            list(info.newton_iterations), info.krylov_iterations, seconds)
+
+
+def three_two_one(points, nodes):
+    """[(node, comps), ...] of a statically determinate 3-2-1 support on ``nodes``.
+
+    A (x,y,z) and B (2 comps) span the longest in-plane chord, C (z) is the
+    node farthest from line AB, so all six rigid-body modes are removed
+    without over-constraining the part."""
+    p = points[nodes]
+    c = p.mean(axis=0)
+    ia = int(np.argmax(np.linalg.norm(p - c, axis=1)))
+    ib = int(np.argmax(np.linalg.norm(p - p[ia], axis=1)))
+    ab = (p[ib] - p[ia]) / np.linalg.norm(p[ib] - p[ia])
+    rel = p - p[ia]
+    ic = int(np.argmax(np.linalg.norm(rel - np.outer(rel @ ab, ab), axis=1)))
+    A, B, Cn = (int(nodes[i]) for i in (ia, ib, ic))
+    comps_b = (1, 2) if abs(ab[0]) >= abs(ab[1]) else (0, 2)
+    return [(A, (0, 1, 2)), (B, comps_b), (Cn, (2,))]
+
+
+def layer_partition(mesh, layer_height, substrate=None, z0=None, plate_tol=None):
+    """Super-layer index of every cell (-1 for the substrate), the build-plate
+    plane z0, the support nodes (bottom of the substrate, or the plate plane
+    for a rigid plate) and the substrate mask."""
+    z = mesh.points[:, 2]
+    if plate_tol is None:
+        plate_tol = 1e-6 * float(np.ptp(mesh.points))
+    zc = mesh.centroids()[:, 2]
+    is_sub = np.zeros(mesh.n_cells, bool)
+    if substrate is not None:
+        is_sub[np.asarray(substrate)] = True
+    if z0 is None:
+        z0 = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].max()) if is_sub.any() else float(z.min())
+    layer = np.floor((zc - z0) / layer_height + 1e-9).astype(np.int64)
+    layer[is_sub] = -1
+    if is_sub.any():
+        zb = float(mesh.points[np.unique(mesh.cells[is_sub])][:, 2].min())
+        plate = mesh.nodes_where(lambda x, y, zz: zz <= zb + plate_tol)
+    else:
+        plate = mesh.nodes_where(lambda x, y, zz: zz <= z0 + plate_tol)
+    if len(plate) == 0:
+        raise ValueError("no nodes on the build plate; check z0")
+    return layer, z0, plate, is_sub, plate_tol
 
 
 def calibrate_scale(run: Callable[[float], float], measured: float) -> float:

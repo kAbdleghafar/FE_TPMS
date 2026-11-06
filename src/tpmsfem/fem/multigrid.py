@@ -186,6 +186,7 @@ class VoxelMultigrid:
         self._coarse_setup(self.levels[-1])
         for L in self.levels[:-1]:
             L.lmax = self._lmax(L)
+        self.mu_ref = model.mu.copy()
         self.setup_seconds = time.perf_counter() - t0
 
     # ------------------------------------------------------------------
@@ -197,6 +198,21 @@ class VoxelMultigrid:
             fe = (L.K @ ve[:, :, None])[:, :, 0]                 # batched GEMV (BLAS / cuBLAS)
             return scatter_add(L.ndof, L.dofs, fe) * L.free
         return A
+
+    def refresh(self):
+        """Re-derive the level-0 smoother (Jacobi diagonal and Chebyshev
+        spectral bound) from the model's current moduli, e.g. after
+        temperature-dependent stiffness changes. The coarse levels are kept:
+        they remain a valid (slightly less accurate) coarse correction, while a
+        stale spectral bound would make the Chebyshev smoother amplify the
+        stiffened modes and stall the PCG."""
+        xp = self.xp
+        L0 = self.levels[0]
+        d0 = self.model.diagonal()
+        L0.dinv = xp.where(L0.free > 0, 1.0 / xp.where(d0 > 0, d0, 1.0), 0.0)
+        if len(self.levels) > 1:
+            L0.lmax = self._lmax(L0)
+        self.mu_ref = self.model.mu.copy()
 
     def _lmax(self, L, its: int = 15):
         xp = self.xp

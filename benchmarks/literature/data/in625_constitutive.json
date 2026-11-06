@@ -1,0 +1,67 @@
+{
+  "_about": "IN625 (LPBF, AM-Bench) constitutive and thermal data used by the thermo-mechanical AM-Bench 2018 model. Values transcribed from the primary NIST files (downloaded 2026-11-06) and the baseline property table of the user's data guide (Denlinger-Michaleris DED IN625 set). Temperatures in degC, stresses in MPa.",
+  "macto": {
+    "source": "NIST CHAL-AMB2022-04-MaCTO, doi:10.18434/mds2-2681, file 'CHAL-AMB2022-04-MaCTO submission ANSWERS.xlsx' (Sheet1) and 'AMB2022-04-MaCTO_calibration_data.xlsx' (Summary)",
+    "specimens": "compression cylinders (D 2.8 x H 4.37 mm) machined from the AMB2018-01 IN625 bridge build (calibration file note: 'produced from the Inconel 625 NIST AMB2018-01 sample'); BD = loading along the build direction, TD = transverse (in-plane)",
+    "quantity": "true compressive flow stress (magnitude) at given true strains (magnitude), after machine-compliance correction; first value is the 0.2 % offset yield strength",
+    "true_strain": [0.01, 0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35],
+    "curves": {
+      "BD": {"25":  {"yield": 750, "stress": [770, 806, 897, 1042, 1177, 1290, 1377, 1439, 1483]},
+             "250": {"yield": 608, "stress": [675, 720, 809, 941, 1063, 1160, 1244, 1310, null]},
+             "500": {"yield": 622, "stress": [655, 696, 784, 903, 1012, 1109, 1177, 1229, null]}},
+      "TD": {"25":  {"yield": 740, "stress": [757, 796, 865, 960, 1062, 1165, 1260, 1338, 1409]},
+             "250": {"yield": 600, "stress": [656, 702, 767, 857, 938, 1018, 1094, 1166, 1232]},
+             "500": {"yield": 577, "stress": [622, 663, 737, 818, 901, 986, 1056, 1140, null]}}
+    },
+    "test_temperatures_K": {"25": 298, "250": 523, "500": 773}
+  },
+  "matto": {
+    "source": "NIST CHAL-AMB2022-04-MaTTO, doi:10.18434/mds2-2588, 'prediction ANSWERS CHAL-AMB2022-04-MaTTO.xlsx' (mean +- 1 sd, n = 12)",
+    "note": "mini-tensile specimens from AMB2022 LPBF IN625 blocks (not the AMB2018-01 bridge build); true stress / true strain",
+    "orientations": ["XY-30", "XY-45", "XY-60", "XY-90", "X-0", "X-60", "X-90"],
+    "E_GPa": [180.8, 186.0, 168.3, 160.5, 164.7, 172.2, 127.4],
+    "yield_0.2": [715.9, 721.1, 719.0, 746.8, 620.7, 692.9, 701.5],
+    "uts": [1247.4, 1251.0, 1241.9, 1241.1, 1192.9, 1195.6, 1197.9],
+    "true_stress_at_0.05": [851.8, 848.6, 853.4, 901.8, 729.5, 827.7, 851.8],
+    "true_stress_at_0.10": [943.4, 942.2, 951.9, 1010.0, 792.6, 923.0, 967.4],
+    "true_stress_at_0.20": [1117.2, 1117.3, 1126.3, 1184.5, 925.1, 1095.9, 1151.8]
+  },
+  "e8": {
+    "source": "NIST AMB2022 ASTM E8 tension, doi:10.18434/mds2-2760, SpecimenT3..T7_stress_strain.csv (engineering, DIC 25.4 mm virtual extensometer); reduced by benchmarks/literature/in625_material.py",
+    "note": "as-built IN625, AMB2022-625-CBM-B1 build (EOS M270, 195 W, 800 mm/s, 20 um, X-Y alternating), room temperature"
+  },
+  "baseline_table": {
+    "source": "temperature-dependent IN625 set of the Abaqus AM thermo-mechanical example after Denlinger & Michaleris (DED), as listed in the user's data guide (sec. 2.1); alpha used as MEAN coefficient referred to 20 C (Abaqus *EXPANSION convention) -- to be verified against the original source",
+    "T": [20, 93, 205, 315, 425, 540, 650, 760, 870],
+    "k_W_mK": [9.9, 10.8, 12.5, 14.1, 15.7, 17.5, 19.0, 20.8, 22.8],
+    "cp_J_kgK": [410, 427, 456, 481, 511, 536, 565, 590, 620],
+    "alpha_1e-6_K": [12.8, 12.8, 13.1, 13.3, 13.7, 14.0, 14.8, 15.3, 15.8],
+    "E_GPa": [208, 204, 198, 192, 186, 179, 170, 161, 148],
+    "yield_MPa": [493, 479, 443, 430, 424, 423, 422, 415, 386],
+    "density_kg_m3": 8440,
+    "poisson_baseline": 0.366,
+    "poisson_used": 0.278,
+    "poisson_note": "0.278 = value used by the AM-Bench measurement teams to convert strains (and the wrought IN625 room-temperature value); 0.366 of the DED baseline kept as a sensitivity option",
+    "solidus_C": 1290,
+    "liquidus_C": 1350,
+    "latent_J_kg": 272000
+  },
+  "process_ambench2018": {
+    "source": "Heigel et al., J. Res. NIST 125 (2020) 125005, doi:10.6028/jres.125.005, Sec. 3.2-3.4 and Table 2",
+    "layer_thickness_mm": 0.02,
+    "layers": 624,
+    "average_layer_time_s": 52,
+    "scan_time_four_parts_per_layer_s": 26,
+    "infill": {"power_W": 195, "speed_mm_s": 800, "hatch_mm": 0.1},
+    "contour": {"power_W": 100, "speed_mm_s": 900},
+    "scan_rotation": "infill parallel to x on odd layers and to y on even layers",
+    "substrate": "IN625, 100 x 100 x 12.7 mm, bolted with four 1/4-20 cap screws",
+    "plate_temperature": "not stated in the paper; 20 C assumed"
+  },
+  "cyclic_concli2024": {
+    "source": "Concli et al., Prog. Addit. Manuf. (2024), doi:10.1007/s40964-023-00545-1 (as-built LPBF IN625, EOS M290, R = -1, 0.1 Hz, 5 LCF specimens)",
+    "ramberg_osgood": {"K_MPa": 1141, "n": 0.1139, "E_MPa": 210000},
+    "basquin_coffin_manson": {"sigma_f_MPa": 500, "b": -0.050, "eps_f": 0.077, "c": -0.178, "E_MPa": 210000},
+    "note": "literature values from the data guide; not used by the residual-stress model"
+  }
+}

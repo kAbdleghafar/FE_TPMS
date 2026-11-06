@@ -40,8 +40,28 @@ def _id_list(ids, per_line=16):
 
 
 def _material_block(name, mat, alpha=None, force_nonlinear=False):
-    s = f"*MATERIAL, NAME={name}\n*ELASTIC\n{mat.E:.9e}, {mat.nu:.6f}\n"
-    if force_nonlinear and not mat.is_plastic:
+    tt = mat.temperature
+    if tt is None:
+        s = f"*MATERIAL, NAME={name}\n*ELASTIC\n{mat.E:.9e}, {mat.nu:.6f}\n"
+    else:                                   # temperature-dependent elasticity / expansion
+        nus = tt.nu if tt.nu is not None else np.full(len(tt.T), mat.nu)
+        s = f"*MATERIAL, NAME={name}\n*ELASTIC\n" + "".join(
+            f"{E:.9e}, {nu:.6f}, {T:.6g}\n" for E, nu, T in zip(tt.E, nus, tt.T))
+        if tt.alpha is not None and alpha is None:
+            s += f"*EXPANSION, ZERO={tt.T_ref:.6g}\n" + "".join(f"{a:.9e}, {T:.6g}\n" for a, T in zip(tt.alpha, tt.T))
+    if mat.flow is not None:                # multilinear (temperature-dependent) hardening
+        fl = mat.flow
+        s += "*PLASTIC\n"
+        for i, T in enumerate(fl.T):
+            Tcol = f", {T:.6g}" if len(fl.T) > 1 else ""
+            for e, sig in zip(fl.eps_p, fl.sigma[i]):
+                s += f"{sig:.9e}, {e:.9e}{Tcol}\n"
+            if fl.tail_slope:
+                e = fl.eps_p[-1] + 1.0
+                s += f"{fl.sigma[i, -1] + fl.tail_slope:.9e}, {e:.9e}{Tcol}\n"
+        if mat.anneal_temperature is not None:
+            s += f"*ANNEAL TEMPERATURE\n{mat.anneal_temperature:.6g}\n"
+    elif force_nonlinear and not mat.is_plastic:
         # CalculiX allows element birth only in nonlinear steps: a plastic card
         # that can never be reached keeps the response linear-elastic.
         s += "** unreachable yield stress: forces a (materially) nonlinear step in CalculiX\n"
@@ -51,6 +71,13 @@ def _material_block(name, mat, alpha=None, force_nonlinear=False):
         s += f"*PLASTIC\n{mat.yield_stress:.9e}, 0.\n{mat.yield_stress + mat.hardening * ep_max:.9e}, {ep_max:.1f}\n"
     if alpha is not None:
         s += f"*EXPANSION, TYPE=ORTHO\n{alpha[0]:.9e}, {alpha[1]:.9e}, {alpha[2]:.9e}\n"
+    if mat.thermal is not None:
+        th = mat.thermal
+        s += "*CONDUCTIVITY\n" + "".join(f"{k:.9e}, {T:.6g}\n" for k, T in zip(th.k, th.T))
+        s += "*SPECIFIC HEAT\n" + "".join(f"{c:.9e}, {T:.6g}\n" for c, T in zip(th.cp, th.T))
+        s += f"*DENSITY\n{th.rho:.9e}\n"
+        if th.latent > 0:
+            s += f"*LATENT HEAT\n{th.latent:.9e}, {th.T_solidus:.6g}, {th.T_liquidus:.6g}\n"
     return s
 
 

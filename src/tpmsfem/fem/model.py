@@ -8,10 +8,12 @@ Design
   operator ``K v`` is evaluated element-by-element as gather -> batched GEMM ->
   scatter-add. For voxel meshes every element shares one reference gradient
   matrix, so the kernel is a single dense GEMM per chunk.
-* Total stress: ``sigma = C : (eps(u) - eps_ref - eps_eig - eps_p)`` where
-  ``eps_ref`` makes elements born *strain-free* (layer-by-layer activation),
-  ``eps_eig`` is an eigenstrain (thermal / inherent strain) and ``eps_p`` the
-  J2 plastic strain.
+* Total stress: ``sigma = C(T) : (eps(u) - eps_ref - eps_eig - eps_th(T) - eps_p)``
+  where ``eps_ref`` makes elements born *strain-free* (layer-by-layer
+  activation), ``eps_eig`` is an eigenstrain (inherent strain), ``eps_th`` the
+  thermal strain of a temperature field (:meth:`SolidModel.set_temperature`)
+  and ``eps_p`` the J2 plastic strain (linear or tabulated, temperature
+  dependent hardening).
 * Loads, prescribed displacements and eigenstrains are *targets* that a call to
   :meth:`SolidModel.solve` ramps to in ``n_inc`` increments (Abaqus-like step
   semantics); Newton-Raphson with the consistent tangent handles plasticity.
@@ -51,7 +53,7 @@ class StepInfo:
 class SolidModel:
     def __init__(self, mesh: Mesh, materials: Union[Material, Dict[int, Material]], *,
                  bbar: Optional[bool] = None, chunk_size: Optional[int] = None,
-                 dtype=np.float64):
+                 dtype=np.float64, T_initial: Optional[float] = None):
         xp = get_xp()
         self.xp = xp
         self.mesh = mesh
@@ -106,6 +108,15 @@ class SolidModel:
         self.mu = xp.asarray(np.array([lut[i].mu for i in mat_ids]), dtype=dtype)
         self.sy0 = xp.asarray(np.array([lut[i].sy0 for i in mat_ids]), dtype=dtype)
         self.H = xp.asarray(np.array([lut[i].hardening for i in mat_ids]), dtype=dtype)
+        keys = sorted(self.materials)
+        self._mat_keys = keys
+        self.mat_index = np.searchsorted(np.array(keys), mat_ids)          # (ne,) index into keys
+        self.tabular = self.plastic and any(m.flow is not None for m in self.materials.values())
+        self.thermal = any(m.temperature is not None for m in self.materials.values())
+        if self.tabular:
+            self._setup_flow_tables()
+        anneal = np.array([np.inf if lut[k].anneal_temperature is None else lut[k].anneal_temperature for k in keys])
+        self._anneal = xp.asarray(anneal[self.mat_index], dtype=dtype) if np.isfinite(anneal).any() else None
 
         # --- state ------------------------------------------------------------
         z = lambda *s: xp.zeros(s, dtype=dtype)
@@ -140,6 +151,8 @@ class SolidModel:
         self._cache = {}
         self.history = []
         self._precompute_reference_stiffness()
+        if self.thermal:
+            self._setup_temperature(T_initial)
 
     # ======================================================================
     # element kernels (``sel`` is a slice or an index array of elements)
@@ -197,6 +210,150 @@ class SolidModel:
             ds = C.elastic_stress(deps, lam, mu)
         return self._elem_force_from_stress(ds, sel)
 
+    # ------------------------------------------------------------------
+    # tabulated hardening and temperature fields
+    # ------------------------------------------------------------------
+    def _setup_flow_tables(self):
+        """Per-material hardening tables padded to a common number of points
+        (padding continues the tail slope, so the curves are unchanged)."""
+        xp = self.xp
+        tabs = [self.materials[k].flow_table() for k in self._mat_keys]
+        K = max(len(t.eps_p) for t in tabs)
+        Eg, Ht, self._flow_T, self._flow_S = [], [], [], []
+        for t in tabs:
+            n = K - len(t.eps_p)
+            pad = t.eps_p[-1] + np.arange(1, n + 1, dtype=float)
+            Eg.append(np.r_[t.eps_p, pad])
+            S = np.concatenate([t.sigma, t.sigma[:, -1:] + t.tail_slope * (pad - t.eps_p[-1])[None, :]], axis=1)
+            self._flow_T.append(xp.asarray(t.T, dtype=self.dtype))
+            self._flow_S.append(xp.asarray(S, dtype=self.dtype))
+            Ht.append(t.tail_slope)
+        mi = self.mat_index
+        self._Eg = xp.asarray(np.array(Eg)[mi], dtype=self.dtype)                     # (ne, K)
+        self._Ht = xp.asarray(np.array(Ht)[mi], dtype=self.dtype)                     # (ne,)
+        self._flow_T_dep = [len(t.T) > 1 for t in tabs]
+        S0 = np.array([asnumpy(S[0]) for S in self._flow_S])                          # (nmat, K)
+        self._S_const = xp.asarray(S0[mi], dtype=self.dtype)                           # (ne, K)
+        self._mat_index_dev = xp.asarray(mi)
+
+    def _flow_curves(self, sl):
+        """Hardening curves of the elements ``sl`` at their integration-point
+        temperatures: Eg (nc, 1, K), S (nc, nq|1, K), Ht (nc, 1)."""
+        xp = self.xp
+        Eg, Ht = self._Eg[sl][:, None, :], self._Ht[sl][:, None]
+        S = self._S_const[sl][:, None, :]
+        if self.thermal and any(self._flow_T_dep):
+            mi = self._mat_index_dev[sl]
+            Tq = self.T_cur[sl]
+            S = xp.broadcast_to(S, Tq.shape + (S.shape[-1],)).copy()
+            for i, dep in enumerate(self._flow_T_dep):
+                if not dep:
+                    continue
+                m = mi == i
+                if not bool(m.any()):
+                    continue
+                Tg, Sg = self._flow_T[i], self._flow_S[i]
+                t = Tq[m]
+                j = xp.clip(xp.searchsorted(Tg, t, side="right") - 1, 0, len(Tg) - 2)
+                w = xp.clip((t - Tg[j]) / (Tg[j + 1] - Tg[j]), 0.0, 1.0)[..., None]
+                S[m] = Sg[j] * (1.0 - w) + Sg[j + 1] * w
+        return Eg, S, Ht
+
+    def _setup_temperature(self, T_initial):
+        xp = self.xp
+        tables = [self.materials[k].temperature for k in self._mat_keys]
+        if T_initial is None:
+            T_initial = min(t.T_ref for t in tables if t is not None)
+        self.T_initial = float(T_initial)
+        self._cells_of = [xp.asarray(np.flatnonzero(self.mat_index == i)) for i in range(len(tables))]
+        shape = (self.ne, self.nq)
+        self.T_applied = xp.full(shape, self.T_initial, dtype=self.dtype)
+        self.T_target = self.T_applied.copy()
+        self.T_cur = self.T_applied.copy()
+        self.eth0 = xp.zeros(shape, dtype=self.dtype)
+        self.eth = xp.zeros(shape, dtype=self.dtype)
+        self._update_temperature()
+        self.eth0 = self._thermal_strain_abs(self.T_cur)
+        self.eth[:] = 0.0
+
+    def _thermal_strain_abs(self, Tq):
+        xp = self.xp
+        out = xp.zeros(Tq.shape, dtype=self.dtype)
+        for i, k in enumerate(self._mat_keys):
+            tab = self.materials[k].temperature
+            if tab is None or tab.alpha is None:
+                continue
+            c = self._cells_of[i]
+            t = Tq[c] if tab.T_cap is None else xp.minimum(Tq[c], tab.T_cap)
+            a = xp.interp(t.ravel(), xp.asarray(tab.T), xp.asarray(tab.alpha)).reshape(t.shape)
+            out[c] = a * (t - tab.T_ref)
+        return out
+
+    def _update_temperature(self):
+        """Moduli (at the element-mean temperature) and thermal strains (at the
+        integration points) for the current temperature ``T_cur``."""
+        xp = self.xp
+        w = self.wq[None, :] if self.shared else self.wq
+        Te = (self.T_cur * w).sum(axis=1) / w.sum(axis=1)
+        for i, k in enumerate(self._mat_keys):
+            mat = self.materials[k]
+            tab = mat.temperature
+            if tab is None:
+                continue
+            c = self._cells_of[i]
+            t = Te[c]
+            E = xp.interp(t, xp.asarray(tab.T), xp.asarray(tab.E))
+            nu = mat.nu if tab.nu is None else xp.interp(t, xp.asarray(tab.T), xp.asarray(tab.nu))
+            self.lam[c] = E * nu / ((1 + nu) * (1 - 2 * nu))
+            self.mu[c] = E / (2 * (1 + nu))
+        self.eth = self._thermal_strain_abs(self.T_cur) - self.eth0
+
+    def _to_qp(self, T):
+        xp = self.xp
+        T = xp.asarray(T, dtype=self.dtype)
+        if T.ndim == 0:
+            return xp.full((self.ne, self.nq), float(T), dtype=self.dtype)
+        if T.shape == (self.ne, self.nq):
+            return T.copy()
+        if T.shape != (self.n_nodes,):
+            raise ValueError(f"temperature must be a scalar, nodal ({self.n_nodes},) or (ne, nq) array")
+        Nq = xp.asarray(self.Nq, dtype=self.dtype)
+        cells = xp.asarray(self.mesh.cells)
+        out = xp.empty((self.ne, self.nq), dtype=self.dtype)
+        for s in range(0, self.ne, self.chunk):
+            out[s:s + self.chunk] = T[cells[s:s + self.chunk]] @ Nq.T
+        return out
+
+    def set_initial_temperature(self, T):
+        """Initial, stress-free temperature (Abaqus ``*INITIAL CONDITIONS,
+        TYPE=TEMPERATURE``): scalar, nodal or integration-point values."""
+        if not self.thermal:
+            raise ValueError("no material has a TemperatureTable")
+        Tq = self._to_qp(T)
+        self.T_applied, self.T_target, self.T_cur = Tq, Tq.copy(), Tq.copy()
+        self._update_temperature()
+        self.eth0 = self._thermal_strain_abs(self.T_cur)
+        self.eth[:] = 0.0
+
+    def set_temperature(self, T, ramp: bool = True):
+        """Temperature field (scalar, nodal (n_nodes,) or (ne, nq)) reached in
+        the next :meth:`solve` (linear ramp over its increments). With
+        ``ramp=False`` it is applied immediately -- e.g. to give elements that
+        are about to be born their deposition temperature, so that
+        :meth:`activate` makes them stress-free at that temperature."""
+        if not self.thermal:
+            raise ValueError("no material has a TemperatureTable")
+        Tq = self._to_qp(T)
+        self.T_target = Tq
+        if not ramp:
+            self.T_applied = Tq.copy()
+            self.T_cur = Tq.copy()
+            self._update_temperature()
+
+    def temperature(self) -> np.ndarray:
+        """Current integration-point temperatures (ne, nq)."""
+        return asnumpy(self.T_cur)
+
     def _precompute_reference_stiffness(self):
         """Reference element matrices K_lambda, K_mu for voxel meshes (fast elastic GEMM path)."""
         self.K_lam = self.K_mu = None
@@ -231,12 +388,19 @@ class SolidModel:
                 eps = eps - self.eps_ref[sl]
             if self._has_eig:
                 eps = eps - self._eig(sl)
+            if self.thermal:
+                eps = C.add_iso(eps, -self.eth[sl])
             lam = self.lam[sl][:, None]
             mu = self.mu[sl][:, None]
             if self.plastic:
-                sig, ep, al, th, thb, nrm, _ = C.j2_return(
-                    eps - self.eps_p[sl], lam, mu, self.sy0[sl][:, None], self.H[sl][:, None],
-                    self.alpha[sl], self.eps_p[sl])
+                if self.tabular:
+                    Eg, S, Ht = self._flow_curves(sl)
+                    sig, ep, al, th, thb, nrm, _ = C.j2_return_table(
+                        eps - self.eps_p[sl], lam, mu, Eg, S, Ht, self.alpha[sl], self.eps_p[sl])
+                else:
+                    sig, ep, al, th, thb, nrm, _ = C.j2_return(
+                        eps - self.eps_p[sl], lam, mu, self.sy0[sl][:, None], self.H[sl][:, None],
+                        self.alpha[sl], self.eps_p[sl])
                 self.eps_p_t[sl], self.alpha_t[sl] = ep, al
                 self.theta[sl], self.theta_bar[sl], self.nrm[sl] = th, thb, nrm
             else:
@@ -387,7 +551,8 @@ class SolidModel:
 
     _STATE = ("u", "sig", "eps_ref", "eig_dir", "eig_target", "eig_applied", "eig_cur", "active",
               "active_host", "fixed_host", "u_bc_target", "f_ext_target", "f_ext_applied", "f_int",
-              "eps_p", "alpha", "eps_p_t", "alpha_t", "theta", "theta_bar", "nrm")
+              "eps_p", "alpha", "eps_p_t", "alpha_t", "theta", "theta_bar", "nrm",
+              "lam", "mu", "T_applied", "T_target", "T_cur", "eth", "eth0")
 
     def save_state(self) -> dict:
         """Copy of the full mechanical state (displacements, stresses, plastic
@@ -427,6 +592,11 @@ class SolidModel:
             for a in (self.eps_p, self.alpha, self.eps_p_t, self.alpha_t, self.theta_bar, self.nrm):
                 a[:] = 0.0
             self.theta[:] = 1.0
+        if self.thermal:
+            self.T_applied[:] = self.T_initial
+            self.T_target[:] = self.T_initial
+            self.T_cur = self.T_applied.copy()
+            self._update_temperature()
 
     def set_eigenstrain(self, cells, eps6, scale=1.0):
         """Eigenstrain (thermal/inherent strain) tensor(s) [xx,yy,zz,yz,xz,xy] on
@@ -486,6 +656,8 @@ class SolidModel:
                     elif eig_birth != "qp":
                         raise ValueError(eig_birth)
                     eps = eps - sc[..., None] * self.eig_dir[sel][:, None, :]
+                if self.thermal:
+                    eps = C.add_iso(eps, -self.eth[sel])     # born stress-free at its current temperature
                 self.eps_ref[sel] = eps
         if self.plastic:
             self.eps_p[idx] = 0.0
@@ -634,7 +806,13 @@ class SolidModel:
             return du, info
         if kind == "gmg":
             mg = self._linear_solver(kind, free_host, free_dev)
-            return pcg(lambda v: self.tangent(v) * free_dev, R * free_dev, M=mg.vcycle, rtol=rtol, maxiter=2000)
+            if self.thermal:
+                # temperature-dependent moduli drifted since the smoother was set up: refresh it
+                act = self.xp.asarray(self.active_host)
+                drift = float((self.xp.abs(self.mu - mg.mu_ref) / mg.mu_ref * act).max())
+                if drift > 0.02:
+                    mg.refresh()
+            return pcg(lambda v: self.tangent(v) * free_dev, R * free_dev, M=mg.vcycle, rtol=rtol, maxiter=500)
         solver = self._linear_solver(kind, free_host, free_dev)
         idx = np.flatnonzero(free_host)
         idx_dev = xp.asarray(idx)
@@ -644,7 +822,7 @@ class SolidModel:
             full[idx_dev] = xp.asarray(v)
             return asnumpy(self.tangent(full)[idx_dev])
 
-        tangent_is_elastic = not self.plastic
+        tangent_is_elastic = not self.plastic and not self.thermal     # else: factorisation is a preconditioner
         x, info = solver.solve(asnumpy(R)[idx], A=None if tangent_is_elastic else A, rtol=rtol)
         du = xp.zeros(self.ndof, dtype=self.dtype)
         du[idx_dev] = xp.asarray(x, dtype=self.dtype)
@@ -652,7 +830,8 @@ class SolidModel:
 
     def solve(self, n_inc: int = 1, tol: float = 1e-6, max_iter: int = 30,
               solver: str = "auto", lin_rtol: Optional[float] = None, verbose: bool = False,
-              name: str = "", max_cutbacks: int = 6) -> StepInfo:
+              name: str = "", max_cutbacks: int = 6, inexact: bool = True, line_search: bool = True,
+              stall_window: int = 6) -> StepInfo:
         """Ramp loads/BCs/eigenstrains from their applied to their target values
         in ``n_inc`` increments and find equilibrium (Newton-Raphson). An
         increment that does not converge is restarted with half the size
@@ -662,6 +841,13 @@ class SolidModel:
         ``pcg`` (Jacobi-PCG), ``amg`` (pyamg-preconditioned CG, CPU), ``direct``
         (sparse LU, CPU) or ``auto`` (direct for small models, gmg for voxel
         meshes, amg otherwise).
+
+        Robustness options: ``inexact`` (Eisenstat-Walker forcing terms for the
+        iterative linear solvers), ``line_search`` (backtracking on the
+        residual norm in plastic steps, against elastic/plastic cycling) and
+        ``stall_window`` (an increment whose residual has not halved within
+        that many iterations is cut back at once instead of after
+        ``max_iter``).
         """
         xp = self.xp
         t_start = time.perf_counter()
@@ -669,14 +855,16 @@ class SolidModel:
             self.check()                       # clear message instead of a solver failure
             self._checked = True
         try:
-            return self._solve(n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start)
+            return self._solve(n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start,
+                               inexact, line_search, stall_window)
         except (FloatingPointError, RuntimeError) as err:
             problems = self.check(raise_error=False)
             if problems:
                 raise ValueError(f"{err}\nLikely cause, the model is singular:\n  - " + "\n  - ".join(problems)) from err
             raise
 
-    def _solve(self, n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start):
+    def _solve(self, n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start, inexact=True,
+               line_search=True, stall_window=6):
         xp = self.xp
         if solver == "auto":
             if self.ndof <= 15_000 and not on_gpu():
@@ -697,6 +885,9 @@ class SolidModel:
         fixed_dev = xp.asarray(self.fixed_host)
         f0, f1 = self.f_ext_applied.copy(), self.f_ext_target.copy()
         e0, e1 = self.eig_applied.copy(), self.eig_target.copy()
+        if self.thermal:
+            T0, T1 = self.T_applied.copy(), self.T_target.copy()
+            ramp_T = bool(float(xp.abs(T1 - T0).max()) > 0)
         ub0 = self.u.copy()
         ub1 = xp.where(fixed_dev, self.u_bc_target, self.u)
         scale = float(self.mu.max()) * float(np.mean(np.ptp(self.mesh.points, axis=0))) ** 2
@@ -707,6 +898,9 @@ class SolidModel:
             u_start = self.u.copy()
             fext = f0 + t * (f1 - f0)
             self.eig_cur = e0 + t * (e1 - e0)
+            if self.thermal and ramp_T:
+                self.T_cur = T0 + t * (T1 - T0)
+                self._update_temperature()
             du_bc = xp.where(fixed_dev, ub0 + t * (ub1 - ub0), self.u) - self.u
             # --- predictor (elastic tangent, consistent Dirichlet linearisation) ---
             # The prescribed-displacement increment enters through K * du_bc
@@ -725,7 +919,9 @@ class SolidModel:
             ref0 = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0,
                        self._force_scale, 1e-14 * scale)
             if R0 > tol * ref0:
-                du, kinfo = self._solve_linear(Rp, solver, free_host, free_dev, lin_rtol)
+                # plastic steps: the predictor only starts Newton, a loose solve suffices
+                eta = max(lin_rtol, 1e-3) if (inexact and self.plastic and solver != "direct") else lin_rtol
+                du, kinfo = self._solve_linear(Rp, solver, free_host, free_dev, eta)
                 info.krylov_iterations += kinfo.iterations
             else:
                 du = xp.zeros_like(self.u)
@@ -734,13 +930,16 @@ class SolidModel:
             self.u = self.u + du_bc + du
             # --- Newton-Raphson with the consistent tangent ---
             converged = False
+            nR_prev = 0.0
+            hist = []
+            fint = self.internal_force(self.u)
             for it in range(max_iter + 1):
-                fint = self.internal_force(self.u)
                 R = (fext - fint) * free_dev
                 nR = float(xp.linalg.norm(R))
                 ref = max(float(xp.linalg.norm(fext)), float(xp.linalg.norm(fint)), R0,
                           self._force_scale, 1e-14 * scale)
                 info.residuals.append(nR / ref)
+                hist.append(nR)
                 if verbose:
                     print(f"  [{name}] t={t:.4f} it {it}: |R|/ref = {nR / ref:.3e}")
                 if nR <= tol * ref:
@@ -748,11 +947,39 @@ class SolidModel:
                     break
                 if it == max_iter or not np.isfinite(nR):
                     break
-                du, kinfo = self._solve_linear(R, solver, free_host, free_dev, lin_rtol)
+                if len(hist) > stall_window and nR > 0.5 * hist[-1 - stall_window]:
+                    # stagnating (e.g. elastic/plastic cycling): cut the increment back early
+                    if verbose:
+                        print(f"  [{name}] stagnation: |R| reduced < 2x over {stall_window} iterations")
+                    break
+                eta = lin_rtol
+                if inexact and solver != "direct":
+                    # inexact Newton (Eisenstat-Walker choice 2, with the "no over-solving" bound):
+                    # loose linear solves far from the solution, never tighter than needed for tol
+                    eta = 1e-2 if it == 0 or nR_prev <= 0 else min(0.1, 0.9 * (nR / nR_prev) ** 2)
+                    eta = max(min(0.1, max(eta, 0.5 * tol * ref / max(nR, 1e-300))), lin_rtol)
+                nR_prev = nR
+                du, kinfo = self._solve_linear(R, solver, free_host, free_dev, eta)
                 info.krylov_iterations += kinfo.iterations
                 if not kinfo.converged and verbose:
                     print(f"  [{name}] warning: linear solver stopped at rel. residual {kinfo.rel_residual:.2e}")
-                self.u = self.u + du
+                u0 = self.u
+                self.u = u0 + du
+                fint = self.internal_force(self.u)
+                if line_search and self.plastic:
+                    # backtracking on |R| (residual increase = active-set cycling): try s = 1/2, 1/4
+                    nR1 = float(xp.linalg.norm((fext - fint) * free_dev))
+                    best = (nR1, 1.0)
+                    s_ls = 1.0
+                    while nR1 > nR and s_ls > 0.3:
+                        s_ls *= 0.5
+                        self.u = u0 + s_ls * du
+                        fint = self.internal_force(self.u)
+                        nR1 = float(xp.linalg.norm((fext - fint) * free_dev))
+                        best = min(best, (nR1, s_ls))
+                    if best[1] != s_ls:                     # last trial was not the best: go back to it
+                        self.u = u0 + best[1] * du
+                        fint = self.internal_force(self.u)
             info.newton_iterations.append(it)
             if not converged:
                 # automatic cut-back: restart the increment from its initial state
@@ -773,6 +1000,9 @@ class SolidModel:
         self.f_ext_applied = f1
         self.eig_applied = e1
         self.eig_cur = self.eig_applied
+        if self.thermal:
+            self.T_applied = T1
+            self.T_cur = T1.copy()
         info.converged = True
         info.seconds = time.perf_counter() - t_start
         self.history.append((name, info))
@@ -782,6 +1012,9 @@ class SolidModel:
         if self.plastic:
             self.eps_p, self.eps_p_t = self.eps_p_t, self.eps_p
             self.alpha, self.alpha_t = self.alpha_t, self.alpha
+            if self._anneal is not None and self.thermal:
+                # annealing: hardening memory (equivalent plastic strain) is lost above T_anneal
+                self.alpha[self.T_cur >= self._anneal[:, None]] = 0.0
             self.eps_p_t[...] = self.eps_p
             self.alpha_t[...] = self.alpha
 
@@ -822,5 +1055,6 @@ class SolidModel:
 
     def summary(self) -> str:
         return (f"SolidModel: {self.ne:,} {self.mesh.cell_type} elements ({'B-bar' if self.bbar else 'standard'}), "
-                f"{self.ndof:,} dofs, nq={self.nq}, plastic={self.plastic}, backend={backend_name()}, "
+                f"{self.ndof:,} dofs, nq={self.nq}, plastic={self.plastic}{' (tabulated)' if self.tabular else ''}, "
+                f"thermal={self.thermal}, backend={backend_name()}, "
                 f"{'shared voxel kernel' if self.shared else 'per-element gradients'}")

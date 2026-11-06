@@ -126,8 +126,8 @@ def run_unit(variant, unit, files, solver="auto"):
 
 
 # ------------------------------------------------------------------ analysis
-def elastic_strain(s):
-    E, nu = IN625.E, IN625.nu
+def elastic_strain(s, E=None, nu=None):
+    E, nu = (IN625.E if E is None else E), (IN625.nu if nu is None else nu)
     tr = s[:, 0] + s[:, 1] + s[:, 2]
     return ((1 + nu) * s - nu * tr[:, None] * np.r_[1, 1, 1, 0, 0, 0][None, :]) / E
 
@@ -159,6 +159,47 @@ def metrics(pred, meas):
                 r=float(np.corrcoef(p, m)[0, 1]), meas_rms=float(np.sqrt(np.mean(m**2))))
 
 
+def load_measurements(files):
+    contour = np.loadtxt(files["contour_L7.txt"], comments="%")
+    neutron = np.loadtxt(files["neutron.txt"], skiprows=1)            # X Z eyy exx ezz
+    xray = np.loadtxt(files["xray.txt"], skiprows=1)                  # X Z exx ezz e45 gxz [microstrain]
+    return contour, neutron, xray
+
+
+def compare_fields(cent, h, part, sig, deflection, files, E=None, nu=None):
+    """Metrics of a predicted element stress field (ne, 6) [MPa] against the
+    contour, neutron and synchrotron measurements (``part``: mask of part cells)."""
+    contour, neutron, xray = load_measurements(files)
+    part_c = contour[contour[:, 1] > CONTOUR_Z0 + 0.1]
+    cpts = np.column_stack([np.full(len(part_c), CONTOUR_X), part_c[:, 0] - CONTOUR_Y0, part_c[:, 1] - CONTOUR_Z0])
+    npts = np.column_stack([neutron[:, 0], np.full(len(neutron), 2.5), neutron[:, 1]])
+    xpts = np.column_stack([xray[:, 0], np.full(len(xray), 2.5), xray[:, 1]])
+    eps = elastic_strain(sig, E, nu)
+    cp = sample(cent[part], sig[part][:, [0]], cpts, np.array([h / 2, h / 2, h / 2]))[:, 0]
+    plate_c = contour[contour[:, 1] < CONTOUR_Z0 - 0.1]
+    ppts = np.column_stack([np.full(len(plate_c), CONTOUR_X), plate_c[:, 0] - CONTOUR_Y0, plate_c[:, 1] - CONTOUR_Z0])
+    pp = (sample(cent[~part], sig[~part][:, [0]], ppts, np.array([h / 2, h / 2, h / 2]))[:, 0]
+          if (~part).any() else np.full(len(plate_c), np.nan))
+    nz = sample(cent[part], eps[part], npts, np.array([0.75, 0.75, 0.75]))
+    xz = sample(cent[part], eps[part], xpts, np.array([max(0.125, h / 2), 0.75, max(0.125, h / 2)]))
+    return dict(
+        deflection=list(map(float, deflection)),
+        contour_sxx=metrics(cp, part_c[:, 2]),
+        contour_sxx_plate=metrics(pp, plate_c[:, 2]) if np.isfinite(pp).any() else None,
+        contour_plate_points=dict(z=(plate_c[:, 1] - CONTOUR_Z0).tolist(), y=(plate_c[:, 0] - CONTOUR_Y0).tolist(),
+                                  measured=plate_c[:, 2].tolist(), predicted=pp.tolist()),
+        neutron_exx=metrics(nz[:, 0], clean(neutron[:, 3])), neutron_eyy=metrics(nz[:, 1], clean(neutron[:, 2])),
+        neutron_ezz=metrics(nz[:, 2], clean(neutron[:, 4])),
+        neutron_exx_body=metrics(nz[neutron[:, 1] >= 7, 0], clean(neutron[neutron[:, 1] >= 7, 3])),
+        neutron_exx_legs=metrics(nz[neutron[:, 1] < 5, 0], clean(neutron[neutron[:, 1] < 5, 3])),
+        xray_exx=metrics(xz[:, 0], clean(xray[:, 2] * 1e-6)), xray_ezz=metrics(xz[:, 2], clean(xray[:, 3] * 1e-6)),
+        neutron_points=dict(x=neutron[:, 0].tolist(), z=neutron[:, 1].tolist(), exx_meas=clean(neutron[:, 3]).tolist(),
+                            exx_pred=nz[:, 0].tolist(), ezz_meas=clean(neutron[:, 4]).tolist(), ezz_pred=nz[:, 2].tolist()),
+        profile=dict(z=(part_c[:, 1] - CONTOUR_Z0).tolist(), y=(part_c[:, 0] - CONTOUR_Y0).tolist(),
+                     measured=part_c[:, 2].tolist(), predicted=cp.tolist()),
+    )
+
+
 def analyse(variant, files, kappas=(0.0,)):
     """kappa (vertical/in-plane inherent strain ratio) has no effect: with
     strain-free layer birth a purely vertical eigenstrain is compatible and
@@ -166,45 +207,37 @@ def analyse(variant, files, kappas=(0.0,)):
     run), so the calibration is a single parameter."""
     U = {u: np.load(os.path.join(OUT, f"{variant}_{u}.npz")) for u in UNITS}
     cent, h = U["inplane"]["centroids"], float(U["inplane"]["h"])
-    contour = np.loadtxt(files["contour_L7.txt"], comments="%")
-    neutron = np.loadtxt(files["neutron.txt"], skiprows=1)            # X Z eyy exx ezz
-    xray = np.loadtxt(files["xray.txt"], skiprows=1)                  # X Z exx ezz e45 gxz [microstrain]
-    part_c = contour[contour[:, 1] > CONTOUR_Z0 + 0.1]
-    cpts = np.column_stack([np.full(len(part_c), CONTOUR_X), part_c[:, 0] - CONTOUR_Y0, part_c[:, 1] - CONTOUR_Z0])
-    npts = np.column_stack([neutron[:, 0], np.full(len(neutron), 2.5), neutron[:, 1]])
-    xpts = np.column_stack([xray[:, 0], np.full(len(xray), 2.5), xray[:, 1]])
     part = U["inplane"]["material"] == 1
     res = {}
     for kappa in kappas:
         d = U["inplane"]["deflection"] + kappa * U["vertical"]["deflection"]
         s = DEFLECTION_RIDGE1 / d[0]
         sig = s * (U["inplane"]["stress"] + kappa * U["vertical"]["stress"])
-        eps = elastic_strain(sig)
-        cp = sample(cent[part], sig[part][:, [0]], cpts, np.array([h / 2, h / 2, h / 2]))[:, 0]
-        plate_c = contour[contour[:, 1] < CONTOUR_Z0 - 0.1]
-        ppts = np.column_stack([np.full(len(plate_c), CONTOUR_X), plate_c[:, 0] - CONTOUR_Y0, plate_c[:, 1] - CONTOUR_Z0])
-        pp = (sample(cent[~part], sig[~part][:, [0]], ppts, np.array([h / 2, h / 2, h / 2]))[:, 0]
-              if (~part).any() else np.full(len(plate_c), np.nan))
-        nz = sample(cent[part], eps[part], npts, np.array([0.75, 0.75, 0.75]))
-        xz = sample(cent[part], eps[part], xpts, np.array([max(0.125, h / 2), 0.75, max(0.125, h / 2)]))
-        res[f"kappa={kappa:g}"] = dict(
-            inherent_strain=[-s * 1e-3, -s * 1e-3, -kappa * s * 1e-3],
-            deflection=(s * d).tolist(),
-            contour_sxx=metrics(cp, part_c[:, 2]),
-            contour_sxx_plate=metrics(pp, plate_c[:, 2]) if np.isfinite(pp).any() else None,
-            contour_plate_points=dict(z=(plate_c[:, 1] - CONTOUR_Z0).tolist(), y=(plate_c[:, 0] - CONTOUR_Y0).tolist(),
-                                      measured=plate_c[:, 2].tolist(), predicted=pp.tolist()),
-            neutron_exx=metrics(nz[:, 0], clean(neutron[:, 3])), neutron_eyy=metrics(nz[:, 1], clean(neutron[:, 2])),
-            neutron_ezz=metrics(nz[:, 2], clean(neutron[:, 4])),
-            neutron_exx_body=metrics(nz[neutron[:, 1] >= 7, 0], clean(neutron[neutron[:, 1] >= 7, 3])),
-            neutron_exx_legs=metrics(nz[neutron[:, 1] < 5, 0], clean(neutron[neutron[:, 1] < 5, 3])),
-            xray_exx=metrics(xz[:, 0], clean(xray[:, 2] * 1e-6)), xray_ezz=metrics(xz[:, 2], clean(xray[:, 3] * 1e-6)),
-            neutron_points=dict(x=neutron[:, 0].tolist(), z=neutron[:, 1].tolist(), exx_meas=clean(neutron[:, 3]).tolist(),
-                                exx_pred=nz[:, 0].tolist(), ezz_meas=clean(neutron[:, 4]).tolist(), ezz_pred=nz[:, 2].tolist()),
-            profile=dict(z=(part_c[:, 1] - CONTOUR_Z0).tolist(), y=(part_c[:, 0] - CONTOUR_Y0).tolist(),
-                         measured=part_c[:, 2].tolist(), predicted=cp.tolist()),
-        )
+        r = compare_fields(cent, h, part, sig, s * d, files)
+        res[f"kappa={kappa:g}"] = dict(inherent_strain=[-s * 1e-3, -s * 1e-3, -kappa * s * 1e-3], **r)
     return res
+
+
+METRIC_ROWS = (("contour_sxx", "sigma_xx at x = 31 mm (contour, UC Davis)", 1, "MPa"),
+               ("contour_sxx_plate", "sigma_xx in the plate strip at x = 31 mm (contour)", 1, "MPa"),
+               ("neutron_exx", "eps_xx (neutron, NIST NCNR)", 1e6, "µε"),
+               ("neutron_exx_body", "  eps_xx, solid body z >= 7 mm (neutron)", 1e6, "µε"),
+               ("neutron_exx_legs", "  eps_xx, legs z < 5 mm (neutron)", 1e6, "µε"),
+               ("neutron_eyy", "eps_yy (neutron)", 1e6, "µε"),
+               ("neutron_ezz", "eps_zz (neutron)", 1e6, "µε"),
+               ("xray_exx", "eps_xx (synchrotron EDXRD, CHESS)", 1e6, "µε"),
+               ("xray_ezz", "eps_zz (synchrotron EDXRD)", 1e6, "µε"))
+
+
+def metric_lines(r):
+    out = []
+    for key, label, sc, u in METRIC_ROWS:
+        m = r.get(key)
+        if m is None:
+            continue
+        out.append(f"| {label} | {m['n']} | {m['meas_rms'] * sc:.0f} {u} | {m['rmse'] * sc:.0f} {u} | "
+                   f"{m['bias'] * sc:+.0f} {u} | {m['r']:.2f} |")
+    return out
 
 
 def report(files):
@@ -220,20 +253,7 @@ def report(files):
         lines.append("|---|---:|---:|---:|---:|---:|")
         r = res["kappa=0"]
         lines.append(f"| calibrated in-plane inherent strain | | | | | eps*_xx = eps*_yy = {r['inherent_strain'][0]:.2e} |")
-        for key, label, sc, u in (("contour_sxx", "sigma_xx at x = 31 mm (contour, UC Davis)", 1, "MPa"),
-                                  ("contour_sxx_plate", "sigma_xx in the plate strip at x = 31 mm (contour)", 1, "MPa"),
-                                  ("neutron_exx", "eps_xx (neutron, NIST NCNR)", 1e6, "µε"),
-                                  ("neutron_exx_body", "  eps_xx, solid body z >= 7 mm (neutron)", 1e6, "µε"),
-                                  ("neutron_exx_legs", "  eps_xx, legs z < 5 mm (neutron)", 1e6, "µε"),
-                                  ("neutron_eyy", "eps_yy (neutron)", 1e6, "µε"),
-                                  ("neutron_ezz", "eps_zz (neutron)", 1e6, "µε"),
-                                  ("xray_exx", "eps_xx (synchrotron EDXRD, CHESS)", 1e6, "µε"),
-                                  ("xray_ezz", "eps_zz (synchrotron EDXRD)", 1e6, "µε")):
-            m = r[key]
-            if m is None:
-                continue
-            lines.append(f"| {label} | {m['n']} | {m['meas_rms'] * sc:.0f} {u} | {m['rmse'] * sc:.0f} {u} | "
-                         f"{m['bias'] * sc:+.0f} {u} | {m['r']:.2f} |")
+        lines += metric_lines(r)
         r0 = next(iter(res.values()))
         lines.append(f"\nPredicted ridge deflections 1..11 (mm, kappa={next(iter(res)).split('=')[1]}): "
                      + ", ".join(f"{v:.3f}" for v in r0["deflection"]))

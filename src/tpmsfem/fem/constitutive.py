@@ -5,8 +5,9 @@ Symmetric tensors are stored as 6-vectors ``[xx, yy, zz, yz, xz, xy]`` with
 ``a:b = a0 b0 + a1 b1 + a2 b2 + 2 (a3 b3 + a4 b4 + a5 b5)``.
 
 Material model: isotropic linear elasticity + J2 (von Mises) plasticity with
-linear isotropic hardening, radial-return mapping and the consistent
-(algorithmic) tangent of Simo & Hughes (1998), Box 3.2.
+linear (:func:`j2_return`) or multilinear tabulated (:func:`j2_return_table`)
+isotropic hardening, radial-return mapping and the consistent (algorithmic)
+tangent of Simo & Hughes (1998), Box 3.2.
 """
 from __future__ import annotations
 
@@ -106,6 +107,73 @@ def j2_return(eps_e_trial, lam, mu, sy0, H, alpha_n, eps_p_n):
     theta = xp.where(plastic, 1.0 - 3.0 * mu * dl / qs, 1.0)
     theta_bar = xp.where(plastic, 3.0 * mu / denom - 3.0 * mu * dl / qs, 0.0)
     return sig, eps_p, alpha, theta, theta_bar, nrm, plastic
+
+
+def _take(a, k):
+    xp = array_module(a)
+    return xp.take_along_axis(a, k[..., None], axis=-1)[..., 0]
+
+
+def flow_stress(alpha, Eg, S, Ht):
+    """Multilinear yield stress at equivalent plastic strain ``alpha``.
+
+    ``Eg`` (..., K) breakpoints (Eg[..., 0] = 0), ``S`` (..., K) stresses,
+    ``Ht`` slope beyond the last point; arrays broadcast against ``alpha``."""
+    xp = array_module(S)
+    shape = S.shape
+    Eg = xp.broadcast_to(Eg, shape)
+    a = alpha[..., None]
+    k = xp.clip((Eg <= a).sum(axis=-1) - 1, 0, shape[-1] - 1)       # segment start
+    kp = xp.minimum(k + 1, shape[-1] - 1)
+    e0, s0, e1, s1 = _take(Eg, k), _take(S, k), _take(Eg, kp), _take(S, kp)
+    slope = xp.where(kp > k, (s1 - s0) / xp.maximum(e1 - e0, 1e-300), Ht)
+    return s0 + slope * (alpha - e0), slope
+
+
+def j2_return_table(eps_e_trial, lam, mu, Eg, S, Ht, alpha_n, eps_p_n):
+    """Radial return for J2 plasticity with *multilinear* isotropic hardening.
+
+    The consistency condition ``q_tr - 3 mu dl = sigma_y(alpha_n + dl)`` is
+    piecewise linear in ``dl``; it is solved exactly by locating the segment
+    of the hardening curve that contains the solution (first breakpoint beyond
+    ``alpha_n`` where the residual changes sign), so no local iterations are
+    needed. ``Eg`` (nc, 1|nq, K) breakpoints, ``S`` (nc, nq, K) yield
+    stresses (already at the integration-point temperature), ``Ht`` (nc, 1)
+    tail slope. Returns the same tuple as :func:`j2_return`; the consistent
+    tangent uses the slope of the active segment.
+    """
+    xp = array_module(eps_e_trial)
+    sig_tr = elastic_stress(eps_e_trial, lam, mu)
+    s = dev(sig_tr)
+    snorm = xp.sqrt(xp.maximum(ddot(s, s), 0.0))
+    q = SQ32 * snorm
+    S = xp.broadcast_to(S, q.shape + (S.shape[-1],))
+    Egb = xp.broadcast_to(Eg, S.shape)
+    sy_n, _ = flow_stress(alpha_n, Egb, S, Ht)
+    f = q - sy_n
+    plastic = f > 1e-12 * xp.abs(sy_n)
+    tmu = 3.0 * mu
+    an = alpha_n[..., None]
+    G = q[..., None] - tmu[..., None] * (Egb - an) - S                  # residual at the breakpoints
+    cross = (Egb > an) & (G <= 0.0)
+    has = cross.any(axis=-1)
+    k = xp.argmax(cross, axis=-1)                                        # first sign change
+    km1 = xp.maximum(k - 1, 0)
+    e_lo, s_lo, e_hi, s_hi = _take(Egb, km1), _take(S, km1), _take(Egb, k), _take(S, k)
+    Hseg = (s_hi - s_lo) / xp.maximum(e_hi - e_lo, 1e-300)
+    e_a = xp.where(has, e_lo, Egb[..., -1])
+    s_a = xp.where(has, s_lo, S[..., -1])
+    Hs = xp.where(has, Hseg, xp.broadcast_to(Ht, q.shape))
+    a = xp.maximum(alpha_n, e_a)
+    g_a = q - tmu * (a - alpha_n) - (s_a + Hs * (a - e_a))
+    dl = xp.where(plastic, xp.maximum(a + g_a / (tmu + Hs) - alpha_n, 0.0), 0.0)
+    nrm = s / xp.maximum(snorm, 1e-300)[..., None]
+    deps_p = (SQ32 * dl)[..., None] * nrm
+    sig = sig_tr - (2.0 * mu)[..., None] * deps_p
+    qs = xp.maximum(q, 1e-300)
+    theta = xp.where(plastic, 1.0 - tmu * dl / qs, 1.0)
+    theta_bar = xp.where(plastic, tmu / (tmu + Hs) - tmu * dl / qs, 0.0)
+    return sig, eps_p_n + deps_p, alpha_n + dl, theta, theta_bar, nrm, plastic
 
 
 def tangent_stress(deps, lam, mu, theta=None, theta_bar=None, nrm=None):

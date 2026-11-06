@@ -19,8 +19,9 @@ implicit TPMS geometry ──► voxel hex8 mesher ─────────�
 | Geometry | Gyroid, Schwarz-P, diamond, IWP, Neovius, FKS; sheet or network; density-calibrated and functionally graded; composable SDF booleans; parametric femoral stem (lattice core / porous coating) and acetabular cup |
 | Meshing | Built-in voxel (hex8) mesher with island removal and GPU classification; marching cubes → **Gmsh**, **TetGen**, **fTetWild** (tet4/tet10); anything **meshio** reads |
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
-| Physics | Small-strain elasticity; J2 plasticity with linear isotropic hardening (radial return + consistent tangent); eigenstrains (thermal / inherent strain); element birth (strain-free activation) |
-| Residual stress | LPBF **inherent-strain layer-by-layer** build + build-plate removal (3-2-1 support) → residual stress and distortion |
+| Physics | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
+| Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
+| Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
 
