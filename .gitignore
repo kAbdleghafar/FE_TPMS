@@ -4,7 +4,7 @@ __pycache__/
 .venv/
 build/
 dist/
-results/
+/results/
 *.vtu
 *.frd
 *.dat
