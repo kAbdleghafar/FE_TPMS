@@ -611,6 +611,10 @@ class SolidModel:
             d = self.diagonal()
             Minv = self.xp.where(free_dev > 0, 1.0 / self.xp.where(d > 0, d, 1.0), 0.0)
             obj = Minv
+        elif kind == "gmg":
+            from .multigrid import VoxelMultigrid
+
+            obj = VoxelMultigrid(self)
         else:
             K = self.assemble(elastic=True)
             K = K.get() if on_gpu() else K
@@ -628,6 +632,9 @@ class SolidModel:
             du, info = pcg(lambda v: self.tangent(v) * free_dev, R * free_dev,
                            M=lambda r: Minv * r, rtol=rtol, maxiter=max(20000, self.ndof // 10))
             return du, info
+        if kind == "gmg":
+            mg = self._linear_solver(kind, free_host, free_dev)
+            return pcg(lambda v: self.tangent(v) * free_dev, R * free_dev, M=mg.vcycle, rtol=rtol, maxiter=2000)
         solver = self._linear_solver(kind, free_host, free_dev)
         idx = np.flatnonzero(free_host)
         idx_dev = xp.asarray(idx)
@@ -651,8 +658,10 @@ class SolidModel:
         increment that does not converge is restarted with half the size
         (up to ``max_cutbacks`` times).
 
-        solver: ``pcg`` (matrix-free Jacobi-PCG, GPU), ``amg`` (pyamg-
-        preconditioned CG, CPU), ``direct`` (sparse LU, CPU) or ``auto``.
+        solver: ``gmg`` (geometric-multigrid PCG, voxel meshes, CPU and GPU),
+        ``pcg`` (Jacobi-PCG), ``amg`` (pyamg-preconditioned CG, CPU), ``direct``
+        (sparse LU, CPU) or ``auto`` (direct for small models, gmg for voxel
+        meshes, amg otherwise).
         """
         xp = self.xp
         t_start = time.perf_counter()
@@ -670,10 +679,12 @@ class SolidModel:
     def _solve(self, n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start):
         xp = self.xp
         if solver == "auto":
-            if on_gpu():
-                solver = "pcg"
-            elif self.ndof <= 15_000:
+            if self.ndof <= 15_000 and not on_gpu():
                 solver = "direct"
+            elif self.shared:
+                solver = "gmg"             # voxel meshes: matrix-free geometric multigrid (CPU and GPU)
+            elif on_gpu():
+                solver = "pcg"
             else:
                 try:
                     import pyamg  # noqa: F401

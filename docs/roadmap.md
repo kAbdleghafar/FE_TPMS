@@ -9,10 +9,9 @@ fidelity, benchmark credibility).
    `TPMSFEM_BACKEND=cupy`. Fuse gather → GEMM → scatter into custom CUDA kernels
    (`cupy.RawKernel`) if the throughput is below ~200 M elem/s. Try mixed precision
    (fp32 operator inside fp64 CG) on consumer GPUs.
-2. **Geometric multigrid for voxel meshes.** 2×2×2 coarsening with Galerkin coarse
-   operators (matrix-free on fine levels, assembled on coarse levels), Chebyshev–Jacobi
-   smoothing. This gives iteration counts independent of mesh size, and it is what
-   giga-voxel FE relies on (cf. Aage et al., *Nature* 2017).
+2. ~~Geometric multigrid for voxel meshes~~ **done** (`fem/multigrid.py`). Next: build the
+   Galerkin products in float32 on GPUs, and use multigrid for tet meshes via
+   voxel-to-tet transfer or aggregation.
 3. **Native Ansys APDL writer** (SOLID185/187, D/F commands, MP/TB), mirroring the Abaqus exporter.
 4. **Hot-spot accuracy.** Map voxel solutions to tet10 meshes of the smoothed surface
    (submodelling), or use a smoothed-boundary voxel formulation.

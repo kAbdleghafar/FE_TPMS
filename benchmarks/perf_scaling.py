@@ -26,7 +26,7 @@ from tpmsfem.mesh import voxelize
 p = argparse.ArgumentParser()
 p.add_argument("--sizes", default="4,6,8", help="block edge lengths [mm]")
 p.add_argument("--h", type=float, default=0.1)
-p.add_argument("--solvers", default="pcg,amg")
+p.add_argument("--solvers", default="gmg,pcg,amg")
 p.add_argument("--out", default="results")
 a = p.parse_args()
 os.makedirs(a.out, exist_ok=True)
@@ -48,7 +48,7 @@ for L in map(float, a.sizes.split(",")):
     mesh = voxelize(lattice_cube(lat, L, plate=0.4), (0, 0, 0), (L,) * 3, L / round(L / a.h))
     t_mesh = time.perf_counter() - t0
     for solver in a.solvers.split(","):
-        if solver != "pcg" and on_gpu():
+        if solver not in ("pcg", "gmg") and on_gpu():
             continue
         md = tf.SolidModel(mesh, TI6AL4V_LPBF.elastic())
         z = mesh.points[:, 2]

@@ -21,7 +21,7 @@ implicit TPMS geometry ──► voxel hex8 mesher ─────────�
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
 | Physics | Small-strain elasticity; J2 plasticity with linear isotropic hardening (radial return + consistent tangent); eigenstrains (thermal / inherent strain); element birth (strain-free activation) |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build + build-plate removal (3-2-1 support) → residual stress and distortion |
-| Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes), Jacobi-PCG on CPU **or GPU**; AMG (pyamg) or sparse direct on CPU; Newton–Raphson for plasticity |
+| Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
 
 ## Status: what is verified
@@ -143,6 +143,6 @@ am.remove_from_plate()   # spring-back, final residual stress
 * Voxel meshes have stair-stepped surfaces: single-element stress maxima are mesh-dependent.
   Report percentiles, and use tet10 meshes of the smoothed surface for hot-spot or fatigue assessment.
   Use at least 4 voxels across the thinnest wall and check with a GCI study.
-* Jacobi-PCG iteration counts grow with model size. Geometric multigrid is the main item on the roadmap.
+* Geometric multigrid applies to voxel meshes only. Tet meshes use AMG on the CPU, or Jacobi-PCG on the GPU.
 
 License: Apache-2.0

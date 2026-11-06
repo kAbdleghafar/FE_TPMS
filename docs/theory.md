@@ -39,10 +39,35 @@ one shared gradient matrix `M` (24 × 72). For elasticity the whole element oper
 For tets, per-element gradients are stored (`ne × nq × nn × 3`) and batched `matmul` is used.
 Memory per hex8 element (elastic) is about 200 bytes, plus state arrays for plasticity and element birth.
 
-Preconditioners: Jacobi (diagonal computed matrix-free) on any backend; on the CPU,
-smoothed-aggregation AMG (pyamg, rigid-body near-null space) or sparse LU. For plasticity
-the AMG/LU of the *elastic* matrix preconditions CG on the *tangent* operator, so there is
-no re-assembly per Newton iteration.
+**Geometric multigrid** (`fem/multigrid.py`, default for voxel meshes): PCG preconditioned
+by a V-cycle on nested voxel grids.
+* **Coarsening:** each level merges 2 × 2 × 2 voxels. The prolongation P is trilinear
+  interpolation between the nested node lattices.
+* **Coarse operators:** exact Galerkin products `A_{l+1} = Pᵀ A_l P`, assembled *element by
+  element*. A fine voxel at child position c of its parent contributes `P_cᵀ K_e P_c`, with
+  P_c one of eight constant 24 × 24 matrices. On the finest level this is just `λ_e A_c + μ_e B_c`.
+  So coarse levels are also stored as per-element 24 × 24 matrices and applied matrix-free
+  (batched GEMV). There is no assembled matrix except on the coarsest level, which uses
+  sparse LU, or pyamg if it is still large.
+* **Supports:** Dirichlet dofs are masked in the element matrices before the Galerkin
+  product, so the coarse levels see the supports exactly.
+* **Smoother:** a degree-2 Chebyshev–Jacobi smoother over [λ_max/8, λ_max], with λ_max from
+  power iteration. It is symmetric, so the V-cycle is a valid CG preconditioner.
+* **Plasticity:** the hierarchy is built from the elastic stiffness. The finest level applies
+  the true consistent tangent.
+
+Measured on a gyroid lattice, 4 CPU cores:
+* iteration counts stay at 20–29 from 0.19 M to 1.17 M dofs;
+* 1.17 M dofs solve in 32 s, against 102 s for AMG and about 14 min for Jacobi-PCG;
+* a layer-by-layer AM build is 3.8× faster than with AMG.
+
+Other preconditioners: Jacobi (any backend); on the CPU, smoothed-aggregation AMG (pyamg,
+rigid-body near-null space) or sparse LU, for non-voxel (tet) meshes. For plasticity the
+AMG/LU of the *elastic* matrix preconditions CG on the tangent operator.
+
+**Plastic voxel models** use the shared elastic 24 × 24 GEMM kernel for every element whose
+integration points are all elastic. Only yielding elements take the integration-point
+kernel, 7.7× faster when nothing has yielded.
 
 ## 3. Elements
 
