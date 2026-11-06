@@ -44,61 +44,60 @@ def classify(field, lo, h: float, shape, subsample: int = 1, slab: int = 32) -> 
     return mask
 
 
-def surface_to_mask(verts, faces, lo, h: float, shape, chunk: int = 4096) -> np.ndarray:
+def surface_to_mask(verts, faces, lo, h: float, shape, batch: int = 200_000) -> np.ndarray:
     """Solid mask of a closed triangle surface (e.g. an STL from CAD) on a voxel grid.
 
-    A ray is cast along +z through every voxel-column centre and the voxel is
+    A ray is cast along +z through every voxel-column centre and a voxel is
     inside when an odd number of surface crossings lie below its centre
     (parity rule). Ray positions are shifted by a tiny irrational fraction of
     ``h`` so that rays never pass exactly through triangle edges or vertices
     of CAD geometry whose coordinates are round numbers.
+
+    Fully vectorised: triangles are processed in batches; every
+    (triangle, column) candidate pair from the triangle's bounding box is
+    tested at once, and the parity is filled per column with an XOR scan.
     """
     verts = np.asarray(verts, float)
     faces = np.asarray(faces, np.int64)
     lo = np.asarray(lo, float)
     nx, ny, nz = shape
-    xc = lo[0] + (np.arange(nx) + 0.5 + 1.31e-5) * h
-    yc = lo[1] + (np.arange(ny) + 0.5 + 2.77e-5) * h
+    ox, oy = lo[0] + 1.31e-5 * h, lo[1] + 2.77e-5 * h      # jittered ray origins
     zc = lo[2] + (np.arange(nz) + 0.5) * h
-    tri = verts[faces]                                         # (nt, 3, 3)
-    cols, zs = [], []
-    for s0 in range(0, len(tri), chunk):
-        T = tri[s0:s0 + chunk]
-        for t in T:
-            (x0, y0, z0), (x1, y1, z1), (x2, y2, z2) = t
-            det = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
-            if abs(det) < 1e-300:
-                continue                                       # vertical triangle: no z-crossing
-            i0 = max(0, int(np.floor((min(x0, x1, x2) - lo[0]) / h)))
-            i1 = min(nx - 1, int(np.ceil((max(x0, x1, x2) - lo[0]) / h)))
-            j0 = max(0, int(np.floor((min(y0, y1, y2) - lo[1]) / h)))
-            j1 = min(ny - 1, int(np.ceil((max(y0, y1, y2) - lo[1]) / h)))
-            if i1 < i0 or j1 < j0:
-                continue
-            X, Y = np.meshgrid(xc[i0:i1 + 1], yc[j0:j1 + 1], indexing="ij")
-            l0 = ((y1 - y2) * (X - x2) + (x2 - x1) * (Y - y2)) / det
-            l1 = ((y2 - y0) * (X - x2) + (x0 - x2) * (Y - y2)) / det
-            l2 = 1.0 - l0 - l1
-            ins = (l0 >= 0) & (l1 >= 0) & (l2 >= 0)
-            if not ins.any():
-                continue
-            ii, jj = np.nonzero(ins)
-            cols.append((ii + i0) * ny + (jj + j0))
-            zs.append(l0[ins] * z0 + l1[ins] * z1 + l2[ins] * z2)
-    mask = np.zeros(shape, bool)
-    if not cols:
-        return mask
-    cols = np.concatenate(cols)
-    zs = np.concatenate(zs)
-    order = np.lexsort((zs, cols))
-    cols, zs = cols[order], zs[order]
-    starts = np.flatnonzero(np.r_[True, cols[1:] != cols[:-1]])
-    ends = np.r_[starts[1:], len(cols)]
-    for a, b in zip(starts, ends):
-        c = cols[a]
-        crossings = np.searchsorted(zs[a:b], zc)               # crossings below each voxel centre
-        mask[c // ny, c % ny, :] = (crossings % 2) == 1
-    return mask
+    flips = np.zeros((nx * ny, nz + 1), np.uint8)          # parity flips per column, per crossing level
+    tri = verts[faces]                                     # (nt, 3, 3)
+    for s0 in range(0, len(tri), batch):
+        T = tri[s0:s0 + batch]
+        x0, y0, z0 = T[:, 0, 0], T[:, 0, 1], T[:, 0, 2]
+        x1, y1, z1 = T[:, 1, 0], T[:, 1, 1], T[:, 1, 2]
+        x2, y2, z2 = T[:, 2, 0], T[:, 2, 1], T[:, 2, 2]
+        det = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
+        # candidate column index ranges (column centres at o + (i + 0.5) h)
+        i0 = np.maximum(0, np.ceil((np.minimum(np.minimum(x0, x1), x2) - ox) / h - 0.5)).astype(np.int64)
+        i1 = np.minimum(nx - 1, np.floor((np.maximum(np.maximum(x0, x1), x2) - ox) / h - 0.5)).astype(np.int64)
+        j0 = np.maximum(0, np.ceil((np.minimum(np.minimum(y0, y1), y2) - oy) / h - 0.5)).astype(np.int64)
+        j1 = np.minimum(ny - 1, np.floor((np.maximum(np.maximum(y0, y1), y2) - oy) / h - 0.5)).astype(np.int64)
+        ni, nj = np.maximum(i1 - i0 + 1, 0), np.maximum(j1 - j0 + 1, 0)
+        cnt = np.where(np.abs(det) > 1e-300, ni * nj, 0)   # vertical triangles never cross a z-ray
+        if cnt.sum() == 0:
+            continue
+        t = np.repeat(np.arange(len(T)), cnt)              # (triangle, column) candidate pairs
+        local = np.arange(cnt.sum()) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+        ii = i0[t] + local // nj[t]
+        jj = j0[t] + local % nj[t]
+        X = ox + (ii + 0.5) * h
+        Y = oy + (jj + 0.5) * h
+        l0 = ((y1[t] - y2[t]) * (X - x2[t]) + (x2[t] - x1[t]) * (Y - y2[t])) / det[t]
+        l1 = ((y2[t] - y0[t]) * (X - x2[t]) + (x0[t] - x2[t]) * (Y - y2[t])) / det[t]
+        l2 = 1.0 - l0 - l1
+        hit = (l0 >= 0) & (l1 >= 0) & (l2 >= 0)
+        if not hit.any():
+            continue
+        zhit = l0[hit] * z0[t[hit]] + l1[hit] * z1[t[hit]] + l2[hit] * z2[t[hit]]
+        col = ii[hit] * ny + jj[hit]
+        k = np.searchsorted(zc, zhit, side="right")        # first voxel centre above the crossing
+        np.bitwise_xor.at(flips, (col, k), 1)
+    inside = np.bitwise_xor.accumulate(flips[:, :nz], axis=1).astype(bool)
+    return inside.reshape(nx, ny, nz)
 
 
 def voxelize_stl(path_or_surface, h: float, lo=None, hi=None, *, keep: str = "largest",

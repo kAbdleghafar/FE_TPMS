@@ -253,14 +253,24 @@ class SolidModel:
         return f
 
     def tangent(self, v):
-        """Matrix-free product K_t v (consistent tangent; elastic if no plasticity)."""
+        """Matrix-free product K_t v (consistent tangent; elastic if no plasticity).
+
+        Voxel meshes use the shared 24 x 24 elastic element matrices (one GEMM
+        per chunk) for every element whose integration points are all elastic;
+        only yielding elements go through the integration-point kernel. In
+        plasticity most elements stay elastic, so this is several times faster
+        than evaluating the consistent tangent everywhere.
+        """
         xp = self.xp
         f = xp.zeros(self.ndof, dtype=self.dtype)
-        fast = self.shared and not self.plastic
         for sl in self._chunks():
             ve = v[self.dofs[sl]]
-            if fast:
+            if self.shared:
                 fe = self.lam[sl][:, None] * (ve @ self.K_lam) + self.mu[sl][:, None] * (ve @ self.K_mu)
+                if self.plastic:
+                    yielding = xp.flatnonzero((self.theta_bar[sl] != 0.0).any(axis=1))
+                    if yielding.size:
+                        fe[yielding] = self._elem_tangent(ve[yielding], sl.start + yielding)
             else:
                 fe = self._elem_tangent(ve, sl)
             fe *= self.active[sl][:, None]
@@ -485,6 +495,102 @@ class SolidModel:
         self._version += 1
 
     # ======================================================================
+    # model checks
+    # ======================================================================
+    def check(self, raise_error: bool = True) -> list:
+        """Detect a singular (insufficiently supported) model before or after
+        a failed solve, with an explanation.
+
+        The active elements are split into *face-connected* parts. For every
+        part, its constrained dofs plus the nodes it shares with other parts
+        (edge/vertex contacts) must remove all rigid-body motions: six for an
+        ordinary model, the three translations for a periodic cell. Returns
+        the list of problems (and raises ``ValueError`` if ``raise_error``).
+        """
+        from scipy.sparse import coo_matrix
+        from scipy.sparse.csgraph import connected_components
+
+        from ..mesh.mesh import CELL_INFO, FACE_CORNERS, FACE_TYPE, FACES
+
+        mesh = self.mesh
+        act = np.flatnonzero(self.active_host)
+        problems = []
+        if len(act) == 0:
+            return problems
+        cells = mesh.cells[act]
+        lf = FACES[mesh.cell_type][:, :FACE_CORNERS[FACE_TYPE[mesh.cell_type]]]
+        keys = np.sort(cells[:, lf].reshape(-1, lf.shape[1]), axis=1)
+        owner = np.repeat(np.arange(len(act)), lf.shape[0])
+        _, inv = np.unique(keys, axis=0, return_inverse=True)
+        inv = inv.ravel()
+        order = np.argsort(inv, kind="stable")
+        si = inv[order]
+        pair = np.flatnonzero(si[1:] == si[:-1])            # faces shared by two elements
+        a, b = owner[order][pair], owner[order][pair + 1]
+        n = len(act)
+        g = coo_matrix((np.ones(len(a)), (a, b)), shape=(n, n))
+        ncomp, lab = connected_components(g, directed=False)
+
+        nc = CELL_INFO[mesh.cell_type]["nc"]
+        node_lab = np.full(mesh.n_points, -1)
+        shared = np.zeros(mesh.n_points, bool)
+        for k in range(cells.shape[1]):
+            nodes, L = cells[:, k], lab
+            prev = node_lab[nodes]
+            shared[nodes[(prev >= 0) & (prev != L)]] = True
+            node_lab[nodes] = L
+        periodic = sum(mesh.meta.get("periodic", (False,) * 3)) >= 2
+        fixed_nodes = self.fixed_host.reshape(-1, 3)
+        for c in range(ncomp):
+            elems = act[lab == c]
+            nodes = np.unique(mesh.cells[elems])
+            pts = mesh.points[nodes]
+            centre = pts.mean(axis=0)
+            anchored = fixed_nodes[nodes].copy()
+            anchored[shared[nodes]] = True                   # contacts with other parts count as supports
+            x = pts - centre
+            scale = max(float(np.abs(x).max()), 1e-12)
+            B = np.zeros((len(nodes), 3, 6))
+            B[:, 0, 0] = B[:, 1, 1] = B[:, 2, 2] = 1.0
+            B[:, 1, 3], B[:, 2, 3] = -x[:, 2] / scale, x[:, 1] / scale
+            B[:, 0, 4], B[:, 2, 4] = x[:, 2] / scale, -x[:, 0] / scale
+            B[:, 0, 5], B[:, 1, 5] = -x[:, 1] / scale, x[:, 0] / scale
+            nm = 3 if periodic else 6
+            Ba = B[:, :, :nm][anchored]                      # rows of constrained / shared dofs
+            if Ba.size == 0:
+                null = np.eye(nm)
+            else:
+                w, V = np.linalg.eigh(Ba.T @ Ba)
+                null = V[:, w <= 1e-10 * max(w.max(), 1e-30)].T
+            if len(null):
+                modes = []
+                for v in null:
+                    t, om = v[:3], (v[3:] / scale if nm == 6 else np.zeros(3))
+                    if np.linalg.norm(om) * scale > 1e-6:
+                        axis = om / np.linalg.norm(om)
+                        p = centre + np.cross(om, t) / (om @ om)           # a point on the rotation axis
+                        modes.append(f"rotation about an axis along ({axis[0]:.2g}, {axis[1]:.2g}, {axis[2]:.2g}) "
+                                     f"through ({p[0]:.3g}, {p[1]:.3g}, {p[2]:.3g})")
+                    else:
+                        d = t / np.linalg.norm(t)
+                        modes.append(f"translation along ({d[0]:.2g}, {d[1]:.2g}, {d[2]:.2g})")
+                own_support = fixed_nodes[nodes][~shared[nodes]].any()
+                if not anchored.any():
+                    why = "it has no supports and touches nothing else"
+                elif not own_support:
+                    why = "it is attached only through shared edge/corner nodes (a hinge)"
+                else:
+                    why = "its supports do not restrain all rigid-body motions"
+                problems.append(
+                    f"part {c + 1}/{ncomp} ({len(elems):,} elements around x={centre[0]:.3g}, y={centre[1]:.3g}, "
+                    f"z={centre[2]:.3g}): {why}; free: {'; '.join(modes)}")
+        if problems and raise_error:
+            raise ValueError("the model is singular (rigid-body motion possible):\n  - " + "\n  - ".join(problems)
+                             + "\nAdd supports with SolidModel.fix(), or drop loose parts when meshing "
+                               "(voxelize(..., keep='largest')).")
+        return problems
+
+    # ======================================================================
     # solution
     # ======================================================================
     def _free_mask(self):
@@ -550,6 +656,19 @@ class SolidModel:
         """
         xp = self.xp
         t_start = time.perf_counter()
+        if not getattr(self, "_checked", False):
+            self.check()                       # clear message instead of a solver failure
+            self._checked = True
+        try:
+            return self._solve(n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start)
+        except (FloatingPointError, RuntimeError) as err:
+            problems = self.check(raise_error=False)
+            if problems:
+                raise ValueError(f"{err}\nLikely cause, the model is singular:\n  - " + "\n  - ".join(problems)) from err
+            raise
+
+    def _solve(self, n_inc, tol, max_iter, solver, lin_rtol, verbose, name, max_cutbacks, t_start):
+        xp = self.xp
         if solver == "auto":
             if on_gpu():
                 solver = "pcg"

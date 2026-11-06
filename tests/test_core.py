@@ -203,3 +203,48 @@ def test_stl_voxelization(tmp_path):
     write_stl(str(tmp_path / "s.stl"), v, f)
     m = voxelize_stl(str(tmp_path / "s.stl"), 0.05)
     assert m.n_cells * 0.05**3 == pytest.approx(4 / 3 * np.pi, rel=0.02)
+
+
+def test_mixed_plastic_tangent_matches_integration_point_kernel():
+    mat = tf.Material("j2", 110_000.0, 0.3, yield_stress=200.0, hardening=1_000.0)
+    lat = TPMS("gyroid", cell_size=2.0, kind="sheet", density=0.4)
+    m = voxelize(lat, (0, 0, 0), (2, 2, 2), 0.2)
+    md = tf.SolidModel(m, mat)
+    rng = np.random.default_rng(3)
+    x, z = m.points[:, 0], m.points[:, 2]
+    field = np.zeros((m.n_points, 3))
+    field[:, 2] = x * z                                    # eps_zz grows with x: partial yielding
+    for eps in (5e-4, 1e-3, 2e-3, 4e-3, 8e-3):
+        md.internal_force(-eps * field.ravel())
+        frac = float((md.theta_bar != 0).any(axis=1).mean())
+        if 0.05 < frac < 0.95:
+            break
+    assert 0.05 < frac < 0.95
+    v = rng.standard_normal(md.ndof)
+    fast = md.tangent(v)
+    ref = np.zeros(md.ndof)
+    from tpmsfem.backend import scatter_add
+    for sl in md._chunks():                                # reference: integration-point kernel everywhere
+        ref += scatter_add(md.ndof, md.dofs[sl], md._elem_tangent(v[md.dofs[sl]], sl))
+    assert np.allclose(fast, ref, rtol=1e-10, atol=1e-8 * np.abs(ref).max())
+
+
+def test_check_reports_floating_part_and_hinge():
+    # two cubes touching only along an edge, only the first is supported
+    from tpmsfem.geometry import box as gbox
+    two = gbox((0, 0, 0), (1, 1, 1)) | gbox((1, 1, 0), (2, 2, 1))
+    m = voxelize(two, (0, 0, 0), (2, 2, 1), 0.25, keep="all")
+    md = tf.SolidModel(m, TI)
+    md.fix(m.nodes_where(lambda x, y, z: (z < 1e-9) & (x < 1 + 1e-9) & (y < 1 + 1e-9)))
+    probs = md.check(raise_error=False)
+    assert len(probs) == 1 and "hinge" in probs[0]
+    assert "axis along (0, 0, 1) through (1, 1," in probs[0]          # rotation about the shared edge
+    # unsupported body: clear error before any solve
+    md2 = tf.SolidModel(voxelize(gbox((0, 0, 0), (1, 1, 1)), (0, 0, 0), (1, 1, 1), 0.25), TI)
+    md2.add_nodal_force([0], (0, 0, -1.0))
+    with pytest.raises(ValueError, match="no supports"):
+        md2.solve(solver="direct")
+    # supported models and periodic cells pass
+    md3 = tf.SolidModel(voxelize(gbox((-1, -1, -1), (2, 2, 2)), (0, 0, 0), (1, 1, 1), 0.25, periodic=(True,) * 3), TI)
+    md3.fix([0])
+    assert md3.check(raise_error=False) == []
