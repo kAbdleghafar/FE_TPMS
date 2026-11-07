@@ -110,26 +110,28 @@ def run_cells(V, W0, seed=0, fields=None):
     n_chunks = 40
     for i in range(n_chunks):
         r = m.run(grow / V / n_chunks, record_every=500)
-        tips = r.tips()                       # active tips: within 2 % of dT0 (~1 K) of the leading one
-        n = len(tips)
+        tips = r.tips()                       # active tips: within 2 % of dT0 of the leading one
+        n = r.boundaries()                    # Nb-rich cell boundaries below the tips (as on a micrograph)
         lam = m.nx * m.dx * m.W0 / n if n else float("inf")
         h_tip = r.front_history[-1][1]
         theta = (h_tip - V * m.t * m.tau0) / (m.lT * m.W0)
-        hist.append(dict(t_s=m.t * m.tau0, grown_m=V * m.t * m.tau0, n_cells=n, spacing_m=lam,
+        hist.append(dict(t_s=m.t * m.tau0, grown_m=V * m.t * m.tau0, n_cells=n, n_tips=len(tips), spacing_m=lam,
                          theta_tip=float(theta),
                          cs_tip=float(np.nanmedian([t["cs"] for t in tips])) if tips else float("nan"),
                          cl_tip=float(np.nanmedian([t["cl"] for t in tips])) if tips else float("nan")))
         print(f"    V = {V} m/s, W0 = {W0 * 1e9:.0f} nm: grown {hist[-1]['grown_m'] * 1e6:5.1f} um, "
-              f"{n:2d} cells, theta_tip = {theta:+.3f}, c_s*/c_inf = {hist[-1]['cs_tip']:.3f} "
+              f"{n:4.1f} cells ({len(tips)} tips), theta_tip = {theta:+.3f}, c_s*/c_inf = {hist[-1]['cs_tip']:.3f} "
               f"[{r.seconds:.0f} s]", flush=True)
     late = hist[int(0.6 * n_chunks):]
     n_mean = float(np.mean([max(h["n_cells"], 1) for h in late]))
+    n_tips = float(np.mean([max(h["n_tips"], 1) for h in late]))
     theta = float(np.mean([h["theta_tip"] for h in late]))
     cs = float(np.nanmean([h["cs_tip"] for h in late]))
     cl = float(np.nanmean([h["cl_tip"] for h in late]))
     seg = r.segregation()
     out = dict(V=V, W0_m=W0, G=G, cooling_rate=cr, width_m=m.nx * m.dx * m.W0, grown_m=hist[-1]["grown_m"],
                n_cells_mean=n_mean, spacing_um=m.nx * m.dx * m.W0 / n_mean * 1e6,
+               spacing_tips_um=m.nx * m.dx * m.W0 / n_tips * 1e6,
                spacing_um_range=[m.nx * m.dx * m.W0 / max(h["n_cells"], 1) * 1e6 for h in late],
                tip_undercooling_K=ALLOY.freezing_range * (1.0 - theta), theta_tip=theta,
                cs_tip_wt=cs * ALLOY.c_inf, cl_tip_wt=cl * ALLOY.c_inf, k_eff=cs / cl,
@@ -162,13 +164,14 @@ def part_cells(store, Vs=(0.2, 0.1, 0.05, 0.03), W0s=(10e-9,)):
 
 # ----------------------------------------------------------------------------- report
 def report(store):
-    rows = ["| V [m/s] | G V [K/s] | W0 [nm] | spacing, tpmsfem [um] | Ghosh 2017 fit [um] | ratio | Hunt [um] "
+    rows = ["| V [m/s] | G V [K/s] | W0 [nm] | spacing, tpmsfem [um] | (active tips) | Ghosh 2017 fit [um] | ratio | Hunt [um] "
             "| Kurz-Fisher [um] | c_s* [wt% Nb] | c_l* [wt% Nb] | c_s*/c_l* | tip undercooling [K] |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for key in sorted(k for k in store.data if k.startswith("cells|")):
         r = store.get(key)
         rows.append(f"| {r['V']:.2f} | {r['cooling_rate']:.1e} | {r['W0_m'] * 1e9:.0f} | {r['spacing_um']:.3f} "
-                    f"({min(r['spacing_um_range']):.2f}-{max(r['spacing_um_range']):.2f}) | {r['ghosh_fit_um']:.3f} | "
+                    f"({min(r['spacing_um_range']):.2f}-{max(r['spacing_um_range']):.2f}) | {r['spacing_tips_um']:.3f} | "
+                    f"{r['ghosh_fit_um']:.3f} | "
                     f"{r['spacing_um'] / r['ghosh_fit_um']:.2f} | {r['hunt_um']:.3f} | {r['kurz_fisher_um']:.3f} | "
                     f"{r['cs_tip_wt']:.2f} | {r['cl_tip_wt']:.2f} | {r['k_eff']:.2f} | {r['tip_undercooling_K']:.1f} |")
     ms = ["| V [m/s] | W0 [nm] | D/V [W0] | wavelength [nm] | omega_PF / omega_MS |", "|---|---|---|---|---|"]

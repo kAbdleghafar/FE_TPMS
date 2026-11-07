@@ -130,10 +130,37 @@ class PFResult:
             out.append(dict(column=int(j), height_m=float(h[j]), cs=cs, cl=cl, k_eff=cs / cl))
         return out
 
-    def spacing(self, **kw):
-        """(primary spacing [m], number of active tips); ``inf`` for a planar front. Keyword
-        arguments go to :meth:`tips`."""
-        n = len(self.tips(**kw))
+    def boundaries(self, depth=(0.25, 0.5), rel_prominence: float = 0.3, n_rows: int = 9):
+        """Mean number of Nb-rich cell boundaries crossed by horizontal lines below the leading
+        tip, as counted on a micrograph: peaks of c(x) (periodic) with a prominence of at least
+        ``rel_prominence`` of the line's composition range, on ``n_rows`` lines spread over
+        ``depth`` (fractions of the tip height above the window bottom, counted down from the
+        tip). Lagging cells that are still growing count; cells already cut off do not."""
+        from scipy.signal import find_peaks
+
+        nz, nx = self.phi.shape
+        rows = np.flatnonzero((self.phi > 0.0).any(axis=1))
+        if not len(rows):
+            return 0.0
+        tip = int(rows.max())
+        counts = []
+        for f in np.linspace(depth[0], depth[1], n_rows):
+            row = self.c[max(int(round(tip * (1.0 - f))), 0)]
+            rng = float(row.max() - row.min())
+            if rng < 1e-3:
+                counts.append(0)                                  # planar
+                continue
+            ext = np.concatenate([row, row, row])
+            pk, _ = find_peaks(ext, prominence=rel_prominence * rng)
+            counts.append(int(np.sum((pk >= nx) & (pk < 2 * nx))))
+        return float(np.mean(counts))
+
+    def spacing(self, method: str = "boundaries", **kw):
+        """(primary spacing [m], number of cells); ``inf`` for a planar front.
+        ``method="boundaries"`` (default) counts cell boundaries below the tips
+        (:meth:`boundaries`), ``"tips"`` counts active tips (:meth:`tips`); keyword arguments
+        go to that method."""
+        n = self.boundaries(**kw) if method == "boundaries" else len(self.tips(**kw))
         if n == 0:
             return np.inf, 0
         return self.phi.shape[1] * self.dx_m / n, n

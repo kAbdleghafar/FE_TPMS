@@ -73,17 +73,19 @@ def run_point(G, R, width=4.0e-6, height=2.0e-6, grow=12e-6, seed=0, fields=None
     for _ in range(n_chunks):
         r = m.run(grow / R / n_chunks, record_every=500)
         tips = r.tips()
+        nb = r.boundaries()
         theta = (r.front_history[-1][1] - R * m.t * m.tau0) / (m.lT * m.W0)
-        hist.append(dict(grown_m=R * m.t * m.tau0, n_cells=len(tips), theta_tip=float(theta),
+        hist.append(dict(grown_m=R * m.t * m.tau0, n_cells=nb, n_tips=len(tips), theta_tip=float(theta),
                          cs=float(np.nanmedian([t["cs"] for t in tips])) if tips else float("nan"),
                          cl=float(np.nanmedian([t["cl"] for t in tips])) if tips else float("nan")))
-        print(f"    G = {G:.2e} K/m, R = {R:.3f} m/s: grown {hist[-1]['grown_m'] * 1e6:5.1f} um, {len(tips):2d} cells, "
+        print(f"    G = {G:.2e} K/m, R = {R:.3f} m/s: grown {hist[-1]['grown_m'] * 1e6:5.1f} um, {nb:4.1f} cells ({len(tips)} tips), "
               f"theta_tip {theta:+.3f}, c_s* {hist[-1]['cs'] * ALLOY.c_inf:.2f} wt% [{r.seconds:.0f} s]", flush=True)
     late = hist[int(0.6 * n_chunks):]
     Lx = m.nx * m.dx * m.W0
     n = float(np.mean([max(h["n_cells"], 1) for h in late]))
     win = r.c[r.phi < 0.0]
-    out = dict(G=G, R=R, cooling_rate=G * R, width_m=Lx, spacing_um=Lx / n * 1e6,
+    n_tips = float(np.mean([max(h["n_tips"], 1) for h in late]))
+    out = dict(G=G, R=R, cooling_rate=G * R, width_m=Lx, spacing_um=Lx / n * 1e6, spacing_tips_um=Lx / n_tips * 1e6,
                spacing_um_range=[Lx / max(h["n_cells"], 1) * 1e6 for h in late],
                cs_tip_wt=float(np.nanmean([h["cs"] for h in late])) * ALLOY.c_inf,
                cl_tip_wt=float(np.nanmean([h["cl"] for h in late])) * ALLOY.c_inf,
