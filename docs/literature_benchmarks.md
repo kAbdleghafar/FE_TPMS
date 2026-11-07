@@ -455,13 +455,18 @@ Predicted ridge deflections 1..11 (mm): 1.234, 0.949, 0.712, 0.520, 0.366, 0.240
   reality), the unknown plate temperature, and isotropic hardening without a kinematic part
   under the repeated reheating.
 
+**Time-step check.** With 4 instead of 8 heat steps per super-layer, ridge 1 deflects
+1.200 mm instead of 1.234 mm (−2.8 %). The field correlations change by at most 0.03, and the
+RMSEs by less than 7 %. A first-order extrapolation in the step count puts the converged
+deflection near 1.27 mm. The deflection therefore carries a time-discretisation uncertainty of
+about 3 %, the same size as its deviation from the measurement.
+
 **Mean plastic strain.** The part's mean equivalent plastic strain is 1.1 % (95th percentile
 1.4 %). This is consistent with a solidification-to-room-temperature thermal strain of about
 1.9 % partly taken up plastically.
 
 **Next steps for this benchmark:**
-* **Time-step and lumping convergence.** Run 4 vs 8 heat steps per super-layer, and 0.25 mm
-  super-layers; the 4-step run is in progress or archived in `results/`.
+* **Lumping convergence.** Use 0.25 mm super-layers; the time-step check is done above.
 * **Moving source on a leg submodel**, calibrated on the AMB2018 thermography
   (doi:10.18434/M31935; radiant temperature, emissivity correction, valid range 550–1050 °C).
 * **Kinematic (Chaboche) hardening** once cyclic hysteresis data for the build are available.
