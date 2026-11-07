@@ -148,12 +148,14 @@ am.remove_from_plate()   # spring-back, final residual stress
 | `examples/02_femoral_stem_iso7206.py` | solid vs. lattice-core stem under ISO 7206-4-style load: stiffness (stress shielding), stress percentiles, Abaqus/CalculiX decks |
 | `examples/03_cup_am_residual_stress.py` | porous cup built rim-down: layer history, residual stress on/off plate, rim out-of-roundness & flatness; `--plastic` for J2 |
 | `examples/04_benchmark_vs_calculix.py` | the code-to-code benchmark above; writes Abaqus decks + our results for commercial comparison |
+| `examples/05_lpbf_meltpool_microstructure.py` | AM-Bench case-B laser track: melt pool, G–R map, CET, epitaxial grains, ExaCA export, 5-track hatch |
+| `examples/06_phasefield_cells.py` | 2-D phase-field cells in IN625 (Ni–4Nb) at a case-B melt-pool G and R: spacing and Nb segregation |
 | `benchmarks/perf_scaling.py` | matrix-free throughput and solve time vs. size, per backend (CPU/GPU) |
 
 ## Documentation
 
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
-* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure, surface roughness
+* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, phase-field cells), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
 

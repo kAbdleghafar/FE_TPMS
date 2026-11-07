@@ -7,7 +7,8 @@ thermo-mechanical AM model. They form one chain:
                                          |                        |
                                          v                        v
                          bead size -> surface roughness   solidification microstructure
-                                     (roughness.py)       (solidification.py, ExaCA export)
+                                     (roughness.py)       grains (solidification.py, ExaCA export)
+                                                          cells, Nb segregation (phasefield.py)
 
 Everything runs on the NumPy/CuPy backend, so the same code is GPU-ready. The figures and
 numbers below come from a 4-core CPU.
@@ -61,6 +62,10 @@ numbers below come from a 4-core CPU.
   * Outputs: grain maps, inverse-pole-figure colours and texture fractions.
 * **ExaCA export.** `x,y,z,tm,tl,cr` CSV (SI units) for ORNL's open-source GPU
   cellular-automaton code. Use it when the full decentred-octahedron kinetics matter.
+* **Cells and dendrites, resolved** (`process/phasefield.py`, §5.3). A 2-D quantitative
+  phase-field model grows the cell array itself at a melt-pool (G, R). It gives the spacing,
+  the cell or dendrite morphology and the Nb segregation between cells, which the spacing
+  laws above only estimate.
 
 **Constants.** The alloy constants (Gibbs–Thomson, diffusivity, partition coefficient,
 nucleation density, growth law) are inputs. The defaults are generic Ni–Nb values and are
