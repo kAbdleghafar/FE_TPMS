@@ -40,6 +40,10 @@ fidelity, benchmark credibility).
      count from gradient-following epitaxy) and in 3-D (agreement 51 % for in-plane grain
      origins, decaying to 6–8 % beyond 1.5 µm). Next: serial-section substrate data, the track
      3/5/10 maps and cell spacing from SEM, once NIST's files download again;
+   * cells and Nb segregation: 2-D quantitative phase field **done** (docs/process_models.md §5.3; code to
+     code with Ghosh et al. 2017, consistent with the measured IN625 cell spacing). Next: 3-D runs on the GPU,
+     a thinner interface (or a finite-interface-dissipation model) for R > 0.05 m/s, velocity-dependent
+     partitioning, and Laves/NbC from the segregated Nb (CALPHAD), feeding the heat-treatment model;
    * a GPU run of multi-layer patches;
    * roughness-aware effective wall thickness for TPMS stiffness and fatigue.
 8. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).

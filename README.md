@@ -21,7 +21,7 @@ implicit TPMS geometry ──► voxel hex8 mesher ─────────�
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
 | Physics | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
-| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
+| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; **2-D quantitative phase field** of cells/dendrites and Nb segregation at the melt-pool G, R (Karma–Echebarria anti-trapping model, numba/CuPy); as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
 | Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
@@ -92,6 +92,11 @@ four independent groups and compares them:
   simulated melt pool explains the rest. Grains that start within 0.5 µm of the measured
   plane match 51 % of the time. Those starting ≥ 1.5 µm behind it, on substrate NIST did not
   measure, match only 6–8 %.
+* **Ghosh et al. 2017 / 2018** (NIST, phase-field cells in Ni–Nb / IN625): code to code, the phase field
+  reproduces their primary spacing (0.604 µm on their fit at 3e5 K/s, 0.221 µm against 0.23 µm at 1e6 K/s)
+  and tip compositions (3.78 / 6.81 wt% Nb against 3.65 / 6.87). Driven by the case-B melt pool, it gives
+  0.57 µm cells at the fusion boundary falling to 0.30 µm higher up, inside the 0.2–1.0 µm measured by SEM;
+  Hunt's law trends the other way. Verified against Mullins–Sekerka theory; quantitative while D/V ≳ 10 W0.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.

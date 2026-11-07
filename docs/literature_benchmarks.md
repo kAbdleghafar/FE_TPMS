@@ -40,6 +40,8 @@ the target density with the topology's own Gibson–Ashby exponent before extrap
 | Ahmed, Barsoum & Abu Al-Rub 2022 | modulus reduction by SLM residual stress | effect and magnitude (5–17 %) reproduced; **topology ranking not reproduced** with a uniform inherent strain (§2.4) |
 | **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, and the deflection after the leg cut | **thermo-mechanical model, no calibration:** deflection **−3.3 %** with MaCTO compression of the same build, **+8.5 %** with AMB2022 E8 tension (−40 % with a generic DED table); contour σ_xx r = 0.71 (part) / 0.87 (plate); synchrotron ε_xx r = 0.80, ε_zz r = 0.92; neutron ε_xx r = 0.88 in the body, 0.22 in the legs (bias +265 → −49 µε) (§3.1). Elastic inherent strain calibrated on the deflection: r = 0.77 / 0.85, 0.75 / 0.89, 0.81 / 0.13 (§3) |
 | **NIST AM-Bench 2018-02** (laser tracks on IN625) | melt-pool width, depth, length, cooling rate of 3 single tracks | calibrated on case B (absorptivity 0.323, absorption depth 15 µm): width −4 / −5 %, depth +11 / −17 %, length −7 … +19 %; cooling rates 3–5× too high ([process_models.md](process_models.md) §4) |
+| **Ghosh et al. 2017** (NIST, phase field, laser-deposited Ni–5Nb) | primary cell spacing and tip compositions at G = 1e7 K/m, V = 0.03–0.2 m/s, same model class | spacing on their fit at 0.03 m/s (0.604 µm), 0.221 vs 0.23 µm at 0.1 m/s, −11 % / +22 % vs their fit at 0.05 / 0.2 m/s; tip solid / liquid 3.78 / 6.81 vs 3.65 / 6.87 wt% Nb ([process_models.md](process_models.md) §5.3) |
+| Ghosh et al. 2018 (NIST, IN625 single tracks, SEM) | primary cell spacing, 195 W / 800 mm/s | phase field at the case-B melt pool's G, R: 0.57 → 0.30 µm from the fusion boundary upwards, inside the measured 0.2–1.0 µm and its coarse-bottom trend ([process_models.md](process_models.md) §5.3) |
 | Kasperovich et al. 2021 (LPBF IN718) | Sa vs build angle (45° / 90° / 135°) | 3 powder-adhesion parameters fitted to the 3 values; gyroid cell Sa 26 µm predicted from its facet angles ([process_models.md](process_models.md) §6) |
 | Naghavi, …, **Liu** (UCL) 2022 | compressive modulus of Ti6Al4V sheet gyroid/diamond bone scaffolds (6 designs), vs their Abaqus FE and experiments | **−15 … −21 %** vs their FE across all six designs (a near-constant factor of 1.23 ± 0.03); relative trends within ±4 %; −10 … −20 % vs experiments (§4) |
 
@@ -565,6 +567,8 @@ python benchmarks/literature/nist_ambench2018_tm.py --tag base && python benchma
 python benchmarks/literature/naghavi_2022.py --config periodic && python benchmarks/literature/naghavi_2022.py --config specimen
 python benchmarks/literature/ahmed_barsoum_2022.py --report
 python benchmarks/literature/van_viet_elrich_2025.py --report-only
+python benchmarks/literature/ghosh_2017_phasefield.py             # phase field vs Ghosh 2017, ~1.5 h (numba)
+python benchmarks/literature/nist_ambench2018_tracks_pf.py        # phase field at the case-B melt pool, ~25 min
 ```
 
 CPU timings in this repository's runs (4-core container, no GPU, mostly single-threaded AMG):

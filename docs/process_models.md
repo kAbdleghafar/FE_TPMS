@@ -279,6 +279,133 @@ The remaining NIST track files (SEM and EBSD maps of tracks 3, 5 and 10, the 10 
 cross-sections of mds2-3830) did not download: they returned server errors, HTTP 500, on
 2026-11-07.
 
+### 5.3 Cells and Nb segregation: 2-D quantitative phase field
+
+**Why a phase field.** The grain model (§2, §5.1–5.2) places grains but not the cells inside
+them.
+* In LPBF IN625 each grain solidifies as an array of sub-micron cells.
+* Nb is rejected into the liquid between the cells. The Laves phase and NbC that form there
+  control the heat-treatment response, corrosion and fatigue.
+* The spacing laws (Kurz–Fisher, Hunt) only give an estimate.
+
+`process/phasefield.py` grows the cell array itself at a melt-pool (G, R).
+
+**Model.** The quantitative thin-interface phase field of a dilute binary alloy in
+directional solidification (Karma 2001; Echebarria, Folch, Karma & Plapp 2004).
+* **Variables.** A phase field `φ` (+1 solid, −1 liquid) and the supersaturation `U`.
+* **Temperature.** Frozen: `T = T0 + G (z − V t)`, with the melt-pool G and R as inputs.
+* **Thin-interface terms.** An anti-trapping current, plus `λ = a1 W0/d0` and
+  `τ0 = a2 λ W0²/D` (a1 = 0.8839, a2 = 0.6267). These remove the spurious interface effects
+  (solute trapping, a jump in chemical potential, kinetic undercooling) to second order in the
+  interface width `W0`.
+* **Anisotropy.** Four-fold, `1 + ε4 cos 4(ψ − ψ0)`; the crystal can be tilted from the
+  gradient.
+* **Diffusion.** One-sided: no diffusion in the solid.
+
+**Numerics.**
+* **Grid.** Explicit conservative finite volumes with `dx = 0.8 W0`, periodic across the growth
+  direction.
+* **Moving window.** The window follows the front. The rows that leave it are kept as the
+  solidified Nb map.
+* **Kernel.** A fused numba kernel runs at 7 ns per cell and step on 4 CPU cores, 18× the NumPy
+  array path; the two agree to 1e-15. The array code also runs on CuPy GPUs.
+* **Alloy.** IN625 is quasi-binary Ni–4 wt% Nb, as in Ghosh et al. (2018): k = 0.48,
+  m = −10.5 K/wt%, D = 3e-9 m²/s, Γ = 3.65e-7 K m, ε4 = 0.02, so ΔT0 = 45.5 K and d0 = 8.0 nm
+  (`phasefield.IN625_NB`).
+
+**Measurements.**
+* **Spacing.** The width divided by the number of Nb-rich cell boundaries. Boundaries are counted,
+  as on a micrograph, on lines 25–50 % of the tip height below the leading tip. A boundary
+  counts when it stands 0.2 c∞ above the neighbouring cell cores.
+  * A relative threshold failed: the strongly enriched liquid droplets set the scale and the
+    solid boundaries dropped below it.
+  * Counting tips failed too: at high G, the active tips of a coarsening array are further
+    apart in height than any fixed band.
+* **Tip compositions.** c_s* is the solid composition just behind each active tip, c_l* the
+  liquid peak just ahead of it.
+
+**Verification** (`tests/test_phasefield.py`, `benchmarks/literature/ghosh_2017_phasefield.py`).
+* **Exactness.** Solute is conserved to 1e-14 in a closed box.
+* **Stability limits.** A planar front stays planar below the constitutional limit
+  `V_cs = D G/ΔT0`, sitting at the solidus. It breaks into cells above.
+* **Growth rates.** Small front perturbations follow the Mullins–Sekerka dispersion relation
+  (one-sided, frozen temperature, non-quasi-static). With D/V = 20 W0 the growth rates agree
+  within 5 % across the unstable band, at W0 = 2.5 d0 and 1.25 d0.
+* **At AM speeds** (Ni–5Nb, G = 1e7 K/m, ε4 = 0), the ratio of phase-field to Mullins–Sekerka
+  growth rate is:
+
+| V | W0 = 10 nm | W0 = 5 nm |
+|---|---|---|
+| 0.03 m/s (D/V = 10 and 20 W0) | 0.88–0.94 | 0.88–0.96 |
+| 0.1 m/s (D/V = 3 and 6 W0) | 0.57–0.76 | 0.70–0.83 |
+
+  The thin-interface model stays quantitative where D/V ≳ 10 W0, i.e. up to about 0.03 m/s at
+  W0 = 10 nm. Faster growth needs a thinner interface, and the cost rises as W0^-4. Ghosh et al.
+  (2017) reach the same conclusion. They find the anti-trapping current "not adequate to
+  eliminate solute-trapping at these high solidification rates".
+
+**Code-to-code: Ghosh, Ma, Ofori-Opoku & Guyer, MSMSE 25 (2017) 065002.** Their setup is the
+same model class:
+* Ni–5 wt% Nb, k = 0.48, m = −10.5 K/wt%, D = 3e-9 m²/s, Γ = 3.65e-7 K m, ε4 = 0.03;
+* W0 = 10 nm, dx = 8 nm, 2-D, frozen temperature, G = 1e7 K/m.
+
+| V | cooling rate G V | tpmsfem spacing | Ghosh 2017 | c_s* tpmsfem / Ghosh | c_l* tpmsfem / Ghosh |
+|---|---|---|---|---|---|
+| 0.03 m/s | 3e5 K/s | 0.604 µm | 0.604 µm (fit), 0.71 µm (run quoted) | 3.78 / 3.65 wt% | 6.81 / 6.87 wt% |
+| 0.05 m/s | 5e5 K/s | 0.402 µm | 0.452 µm (fit) | 3.85 wt% | 6.68 wt% |
+| 0.1 m/s | 1e6 K/s | 0.221 µm | 0.23 µm (run quoted), 0.304 µm (fit) | 3.94 wt% | 6.42 wt% |
+| 0.2 m/s | 2e6 K/s | 0.250 µm | 0.205 µm (fit) | 4.37 wt% | 6.46 wt% |
+
+Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and Kurz–Fisher's
+1.2–2.0 µm over the same range.
+
+![phase field vs Ghosh et al. 2017](img/pf_ghosh2017.png)
+
+**Application: AM-Bench case B against the measured IN625 cells**
+(`benchmarks/literature/nist_ambench2018_tracks_pf.py`).
+* **Inputs.** The calibrated case-B melt pool gives G and R at four heights up the centreline
+  of the x = 0.7 mm section. R is `v |n_x|`, which is smoother on 5 µm voxels than cooling
+  rate / G.
+* **Run.** The phase field runs at W0 = 10 nm, 4 µm wide, over 12 µm of growth.
+* **Measurement.** Ghosh, Ma, Levine, Ricker, Stoudt, Heigel & Guyer, JOM 70 (2018) 1011,
+  measured an average primary spacing of about 0.2–1.0 µm by SEM. The track was on an IN625
+  plate at 195 W / 800 mm/s, the nominal setting nearest case B. The cells are coarse at the
+  pool bottom and fine towards its rear. Their own phase field gives 0.20–0.43 µm.
+
+| height above the fusion boundary | G | R | D/V | spacing, phase field | Hunt | c_s* | c_l* |
+|---|---|---|---|---|---|---|---|
+| 0 µm (lowest melted row) | 2.4e7 K/m | 0.027 m/s | 11 W0 | 0.57 µm | 0.56 µm | 3.23 wt% | 5.83 wt% |
+| 5 µm | 1.25e7 K/m | 0.074 m/s | 4.1 W0 | 0.37 µm | 0.60 µm | 3.34 wt% | 5.49 wt% |
+| 10 µm | 6.6e6 K/m | 0.092 m/s | 3.3 W0 | 0.35 µm | 0.79 µm | 3.35 wt% | 5.40 wt% |
+| 15 µm | 3.5e6 K/m | 0.133 m/s | 2.3 W0 | 0.30 µm | 0.98 µm | 3.44 wt% | 5.29 wt% |
+
+![phase field, AM-Bench case B](img/pf_ambench_caseB.png)
+
+**Reading the results.**
+* **Code to code.** The phase field reproduces Ghosh et al.'s cell spacing within their own
+  scatter: their quoted run at 3e5 K/s lies 18 % above their fit. At 0.03 m/s the tip
+  compositions agree within 4 % (solid) and 1 % (liquid). The effective partition
+  coefficient c_s*/c_l* rises with V, from 0.55 to 0.68 against k = 0.48.
+* **Against the measurement.** All four case-B spacings lie inside the measured 0.2–1.0 µm.
+  * They fall from 0.57 µm at the fusion boundary to 0.30 µm higher up, as the micrographs
+    show.
+  * Hunt's law trends the other way (0.56 → 0.98 µm), because G falls faster than R rises.
+  * The measurement is a single range from one micrograph, so this is a consistency check,
+    not a point-wise validation.
+* **The Nb segregation is of the right size.** At the fusion boundary the cell cores hold
+  3.2 wt% Nb and the liquid at the tips 5.8 wt% (Ghosh 2018 phase field: 3.7 / 5.1 wt%).
+  Deeper in the mushy zone, intercellular droplets reach 9 wt% in the 2 µm window. Ghosh 2017
+  report 15.8 wt% in a 40 µm domain. The value keeps rising with depth because the binary model
+  has no eutectic or Laves reaction to cap it.
+* **Limits.**
+  * Only the fusion-boundary point satisfies D/V ≥ 10 W0. Above it the spacings carry the
+    under-resolution measured in the verification. A W0 = 5 nm rerun of the 0.1 m/s case
+    measures how much (run in progress).
+  * The model is 2-D, and 2-D cell arrays are coarser than 3-D ones.
+  * The temperature field is frozen (no latent heat at this scale).
+  * Non-equilibrium solute trapping beyond what the diffuse interface gives is not modelled.
+  * IN625 is treated as a binary.
+
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 
 Kasperovich, Becker, Artzt et al., *Materials & Design* 207 (2021) 109858,
