@@ -43,7 +43,7 @@ PHYS_LAYER, LAYER_TIME = 0.02, 52.0          # mm, s (Heigel et al. 2020)
 
 def run(a, files):
     mesh, h = AB.build_mesh("plate", files)
-    mats = {1: IM.part_material(a.direction, anneal=a.anneal, nu=a.nu), 2: IM.plate_material(nu=a.nu)}
+    mats = {1: IM.part_material(a.direction, anneal=a.anneal, nu=a.nu, source=a.flow), 2: IM.plate_material(nu=a.nu)}
     md = tf.SolidModel(mesh, mats, T_initial=a.T_plate)
     hm = HeatModel(mesh, mats, T_initial=a.T_plate)
     # heat leaves through the upward-facing part surfaces (top of each layer, arches);
@@ -88,8 +88,30 @@ def run(a, files):
           f"{AB.DEFLECTION_RIDGE1})  {time.perf_counter() - t0:.0f}s", flush=True)
 
 
+SUMMARY_COLS = (("contour_sxx", "contour σ_xx part"), ("contour_sxx_plate", "contour σ_xx plate"),
+                ("neutron_exx_body", "neutron ε_xx body"), ("neutron_exx_legs", "neutron ε_xx legs"),
+                ("xray_exx", "synchrotron ε_xx"), ("xray_ezz", "synchrotron ε_zz"))
+
+
+def summary_table(results):
+    """One row per run: deflection and correlation r (RMSE) of each measured field."""
+    out = ["| run | part hardening | ridge-1 deflection | " + " | ".join(c[1] for c in SUMMARY_COLS) + " |",
+           "|---|---|---:|" + "---:|" * len(SUMMARY_COLS)]
+    for tag, args, r in results:
+        cells = []
+        for key, _ in SUMMARY_COLS:
+            m = r.get(key)
+            sc, u = (1, "MPa") if key.startswith("contour") else (1e6, "µε")
+            cells.append("" if m is None else f"{m['r']:.2f} ({m['rmse'] * sc:.0f} {u})")
+        d = r["deflection"][0]
+        out.append(f"| `{tag}` | {args.get('flow', 'macto')} | {d:.3f} mm ({100 * (d / AB.DEFLECTION_RIDGE1 - 1):+.1f} %) | "
+                   + " | ".join(cells) + " |")
+    return out
+
+
 def report(files):
     lines = []
+    results = []
     E20 = IM.E_of_T(20.0)
     elastic = json.load(open(os.path.join(AB.OUT, "analysis_plate.json")))["kappa=0"] \
         if os.path.exists(os.path.join(AB.OUT, "analysis_plate.json")) else None
@@ -102,9 +124,10 @@ def report(files):
                               E=E20, nu=args["nu"])
         r["plastic_strain_part_mean"] = float(R["alpha"][part].mean())
         json.dump(r, open(os.path.join(OUT, f"analysis_{tag}.json"), "w"), indent=1)
+        results.append((tag, args, r))
         lines.append(f"\n### thermo-mechanical `{tag}` ({float(R['seconds']) / 60:.0f} min; T_dep = {args['T_deposit']} C, "
                      f"T_plate = {args['T_plate']} C, {args['n_steps']} heat steps / super-layer, "
-                     f"anneal = {args['anneal']}, nu = {args['nu']})\n")
+                     f"anneal = {args['anneal']}, nu = {args['nu']}, part hardening = {args.get('flow', 'macto')})\n")
         lines.append("| quantity (measurement) | points | measured RMS | RMSE | bias | correlation r |")
         lines.append("|---|---:|---:|---:|---:|---:|")
         lines.append(f"| ridge-1 deflection after leg cut (measured 1.276 mm) | 1 | | | "
@@ -115,6 +138,7 @@ def report(files):
             lines.append("\nFor comparison, elastic inherent strain calibrated on ridge 1: legs neutron eps_xx r = "
                          f"{elastic['neutron_exx_legs']['r']:.2f}, body r = {elastic['neutron_exx_body']['r']:.2f}, "
                          f"contour r = {elastic['contour_sxx']['r']:.2f}.")
+    lines = ["### all thermo-mechanical runs: correlation r (RMSE) with the measurements\n"] + summary_table(results) + lines
     txt = "\n".join(lines)
     print(txt)
     open(os.path.join(OUT, "report.md"), "w").write(txt + "\n")
@@ -131,6 +155,8 @@ if __name__ == "__main__":
     ap.add_argument("--T-plate", type=float, default=20.0)
     ap.add_argument("--anneal", type=float, default=None)
     ap.add_argument("--direction", default="TD")
+    ap.add_argument("--flow", default="macto", choices=["macto", "e8", "baseline"],
+                    help="part hardening: NIST MaCTO compression (same build), AMB2022 E8 tension, or baseline table")
     ap.add_argument("--nu", type=float, default=IM.NU)
     ap.add_argument("--h-conv", type=float, default=10.0, help="W/(m^2 K)")
     ap.add_argument("--emissivity", type=float, default=0.4)

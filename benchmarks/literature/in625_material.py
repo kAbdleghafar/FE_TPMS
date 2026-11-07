@@ -94,8 +94,35 @@ def thermal_properties():
                                      b["solidus_C"], b["liquidus_C"])
 
 
-def part_material(direction="TD", anneal=None, softening=None, nu=NU):
-    return tf.Material("IN625_LPBF_AMB2018", E=E_of_T(20.0), nu=nu, flow=part_flow(direction, softening),
+def e8_flow():
+    """Hardening from the AMB2022 E8 tension tests only (another as-built build, no MaCTO):
+    mean true stress vs true plastic strain of the three quasi-static specimens (0.001/s) up to
+    the UTS, 0.2 % offset yield at eps_p = 0; higher temperatures scaled by the baseline
+    yield ratio sigma_y(T) / sigma_y(20 C)."""
+    rows = [r for r in reduce_e8() if r["rate"] < 3e-3]
+    s20 = []
+    for r in rows:
+        ep, st = np.asarray(r["eps_p"]), np.asarray(r["sigma_true"])
+        keep = ep >= 0.002
+        ep, st = np.maximum.accumulate(ep[keep]), st[keep]
+        s = np.interp(EPS_GRID, ep, st)
+        s[0] = r["yield02"]
+        s20.append(s)
+    s20 = np.mean(s20, axis=0)
+    b = baseline()
+    ratio = b["yield_MPa"] / b["yield_MPa"][0]
+    return FlowTable(EPS_GRID, s20[None, :] * ratio[:, None], b["T"], 0.0, "E8 tension x baseline ratio")
+
+
+def baseline_flow():
+    """The data guide's baseline yield(T) (DED IN625 table), perfectly plastic."""
+    b = baseline()
+    return FlowTable([0.0], b["yield_MPa"][:, None], b["T"], 0.0, "baseline yield, perfectly plastic")
+
+
+def part_material(direction="TD", anneal=None, softening=None, nu=NU, source="macto"):
+    flow = {"macto": lambda: part_flow(direction, softening), "e8": e8_flow, "baseline": baseline_flow}[source]()
+    return tf.Material("IN625_LPBF_AMB2018", E=E_of_T(20.0), nu=nu, flow=flow,
                        temperature=temperature_table(), thermal=thermal_properties(), anneal_temperature=anneal,
                        density=8.44e-9)
 
