@@ -125,6 +125,17 @@ def report(store):
     print(text)
 
 
+BLUE, ORANGE, AQUA, INK, MUTED, GRID = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#52514e", "#e4e3df"
+
+
+def _style(ax):
+    ax.grid(True, color=GRID, lw=0.6)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(colors=MUTED, labelsize=8)
+
+
 def figure(store):
     import matplotlib
     matplotlib.use("Agg")
@@ -134,44 +145,66 @@ def figure(store):
     fields = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
     pts = [(p, store.get(f"pf|z={p['z_um']:.1f}")) for p in path["points"]]
     pts = [(p, r) for p, r in pts if r is not None]
-    fig = plt.figure(figsize=(12, 4.2))
-    ax = fig.add_axes([0.05, 0.13, 0.25, 0.75])
+    fig = plt.figure(figsize=(12, 8))
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.25, 1], width_ratios=[1, 1, 0.15, 2.2], hspace=0.32, wspace=0.35,
+                          left=0.06, right=0.98, top=0.93, bottom=0.08)
     zs = [p["z_um"] for p in path["points"]]
-    ax.semilogx([p["G"] for p in path["points"]], zs, "C3o-", label="G [K/m]")
-    ax.set_xlabel("G [K/m]", color="C3")
-    ax.set_ylabel("z [um] (centreline, section x = 0.7 mm)")
-    ax2 = ax.twiny()
-    ax2.plot([p["R"] for p in path["points"]], zs, "C0s-", label="R = v |n_x|")
-    ax2.plot([p["R_cr_over_G"] for p in path["points"]], zs, "C0x", alpha=0.6, label="R = cooling rate / G")
-    ax2.set_xlabel("R [m/s]", color="C0")
-    ax2.legend(fontsize=7, loc="upper right")
-    ax.set_title("(a) case-B melt pool: G, R up the centreline", fontsize=9, y=1.12)
-    ax = fig.add_axes([0.38, 0.13, 0.27, 0.75])
-    ax.axhspan(*MEASURED["spacing_um"], color="0.85", label="measured, Ghosh 2018 (SEM)")
-    ax.axhspan(*MEASURED["pf_spacing_um"], color="C2", alpha=0.25, label="Ghosh 2018 phase field")
-    z = [p["z_um"] for p, _ in pts]
+    ax = fig.add_subplot(gs[0, 0])
+    ax.semilogx([p["G"] for p in path["points"]], zs, "o-", color=BLUE, lw=1.5, ms=5)
+    ax.set_xlabel("G [K/m]", fontsize=9)
+    ax.set_ylabel("height in the section [um] (surface = 0)", fontsize=9)
+    ax.set_title("(a) thermal gradient", fontsize=9, loc="left")
+    _style(ax)
+    ax = fig.add_subplot(gs[0, 1], sharey=ax)
+    ax.plot([p["R"] for p in path["points"]], zs, "o-", color=BLUE, lw=1.5, ms=5, label="v |n_x| (used)")
+    ax.plot([p["R_cr_over_G"] for p in path["points"]], zs, "x", color=MUTED, ms=6, label="cooling rate / G")
+    ax.set_xlabel("R [m/s]", fontsize=9)
+    ax.set_title("growth rate", fontsize=9, loc="left")
+    ax.legend(fontsize=7, frameon=False, loc="lower right")
+    plt.setp(ax.get_yticklabels(), visible=False)
+    _style(ax)
+    ax = fig.add_subplot(gs[0, 3])
+    from matplotlib.patches import Patch
+
+    ax.axhspan(*MEASURED["spacing_um"], color="#d6d5d0", lw=0)
+    ax.axhspan(*MEASURED["pf_spacing_um"], facecolor="none", edgecolor="#8f8e89", hatch="///", lw=0)
+    ax.legend(handles=[Patch(color="#d6d5d0", label="measured, Ghosh et al. 2018 (SEM, 195 W / 800 mm/s)"),
+                       Patch(facecolor="none", edgecolor="#8f8e89", hatch="///", label="Ghosh et al. 2018 phase field")],
+              fontsize=7.5, frameon=False, loc="upper left")
+    z = np.array([p["z_um"] for p, _ in pts])
+    ax.plot(z, [r["hunt_um"] for _, r in pts], "--", color=ORANGE, lw=1.5)
+    ax.plot(z, [r["kurz_fisher_um"] for _, r in pts], "--", color=AQUA, lw=1.5)
     ax.errorbar(z, [r["spacing_um"] for _, r in pts],
                 yerr=[[r["spacing_um"] - min(r["spacing_um_range"]) for _, r in pts],
                       [max(r["spacing_um_range"]) - r["spacing_um"] for _, r in pts]],
-                fmt="o-", color="C0", capsize=2, label="tpmsfem phase field (2-D)")
-    ax.plot(z, [r["hunt_um"] for _, r in pts], "C2--", label="Hunt")
-    ax.plot(z, [r["kurz_fisher_um"] for _, r in pts], "C1--", label="Kurz-Fisher")
-    ax.set_xlabel("z [um] (fusion boundary at left)")
-    ax.set_ylabel("primary cell spacing [um]")
-    ax.set_ylim(0, 1.6)
-    ax.legend(fontsize=7)
-    ax.set_title("(b) cell spacing along the growth path", fontsize=9)
-    keys = [k for k in sorted(fields) if k.endswith("_c")][:2]
+                fmt="o-", color=BLUE, lw=1.5, ms=6, capsize=2)
+    x_end = z.max() + 0.3
+    ax.text(x_end, pts[-1][1]["hunt_um"], "Hunt", color=INK, fontsize=8, va="center")
+    ax.text(x_end, pts[-1][1]["kurz_fisher_um"], "Kurz-Fisher", color=INK, fontsize=8, va="center")
+    ax.text(z.mean(), 0.12, "tpmsfem, 2-D phase field", color=INK, fontsize=8, ha="center")
+    ax.set_xlim(z.min() - 0.8, z.max() + 3.2)
+    ax.set_ylim(0, 2.4)
+    ax.set_xlabel("height in the section [um] (fusion boundary at left)", fontsize=9)
+    ax.set_ylabel("primary cell spacing [um]", fontsize=9)
+    ax.set_title("(b) cell spacing up the case-B centreline", fontsize=9, loc="left")
+    _style(ax)
+    keys = sorted((k for k in fields if k.endswith("_c")), key=lambda k: float(k[1:-2]))
+    keys = [keys[0], keys[-1]] if len(keys) > 1 else keys
     for i, k in enumerate(keys):
-        ax = fig.add_axes([0.71 + 0.14 * i, 0.13, 0.12, 0.75])
+        ax = fig.add_subplot(gs[1, 0:2] if i == 0 else gs[1, 3])
         c = fields[k].astype(float) * ALLOY.c_inf
         dx = float(fields[k.replace("_c", "_dx")]) * 1e6
         im = ax.imshow(c, origin="lower", cmap="magma", vmin=2.0, vmax=8.0, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
-        ax.set_title(f"(c) z = {k.split('_')[0][1:]} um", fontsize=9)
-        ax.set_xlabel("x [um]")
+        p = next(p for p in path["points"] if f"z{p['z_um']:.1f}_c" == k)
+        ax.set_title(f"({'c' if i == 0 else 'd'}) Nb, height {p['z_um']:.1f} um: G = {p['G']:.1e} K/m, "
+                     f"R = {p['R']:.3f} m/s", fontsize=9, loc="left")
+        ax.set_xlabel("x [um]", fontsize=9)
+        ax.set_ylabel("z [um]", fontsize=9)
+        ax.tick_params(colors=MUTED, labelsize=8)
     if keys:
-        cb = fig.colorbar(im, ax=fig.axes[-len(keys):], fraction=0.06, pad=0.03)
-        cb.set_label("Nb [wt%]")
+        cb = fig.colorbar(im, ax=fig.axes[-len(keys):], fraction=0.025, pad=0.01)
+        cb.set_label("Nb [wt%]", fontsize=9)
+        cb.ax.tick_params(labelsize=8)
     fig.savefig(FIG, dpi=150)
     print("wrote", FIG)
 

@@ -187,61 +187,95 @@ def report(store):
     print(text)
 
 
+BLUE, ORANGE, AQUA, INK, MUTED, GRID = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#52514e", "#e4e3df"
+
+
+def _style(ax):
+    ax.grid(True, color=GRID, lw=0.6, which="both")
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(colors=MUTED, labelsize=8, which="both")
+
+
 def figure(store):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
 
     fields = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
-    fig = plt.figure(figsize=(12, 4.2))
-    ax = fig.add_axes([0.05, 0.12, 0.27, 0.76])
+    fig = plt.figure(figsize=(12, 8))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.2, 1], hspace=0.32, wspace=0.25, left=0.06, right=0.97, top=0.93,
+                          bottom=0.08)
+    # (a) Mullins-Sekerka: one colour per velocity, filled / open markers for the interface width
+    ax = fig.add_subplot(gs[0, 0])
     a_iso = PF.DiluteAlloy(**{**ALLOY.__dict__, "eps4": 0.0})
-    for V, col in ((0.03, "C0"), (0.1, "C3")):
-        lam = np.linspace(0.12e-6, 1.0e-6, 300)
-        ax.plot(lam * 1e9, PF.mullins_sekerka_rate(a_iso, G, V, 2 * np.pi / lam) / 1e6, col, lw=1.5,
-                label=f"Mullins-Sekerka, V = {V} m/s")
-        for W0, mk in ((10e-9, "o"), (5e-9, "s")):
+    lam = np.linspace(0.12e-6, 1.0e-6, 300)
+    for V, col in ((0.03, BLUE), (0.1, ORANGE)):
+        w = PF.mullins_sekerka_rate(a_iso, G, V, 2 * np.pi / lam) / 1e6
+        ax.plot(lam * 1e9, w, color=col, lw=1.5)
+        i = int(np.argmin(np.abs(lam - 0.62e-6)))
+        ax.text(lam[i] * 1e9, w[i] + 0.06, f"V = {V} m/s", color=INK, fontsize=8, ha="left", va="bottom")
+        for W0, filled in ((10e-9, False), (5e-9, True)):
             pts = [store.get(k) for k in store.data if k.startswith(f"ms|V={V}|W0={W0:.0e}")]
             if pts:
-                ax.plot([p["lam_m"] * 1e9 for p in pts], [p["omega_pf"] / 1e6 for p in pts], mk, color=col,
-                        mfc="none" if W0 > 6e-9 else col, label=f"phase field, W0 = {W0 * 1e9:.0f} nm")
-    ax.axhline(0, color="0.6", lw=0.8)
-    ax.set_xlabel("perturbation wavelength [nm]")
-    ax.set_ylabel("growth rate [1/us]")
-    ax.set_title("(a) planar-front instability, Ni-5Nb, G = 1e7 K/m", fontsize=9)
-    ax.legend(fontsize=6.5)
-    ax = fig.add_axes([0.38, 0.12, 0.27, 0.76])
-    cr = np.logspace(np.log10(5e4), np.log10(3e6), 50)
-    ax.loglog(cr, ghosh_fit(cr), "k-", lw=1.5, label="Ghosh 2017 PF fit, 800 (GV)^-0.57")
-    ax.loglog(*zip(*GHOSH["points"]), "k*", ms=10, label="Ghosh 2017 PF, quoted")
-    ax.loglog(cr, S.primary_spacing(G, cr / G, SC, "hunt"), "C2--", lw=1, label="Hunt")
-    ax.loglog(cr, S.primary_spacing(G, cr / G, SC, "kurz-fisher"), "C1--", lw=1, label="Kurz-Fisher")
-    for W0, mk in ((10e-9, "o"), (5e-9, "s")):
-        pts = [store.get(k) for k in store.data if k.startswith("cells|") and abs(store.get(k)["W0_m"] - W0) < 1e-10]
+                ax.plot([p["lam_m"] * 1e9 for p in pts], [p["omega_pf"] / 1e6 for p in pts], "o", ms=6, color=col,
+                        mfc=col if filled else "white", mew=1.5)
+    ax.axhline(0, color=MUTED, lw=0.8)
+    ax.legend(handles=[Line2D([], [], color=MUTED, lw=1.5, label="Mullins-Sekerka (sharp interface)"),
+                       Line2D([], [], color=MUTED, marker="o", ls="", mfc="white", mew=1.5, label="phase field, W0 = 10 nm"),
+                       Line2D([], [], color=MUTED, marker="o", ls="", label="phase field, W0 = 5 nm")],
+              fontsize=7.5, frameon=False, loc="upper right")
+    ax.set_xlabel("perturbation wavelength [nm]", fontsize=9)
+    ax.set_ylabel("growth rate [1/us]", fontsize=9)
+    ax.set_title("(a) planar-front instability, Ni-5Nb, G = 1e7 K/m, eps4 = 0", fontsize=9, loc="left", pad=10)
+    _style(ax)
+    # (b) spacing vs cooling rate
+    ax = fig.add_subplot(gs[0, 1])
+    cr = np.logspace(np.log10(GHOSH["fit_range"][0]), np.log10(GHOSH["fit_range"][1]), 50)
+    ax.loglog(cr, ghosh_fit(cr), color=MUTED, lw=1.5)
+    ax.loglog(*zip(*GHOSH["points"]), "*", color=MUTED, ms=10)
+    ax.loglog(cr, S.primary_spacing(G, cr / G, SC, "hunt"), "--", color=ORANGE, lw=1.5)
+    ax.loglog(cr, S.primary_spacing(G, cr / G, SC, "kurz-fisher"), "--", color=AQUA, lw=1.5)
+    ax.text(cr[-1], ghosh_fit(cr[-1]) * 0.85, "Ghosh 2017 fit\n800 (GV)^-0.57", color=INK, fontsize=8, ha="right", va="top")
+    ax.text(cr[-1], S.primary_spacing(G, cr[-1] / G, SC, "hunt") * 1.08, "Hunt", color=INK, fontsize=8, ha="right",
+            va="bottom")
+    ax.text(cr[-1], S.primary_spacing(G, cr[-1] / G, SC, "kurz-fisher") * 1.08, "Kurz-Fisher", color=INK, fontsize=8,
+            ha="right", va="bottom")
+    for W0, filled in ((10e-9, False), (5e-9, True)):
+        pts = sorted((store.get(k) for k in store.data if k.startswith("cells|") and abs(store.get(k)["W0_m"] - W0) < 1e-10),
+                     key=lambda p: p["cooling_rate"])
         if pts:
             ax.errorbar([p["cooling_rate"] for p in pts], [p["spacing_um"] for p in pts],
                         yerr=[[p["spacing_um"] - min(p["spacing_um_range"]) for p in pts],
                               [max(p["spacing_um_range"]) - p["spacing_um"] for p in pts]],
-                        fmt=mk, color="C0", mfc="none" if W0 > 6e-9 else "C0", capsize=2,
-                        label=f"tpmsfem, W0 = {W0 * 1e9:.0f} nm")
-    ax.set_xlabel("cooling rate G V [K/s]")
-    ax.set_ylabel("primary spacing [um]")
-    ax.set_title("(b) primary spacing, G = 1e7 K/m", fontsize=9)
-    ax.legend(fontsize=6.5)
+                        fmt="o", color=BLUE, ms=7, mfc=BLUE if filled else "white", mew=1.5, capsize=2)
+    ax.legend(handles=[Line2D([], [], color=BLUE, marker="o", ls="", mfc="white", mew=1.5, label="tpmsfem, W0 = 10 nm"),
+                       Line2D([], [], color=BLUE, marker="o", ls="", label="tpmsfem, W0 = 5 nm"),
+                       Line2D([], [], color=MUTED, marker="*", ls="", ms=10, label="Ghosh 2017, quoted runs")],
+              fontsize=7.5, frameon=False, loc="lower left")
+    ax.set_ylim(0.1, 3.0)
+    ax.set_xlabel("cooling rate G V [K/s]", fontsize=9)
+    ax.set_ylabel("primary spacing [um]", fontsize=9)
+    ax.set_title("(b) primary spacing at G = 1e7 K/m: tpmsfem vs Ghosh et al. (2017)", fontsize=9, loc="left", pad=10)
+    _style(ax)
+    # (c, d) Nb maps
     keys = [k for k in ("V0.03_W10_c", "V0.1_W10_c") if k in fields]
     for i, k in enumerate(keys):
-        ax = fig.add_axes([0.70 + 0.15 * i, 0.12, 0.13, 0.76])
+        ax = fig.add_subplot(gs[1, i])
         c = fields[k].astype(float) * ALLOY.c_inf
         dx = float(fields[k.replace("_c", "_dx")]) * 1e6
-        im = ax.imshow(c, origin="lower", cmap="magma", vmin=2.0, vmax=9.0,
-                       extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
-        ax.set_title(f"(c) V = {k[1:].split('_')[0]} m/s", fontsize=9)
-        ax.set_xlabel("x [um]")
-        if i == 0:
-            ax.set_ylabel("z [um]")
+        im = ax.imshow(c, origin="lower", cmap="magma", vmin=2.0, vmax=9.0, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
+        ax.set_title(f"({'cd'[i]}) Nb, V = {k[1:].split('_')[0]} m/s, G V = {G * float(k[1:].split('_')[0]):.0e} K/s",
+                     fontsize=9, loc="left")
+        ax.set_xlabel("x [um]", fontsize=9)
+        ax.set_ylabel("z [um]", fontsize=9)
+        ax.tick_params(colors=MUTED, labelsize=8)
     if keys:
-        cb = fig.colorbar(im, ax=fig.axes[-len(keys):], fraction=0.05, pad=0.02)
-        cb.set_label("Nb [wt%]")
+        cb = fig.colorbar(im, ax=fig.axes[-len(keys):], fraction=0.02, pad=0.01)
+        cb.set_label("Nb [wt%]", fontsize=9)
+        cb.ax.tick_params(labelsize=8)
     os.makedirs(os.path.dirname(FIG), exist_ok=True)
     fig.savefig(FIG, dpi=150)
     print("wrote", FIG)
