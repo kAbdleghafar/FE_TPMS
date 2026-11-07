@@ -36,7 +36,9 @@ fidelity, benchmark credibility).
    (docs/process_models.md). Next:
    * a free-surface melt-pool model (keyhole, Marangoni) or a coupling to an open CFD code (e.g. OpenFOAM);
    * running ExaCA on the exported thermal histories;
-   * validation of spacing and grains against NIST AMB2018-02 EBSD/SEM data, once the files are reachable;
+   * grains: validated against the NIST case-B EBSD map (26–28 % point-wise, grain count from
+     gradient-following epitaxy). Next: a 3-D test, the track 3/5/10 maps and cell spacing from
+     SEM, once NIST's files download again;
    * a GPU run of multi-layer patches;
    * roughness-aware effective wall thickness for TPMS stiffness and fatigue.
 8. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).

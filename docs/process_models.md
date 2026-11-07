@@ -153,11 +153,66 @@ and C are predictions:
 
 ![5-track hatch](img/meltpool_hatch.png)
 
-**Not validated yet.** NIST's AMB2018-02 microstructure data (cell spacing, EBSD grain maps)
-sit behind links that no longer resolve after NIST's data-system upgrade, and
-the papers that tabulate them are not open access. The spacing and CET constants are
-generic, so these numbers show the method working, not IN625 predictions. Validating them
-needs the NIST EBSD/SEM files or the user's own micrographs.
+### 5.1 Grains against NIST's EBSD map (case B)
+
+**Data.** NIST's example EBSD map of a case-B track: a transverse cross-section, Oxford
+`.ctf` with 1218 × 890 points at 0.14 µm
+([AMB2018-02_CaseB_EBSDdata.zip](https://s3.amazonaws.com/nist-midas/1889/AMB2018-02_CaseB_EBSDdata.zip)).
+It is analysed with `tpmsfem.process.ebsd`: CTF reader, Bunge orientations, cubic
+disorientation, grain segmentation at 10° and kernel misorientation. The script is
+`benchmarks/literature/nist_ambench2018_tracks_ebsd.py`.
+
+**Test.** The melt pool grows epitaxially from the plate's grains, so the measured
+substrate fixes the initial condition. The measured orientations *inside* the model's fusion
+line are hidden and regrown from the substrate:
+* in the order of the simulated solidification times;
+* along the simulated growth direction (grad T at solidification) of the steady-state
+  case-B section;
+* on the 0.28 µm EBSD grid (2 × 2 binning).
+
+The prediction is compared with the measurement pixel by pixel.
+
+**Placement.** The fusion line is the calibrated model's, which matches NIST's case-B mean
+size. Its centre is put where the elongated grains change their lean (x = 82.4 µm). Depth is
+measured from the local surface.
+
+| regrowth of the melt pool (3116 µm², 39,749 px) | pixels within 10° of measured | grains (10°) | area-weighted grain size |
+|---|---:|---:|---:|
+| measured | — | 92 | 10.1 µm |
+| tpmsfem, epitaxy along the simulated thermal gradient (trace back to the substrate) | **27.5 %** | 83 | 12.3 µm |
+| tpmsfem, upstream-neighbour rule (`grow_grains(rule="upstream")`) | 26.6 % | 50 | 13.1 µm |
+| tpmsfem, competitive growth (`grow_grains`, default) | 26.4 % | 45 | 14.5 µm |
+| tpmsfem, dendrite-arm capture rule | 21.0 % | 42 | 14.5 µm |
+| baseline: copy the nearest fusion-line grain | 25.8 % | 51 | 13.0 µm |
+| baseline: copy the grain straight below | 19.8 % | — | — |
+| random orientations | 0.5 % | — | — |
+
+![EBSD regrowth](img/ebsd_caseB_regrowth.png)
+
+**Reading the results.**
+* **The fan of columnar grains comes from epitaxy.** It converges toward the top centre, and
+  so does the simulated one. About a quarter of the melt pool, point by point, is the plate
+  grain directly below or beside it, extended along the thermal gradient.
+* **The gradient direction helps a little.** Following the simulated gradient is slightly
+  better than following the fusion-line normal (27.5 % vs 25.8 %), and it reproduces the
+  grain count: 83 against 92 measured.
+* **Competition adds nothing here.** Selecting grains by <100> alignment does not improve
+  point-wise agreement over this short, 36 µm growth distance. It merges grains (45 against
+  92). An earlier, slightly smaller fusion-zone definition gave the competitive rule a texture
+  match (9.6 % against 10.9 % <100> within 15° of the build direction). That match vanished
+  with the smoother definition, so it is not claimed.
+* **The fusion line checks out independently.** The model's fusion line follows the
+  measured boundary between columnar and equiaxed grains.
+* **The test has a ceiling.**
+  * It is a 2-D test: grains can enter the section from substrate above or below the plane.
+  * The fusion line is the model's, not a measured one.
+  * The unmelted plate is fine-grained (median equivalent diameter 4.2 µm, many annealing
+    twins).
+  * The model resolves the thermal field at 5 µm.
+
+The remaining NIST track files (SEM and EBSD maps of tracks 3, 5 and 10, the 10 optical
+cross-sections of mds2-3830) did not download: they returned server errors, HTTP 500, on
+2026-11-07.
 
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 

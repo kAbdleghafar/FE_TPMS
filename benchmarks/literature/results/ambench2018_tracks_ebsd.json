@@ -1,0 +1,97 @@
+{
+ "source": "https://s3.amazonaws.com/nist-midas/1889/AMB2018-02_CaseB_EBSDdata.zip",
+ "step_um": 0.28,
+ "fan_centre_um": 82.44134132633947,
+ "fusion_zone_px": 39749,
+ "substrate_median_grain_d_eq_um": 4.238862636993869,
+ "agreement": {
+  "random orientations": {
+   "frac_lt10": 0.0054592568366499785,
+   "median": 42.296132967510424
+  },
+  "in-plane": {
+   "frac_lt10": 0.2642079046013736,
+   "frac_lt5": 0.2586731741679036,
+   "median": 36.531191835231006
+  },
+  "dendrite capture": {
+   "frac_lt10": 0.20976628342851392,
+   "frac_lt5": 0.20823165362650634,
+   "median": 40.288101535671025
+  },
+  "upstream": {
+   "frac_lt10": 0.2658934815970213,
+   "frac_lt5": 0.24657224081108958,
+   "median": 35.60828870292806
+  },
+  "gradient trace": {
+   "frac_lt10": 0.2745477873657199,
+   "frac_lt5": 0.26430853606380034,
+   "median": 34.876222163255036
+  },
+  "3D, Z = +x": {
+   "frac_lt10": 0.25062265717376536,
+   "frac_lt5": 0.2458678205741025,
+   "median": 36.46143617547469
+  },
+  "3D, Z = -x": {
+   "frac_lt10": 0.24526403179954212,
+   "frac_lt5": 0.2405595109310926,
+   "median": 39.30577262730422
+  },
+  "normal epitaxy": {
+   "frac_lt10": 0.25822033258698335,
+   "frac_lt5": 0.2542202319555209,
+   "median": 32.62485611263985
+  },
+  "vertical epitaxy": {
+   "frac_lt10": 0.19819366524944024,
+   "frac_lt5": 0.1920048303101965,
+   "median": 38.272837732381426
+  }
+ },
+ "grain_stats": {
+  "measured": {
+   "grains": 92,
+   "mean_area_um2": 33.68473043478262,
+   "area_weighted_d_eq_um": 10.083224149080841,
+   "area_weighted_aspect": 3.6620375921772275,
+   "frac_100_build_15deg": 0.10080756748597448
+  },
+  "tpmsfem max-alignment": {
+   "grains": 45,
+   "mean_area_um2": 69.06517333333335,
+   "area_weighted_d_eq_um": 14.48336373769762,
+   "area_weighted_aspect": 5.216070188062081,
+   "frac_100_build_15deg": 0.030063649399984904
+  },
+  "tpmsfem dendrite capture": {
+   "grains": 42,
+   "mean_area_um2": 73.99653333333336,
+   "area_weighted_d_eq_um": 14.510122763989237,
+   "area_weighted_aspect": 5.237425321110009,
+   "frac_100_build_15deg": 0.011270723791793504
+  },
+  "gradient trace": {
+   "grains": 83,
+   "mean_area_um2": 36.79604819277109,
+   "area_weighted_d_eq_um": 12.29573737135757,
+   "area_weighted_aspect": 9.803027629051691,
+   "frac_100_build_15deg": 0.023522604342247604
+  },
+  "tpmsfem upstream": {
+   "grains": 50,
+   "mean_area_um2": 62.10220800000002,
+   "area_weighted_d_eq_um": 13.136062191570629,
+   "area_weighted_aspect": 7.388389233849685,
+   "frac_100_build_15deg": 0.027824599360990212
+  },
+  "normal epitaxy": {
+   "grains": 51,
+   "mean_area_um2": 60.869145098039226,
+   "area_weighted_d_eq_um": 13.000884744198995,
+   "area_weighted_aspect": 6.831402188223054,
+   "frac_100_build_15deg": 0.0018113663236810989
+  }
+ }
+}

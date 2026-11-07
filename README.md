@@ -86,6 +86,9 @@ four independent groups and compares them:
 * **NIST AM-Bench 2018-02** (laser tracks on IN625): calibrated on NIST's case B, the melt-pool
   model predicts the widths of cases A and C within 5 % and the depths within −17 % to +11 %.
   Surface cooling rates are 3–5× above the thermography ([docs/process_models.md](docs/process_models.md)).
+  Regrown from NIST's *measured* substrate grains (case-B EBSD map), the simulated melt pool
+  reproduces 26–28 % of the measured grain orientations point by point (random: 0.5 %), and,
+  along the simulated gradient, the measured grain count.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.

@@ -149,8 +149,17 @@ class GrainResult:
 
 
 def grow_grains(res, substrate_grain_size: float = 0.03, p_equiaxed: float = 0.0,
-                c: SolidificationConstants = SolidificationConstants(), seed: int = 0) -> GrainResult:
-    """Reduced CA of epitaxial competitive growth (see module docstring)."""
+                c: SolidificationConstants = SolidificationConstants(), seed: int = 0,
+                rule: str = "competitive") -> GrainResult:
+    """Reduced CA of epitaxial growth (see module docstring).
+
+    ``rule="competitive"``: a cell joins the solid neighbour that is upstream and whose <100>
+    is best aligned with the growth direction (competitive selection). ``rule="upstream"``:
+    it simply inherits the grain of the most upstream solid neighbour (pure epitaxy along the
+    thermal gradient). Regrowing NIST's AM-Bench 2018-02 case-B melt pool from the measured
+    substrate, both reproduce 26-29 % of the melt-pool area point-wise (random: 0.5 %), about
+    as much as copying the nearest fusion-line grain; competition does not help over a
+    36 um growth distance (docs/process_models.md)."""
     rng = np.random.default_rng(seed)
     nx, ny, nz = res.T.shape
     h = res.h
@@ -208,7 +217,7 @@ def grow_grains(res, substrate_grain_size: float = 0.03, p_equiaxed: float = 0.0
             # growth comes from the neighbour lying "upstream" (opposite to grad T); weight its
             # crystal alignment with the growth direction
             up = np.clip(-on @ d, 0.0, None)
-            score = alignment(rot_all[g_nb], d) * (0.25 + up)
+            score = (up + 1e-6) if rule == "upstream" else alignment(rot_all[g_nb], d) * (0.25 + up)
             grain[i, j, k] = g_nb[int(np.argmax(score))]
         else:
             grain[i, j, k] = g_nb[0]
