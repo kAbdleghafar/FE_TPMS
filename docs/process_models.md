@@ -353,7 +353,7 @@ same model class:
 |---|---|---|---|---|---|
 | 0.03 m/s | 3e5 K/s | 0.604 µm | 0.604 µm (fit), 0.71 µm (run quoted) | 3.78 / 3.65 wt% | 6.81 / 6.87 wt% |
 | 0.05 m/s | 5e5 K/s | 0.402 µm | 0.452 µm (fit) | 3.85 wt% | 6.68 wt% |
-| 0.1 m/s | 1e6 K/s | 0.221 µm | 0.23 µm (run quoted), 0.304 µm (fit) | 3.94 wt% | 6.42 wt% |
+| 0.1 m/s | 1e6 K/s | 0.221 µm (W0 = 10 nm), **0.304 µm (W0 = 5 nm)** | 0.23 µm (run quoted), 0.304 µm (fit) | 3.94 / 4.04 wt% | 6.42 / 6.94 wt% |
 | 0.2 m/s | 2e6 K/s | 0.250 µm | 0.205 µm (fit) | 4.37 wt% | 6.46 wt% |
 
 Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and Kurz–Fisher's
@@ -382,8 +382,13 @@ Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and 
 ![phase field, AM-Bench case B](img/pf_ambench_caseB.png)
 
 **Reading the results.**
-* **Code to code.** The phase field reproduces Ghosh et al.'s cell spacing within their own
-  scatter: their quoted run at 3e5 K/s lies 18 % above their fit. At 0.03 m/s the tip
+* **Code to code.** At the shared W0 = 10 nm the phase field reproduces Ghosh et al.'s cell
+  spacing within their own scatter: their quoted run at 3e5 K/s lies 18 % above their fit.
+* **Convergence at 0.1 m/s.** Halving W0 to 5 nm raises the spacing from 0.221 to 0.304 µm
+  (+38 %), onto Ghosh's fit. At D/V = 3 W0 a 10 nm interface therefore under-predicts the
+  spacing by about a quarter. The close match to Ghosh's 0.23 µm quoted run is most likely two
+  codes sharing the same under-resolution. The 5 nm result is not proven converged either
+  (Mullins–Sekerka rates still 17–30 % low at D/V = 6 W0). At 0.03 m/s the tip
   compositions agree within 4 % (solid) and 1 % (liquid). The effective partition
   coefficient c_s*/c_l* rises with V, from 0.55 to 0.68 against k = 0.48.
 * **Against the measurement.** All four case-B spacings lie inside the measured 0.2–1.0 µm.
@@ -398,9 +403,10 @@ Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and 
   report 15.8 wt% in a 40 µm domain. The value keeps rising with depth because the binary model
   has no eutectic or Laves reaction to cap it.
 * **Limits.**
-  * Only the fusion-boundary point satisfies D/V ≥ 10 W0. Above it the spacings carry the
-    under-resolution measured in the verification. A W0 = 5 nm rerun of the 0.1 m/s case
-    measures how much (run in progress).
+  * Only the fusion-boundary point satisfies D/V ≥ 10 W0. The three points above it
+    (D/V = 2.3–4 W0) are probably under-predicted by 30 % or more, by the 0.1 m/s convergence
+    test. Corrected that way they become roughly 0.45–0.5 µm, still inside the measured range,
+    but the downward trend from the fusion boundary is then weaker than the table shows.
   * The model is 2-D, and 2-D cell arrays are coarser than 3-D ones.
   * The temperature field is frozen (no latent heat at this scale).
   * Non-equilibrium solute trapping beyond what the diffuse interface gives is not modelled.

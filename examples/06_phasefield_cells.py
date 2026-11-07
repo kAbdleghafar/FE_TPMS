@@ -1,16 +1,15 @@
 """Cells and Nb segregation in LPBF IN625 with the 2-D quantitative phase field.
 
-The solidification conditions are those at the fusion boundary of the AM-Bench case-B melt pool
-(benchmarks/literature/nist_ambench2018_tracks_pf.py): G = 1.25e7 K/m, R = 0.074 m/s, about
-10 um above the bottom of the pool. IN625 is treated as quasi-binary Ni-4 wt% Nb
-(``phasefield.IN625_NB``). The run:
+The solidification conditions are those of the AM-Bench case-B melt pool 5 um above its bottom
+(benchmarks/literature/nist_ambench2018_tracks_pf.py): G = 1.25e7 K/m, R = 0.074 m/s. IN625 is
+treated as quasi-binary Ni-4 wt% Nb (``phasefield.IN625_NB``). The run:
 
 1. starts from a planar front at the solidus with the steady solute boundary layer and noise;
 2. lets the Mullins-Sekerka instability break it into cells;
 3. follows the cell array as it coarsens towards a steady spacing;
 4. writes the Nb map and the spacing / tip-composition history.
 
-    python examples/06_phasefield_cells.py       # ~3 min on 4 CPU cores (numba), slower without
+    python examples/06_phasefield_cells.py       # ~2 min on 4 CPU cores (numba), slower without
 """
 import json
 import os
@@ -46,7 +45,7 @@ for i in range(20):
 lam_kf = float(S.primary_spacing(G, R, S.SolidificationConstants(freezing_range=alloy.freezing_range), "kurz-fisher"))
 lam_hunt = float(S.primary_spacing(G, R, S.SolidificationConstants(freezing_range=alloy.freezing_range), "hunt"))
 print(f"phase field: {history[-1]['spacing_um']:.2f} um; Hunt {lam_hunt:.2f} um, Kurz-Fisher {lam_kf:.2f} um "
-      f"(3-D models; 2-D arrays are coarser)")
+      f"(spacing laws; note R = {R} m/s is above the ~0.05 m/s where W0 = 10 nm is converged)")
 
 os.makedirs(OUT, exist_ok=True)
 fig, ax = plt.subplots(1, 2, figsize=(9, 4))

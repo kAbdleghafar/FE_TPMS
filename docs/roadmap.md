@@ -41,7 +41,8 @@ fidelity, benchmark credibility).
      origins, decaying to 6–8 % beyond 1.5 µm). Next: serial-section substrate data, the track
      3/5/10 maps and cell spacing from SEM, once NIST's files download again;
    * cells and Nb segregation: 2-D quantitative phase field **done** (docs/process_models.md §5.3; code to
-     code with Ghosh et al. 2017, consistent with the measured IN625 cell spacing). Next: 3-D runs on the GPU,
+     code with Ghosh et al. 2017, consistent with the measured IN625 cell spacing; under-resolved above
+     R ≈ 0.05 m/s at W0 = 10 nm, +38 % spacing at 5 nm). Next: 3-D runs on the GPU,
      a thinner interface (or a finite-interface-dissipation model) for R > 0.05 m/s, velocity-dependent
      partitioning, and Laves/NbC from the segregated Nb (CALPHAD), feeding the heat-treatment model;
    * a GPU run of multi-layer patches;

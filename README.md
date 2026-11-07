@@ -93,10 +93,11 @@ four independent groups and compares them:
   plane match 51 % of the time. Those starting ≥ 1.5 µm behind it, on substrate NIST did not
   measure, match only 6–8 %.
 * **Ghosh et al. 2017 / 2018** (NIST, phase-field cells in Ni–Nb / IN625): code to code, the phase field
-  reproduces their primary spacing (0.604 µm on their fit at 3e5 K/s, 0.221 µm against 0.23 µm at 1e6 K/s)
-  and tip compositions (3.78 / 6.81 wt% Nb against 3.65 / 6.87). Driven by the case-B melt pool, it gives
-  0.57 µm cells at the fusion boundary falling to 0.30 µm higher up, inside the 0.2–1.0 µm measured by SEM;
-  Hunt's law trends the other way. Verified against Mullins–Sekerka theory; quantitative while D/V ≳ 10 W0.
+  reproduces their primary spacing at the same interface width (0.604 µm on their fit at 3e5 K/s) and tip
+  compositions (3.78 / 6.81 wt% Nb against 3.65 / 6.87). Verified against Mullins–Sekerka theory and
+  quantitative while D/V ≳ 10 W0; at 0.1 m/s halving W0 raises the spacing 38 % (0.221 → 0.304 µm).
+  Driven by the case-B melt pool it gives 0.57 µm cells at the fusion boundary (resolved) and 0.30–0.37 µm
+  higher up (under-resolved, likely 30 %+ low), inside the 0.2–1.0 µm measured by SEM.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
