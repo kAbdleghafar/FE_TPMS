@@ -124,3 +124,15 @@ def test_front_profile_and_tips_with_liquid_groove_to_the_bottom():
     r = PF.PFResult(phi, np.ones_like(phi), np.zeros((0, nx)), dx, 0.0, 0, 0.0, params=dict(W0_m=1.0, lT_m=100.0))
     tips = r.tips()                                              # plateaus at 30 (two of them); 20 is >2 % of l_T lower
     assert len(tips) == 2 and all(t["height_m"] == pytest.approx(30.0, abs=0.05) for t in tips)
+
+
+def test_boundaries_counted_next_to_strongly_enriched_droplets():
+    nz, nx = 40, 120
+    x = np.arange(nx)
+    c_row = 0.8 + 0.6 * np.exp(-0.5 * (((x % 10) - 5) / 1.0) ** 2)    # 12 boundaries, 0.6 c_inf above the cores
+    c_row[55] = 6.0                                                    # an Nb-rich liquid droplet on one of them
+    c = np.repeat(c_row[None, :], nz, axis=0)
+    phi = np.where(np.arange(nz)[:, None] < 30, 1.0, -1.0) * np.ones((1, nx))
+    r = PF.PFResult(phi, c, np.zeros((0, nx)), 1.0, 0.0, 0, 0.0, params=dict(W0_m=1.0, lT_m=100.0))
+    assert r.boundaries() == 12
+    assert r.spacing()[0] == pytest.approx(10.0)

@@ -130,12 +130,14 @@ class PFResult:
             out.append(dict(column=int(j), height_m=float(h[j]), cs=cs, cl=cl, k_eff=cs / cl))
         return out
 
-    def boundaries(self, depth=(0.25, 0.5), rel_prominence: float = 0.3, n_rows: int = 9):
+    def boundaries(self, depth=(0.25, 0.5), prominence: float = 0.2, n_rows: int = 9):
         """Mean number of Nb-rich cell boundaries crossed by horizontal lines below the leading
-        tip, as counted on a micrograph: peaks of c(x) (periodic) with a prominence of at least
-        ``rel_prominence`` of the line's composition range, on ``n_rows`` lines spread over
+        tip, as counted on a micrograph: peaks of c(x) / c_inf (periodic) that stand at least
+        ``prominence`` above the neighbouring cell cores, on ``n_rows`` lines spread over
         ``depth`` (fractions of the tip height above the window bottom, counted down from the
-        tip). Lagging cells that are still growing count; cells already cut off do not."""
+        tip). The threshold is absolute: a relative one is set by the strongly enriched liquid
+        droplets and misses the solid boundaries. Lagging cells still growing count; cells
+        already cut off do not."""
         from scipy.signal import find_peaks
 
         nz, nx = self.phi.shape
@@ -146,12 +148,8 @@ class PFResult:
         counts = []
         for f in np.linspace(depth[0], depth[1], n_rows):
             row = self.c[max(int(round(tip * (1.0 - f))), 0)]
-            rng = float(row.max() - row.min())
-            if rng < 1e-3:
-                counts.append(0)                                  # planar
-                continue
             ext = np.concatenate([row, row, row])
-            pk, _ = find_peaks(ext, prominence=rel_prominence * rng)
+            pk, _ = find_peaks(ext, prominence=prominence)
             counts.append(int(np.sum((pk >= nx) & (pk < 2 * nx))))
         return float(np.mean(counts))
 
