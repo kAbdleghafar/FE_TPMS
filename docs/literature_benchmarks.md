@@ -38,7 +38,7 @@ the target density with the topology's own Gibson–Ashby exponent before extrap
 | Ahmed, **Barsoum** & Abu Al-Rub 2022 | periodic-cell E vs. the literature fits their Table 3 lists (Lee et al.; Al-Ketan et al.) | IWP-S **−8 … +0.3 %**, IWP-L **−5 … +5 %**, P-S **−12 … −4 %**; G-S +20 … +48 % against an *experimental* reference |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | 3×3×3 specimen E vs. their Ansys Table 3 fits | our elastic moduli are higher: +14 … +40 % (P-S), +41 … +70 % (IWP-S), +32 … +37 % (IWP-L), +81 … +100 % (G-S). For P-S and IWP-S the paper's values equal our elastic-plastic secant modulus at 0.7–0.9 % strain (§2.3) |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | modulus reduction by SLM residual stress | effect and magnitude (5–17 %) reproduced; **topology ranking not reproduced** with a uniform inherent strain (§2.4) |
-| **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, *predicted* after calibrating one inherent strain on the measured deflection | contour σ_xx r = 0.77 (part) / 0.85 (plate); synchrotron ε_xx r = 0.75, ε_zz r = 0.89; neutron ε_xx r = 0.81 in the solid body, **0.13 in the legs** (§3) |
+| **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, and the deflection after the leg cut | **thermo-mechanical model, no calibration:** deflection **−3.3 %**; contour σ_xx r = 0.71 (part) / 0.87 (plate); synchrotron ε_xx r = 0.80, ε_zz r = 0.92; neutron ε_xx r = 0.88 in the body, 0.22 in the legs (bias +265 → −49 µε) (§3.1). Elastic inherent strain calibrated on the deflection: r = 0.77 / 0.85, 0.75 / 0.89, 0.81 / 0.13 (§3) |
 | Naghavi, …, **Liu** (UCL) 2022 | compressive modulus of Ti6Al4V sheet gyroid/diamond bone scaffolds (6 designs), vs their Abaqus FE and experiments | **−15 … −21 %** vs their FE across all six designs (a near-constant factor of 1.23 ± 0.03); relative trends within ±4 %; −10 … −20 % vs experiments (§4) |
 
 ---
@@ -369,14 +369,103 @@ Predicted ridge deflections 1..11 (mm, kappa=0): 1.276, 0.972, 0.726, 0.529, 0.3
 
 Predicted ridge deflections 1..11 (mm, kappa=0): 1.276, 0.983, 0.739, 0.550, 0.393, 0.267, 0.163, 0.084, 0.027, 0.002, -0.008
 
-**Next steps for this benchmark:**
-* elasto-plastic inherent strain (IN625 yield 700–800 MPa; the measured peak stresses reach
-  about 630 MPa);
-* layer-dependent or thermal-history-based inherent strains;
-* a finer grid with the plate, which is a GPU job: about 1 M elements at h = 0.25 mm;
-* comparison with the full deflection profile once NIST publishes the spreadsheet.
+### 3.1 Thermo-mechanical model, no calibration
 
----
+The guide on IN625 constitutive data recommends a temperature-dependent elasto-plastic,
+sequentially coupled thermo-mechanical model for this part. We built one
+(`benchmarks/literature/nist_ambench2018_tm.py`). Geometry, plate strip, leg cut and
+measurements are identical to the elastic model above. **No parameter is fitted to any
+AM-Bench measurement of the part.**
+
+**Material** (`benchmarks/literature/in625_material.py`, `data/in625_constitutive.json`, with
+provenance):
+
+* **Hardening, part.** NIST **MaCTO** compression tests on specimens machined from the
+  **AMB2018-01 bridge build itself**, transverse (in-plane) direction, at 25, 250 and 500 °C
+  (doi:10.18434/mds2-2681). True stress at 1–35 % true strain, converted to
+  `ε_p = ε_true − σ/E(T)`, with the 0.2 % yield (740, 600, 577 MPa) at `ε_p = 0`.
+  * Above 500 °C there are no AM-Bench data. The 500 °C curve is scaled by the
+    baseline yield ratio and held constant above 870 °C, never extrapolated.
+* **Hardening, plate.** The plate is wrought; it uses the baseline yield(T), perfectly plastic.
+* **Baseline table.** E(T), α(T), k(T), c_p(T), ρ = 8440 kg/m³, latent heat 272 kJ/kg,
+  solidus/liquidus 1290/1350 °C, from the Denlinger–Michaleris set of the guide.
+  * α is taken as a mean coefficient from 20 °C.
+  * The thermal strain is frozen above the solidus.
+  * ν = 0.278, the value the measurement teams used. The guide's 0.366 is available as an option.
+* **Tension check.** NIST AMB2022 E8 tension (another build, doi:10.18434/mds2-2760) gives a
+  0.2 % yield of 807–825 MPa. That is about 10 % above the MaCTO compression yield, with
+  +1 % per decade of strain rate. We keep tension and compression separate, as the guide advises.
+  ![IN625 flow tables](img/in625_flow.png)
+
+**Process** (Heigel et al., J. Res. NIST 125 (2020) 125005):
+
+* **Layers.** 624 layers of 20 µm, 52 s average layer time, unheated plate assumed at 20 °C
+  (not stated in the paper). The model lumps them into 0.5 mm super-layers (25 layers,
+  1300 s each).
+* **Deposition and cooling.** Each super-layer is deposited at the liquidus and cooled in 8
+  geometric heat steps (first 0.05 s). Each heat step is followed by an elasto-plastic
+  equilibrium.
+* **Heat losses.** Convection (10 W/m²K) and radiation (ε = 0.4) from the upward-facing part
+  surfaces. Powder-covered sides and the plate strip are adiabatic; the plate bottom is held at
+  20 °C.
+* **After the build.** Cool-down to 20 °C, plate strip freed (3-2-1), EDM leg cut.
+
+**Run.** 131 k elements, 437 k dofs, 83 min on 4 CPU cores. That is 200 thermo-mechanical
+increments with 1–9 Newton iterations each, multigrid PCG, and no cut-backs.
+
+**Results** against the same measurements, compared with the elastic inherent strain
+*calibrated* on ridge 1:
+
+| quantity (measurement) | points | measured RMS | thermo-mech. RMSE | bias | **r** | elastic ISM r (RMSE) |
+|---|---:|---:|---:|---:|---:|---:|
+| ridge-1 deflection after leg cut | 1 | 1.276 mm | | **−0.042 mm (−3.3 %)** | predicted 1.234 mm | calibrated |
+| σ_xx at x = 31 mm (contour, part) | 987 | 199 MPa | 168 MPa | +10 MPa | 0.71 | 0.77 (136 MPa) |
+| σ_xx in the plate strip (contour) | 2548 | 124 MPa | 67 MPa | −8 MPa | **0.87** | 0.85 (84 MPa) |
+| ε_xx (neutron, all) | 204 | 721 µε | 631 µε | +308 µε | **0.77** | 0.70 (643 µε) |
+|   ε_xx, solid body z ≥ 7 mm | 129 | 840 µε | 608 µε | +510 µε | **0.88** | 0.81 (619 µε) |
+|   ε_xx, legs z < 5 mm | 45 | 394 µε | 526 µε | **−49 µε** | 0.22 | 0.13 (599 µε, bias +265 µε) |
+| ε_yy (neutron) | 204 | 642 µε | 478 µε | −115 µε | 0.58 | 0.55 (499 µε) |
+| ε_zz (neutron) | 204 | 1391 µε | 1158 µε | −637 µε | 0.51 | 0.50 (1253 µε) |
+| ε_xx (synchrotron EDXRD) | 2219 | 916 µε | 667 µε | +287 µε | **0.80** | 0.75 (769 µε) |
+| ε_zz (synchrotron EDXRD) | 2220 | 1838 µε | **643 µε** | −194 µε | **0.92** | 0.89 (878 µε) |
+
+Predicted ridge deflections 1..11 (mm): 1.234, 0.949, 0.712, 0.520, 0.366, 0.240, 0.142,
+0.066, 0.016, −0.000, −0.004.
+
+![thermo-mechanical vs elastic inherent strain vs neutron diffraction](img/ambench2018_tm.png)
+
+**Reading the results.**
+
+* **The deflection is predicted within 3.3 %, from process physics alone.** The inputs are
+  measured flow curves of the same build, the published layer time, and baseline thermal
+  properties. The deflection profile is the same as with the calibrated inherent strain.
+* **Stress and strain fields are as good as or better than the calibrated elastic model** on
+  every diffraction quantity. The part contour is slightly lower (r = 0.71 vs 0.77). The
+  largest gain is the synchrotron ε_zz error: 878 → 643 µε.
+* **Legs.** The thermo-mechanical model removes the tensile bias in the legs (+265 → −49 µε)
+  and lowers their error (599 → 526 µε). Plastic flow at the plate interface and the reheating
+  of the legs by later layers are now modelled. The point-wise pattern is still not captured
+  (r = 0.22), for example the strong compression measured in the 0.5 mm legs at z = 6.9 mm.
+  These legs are one voxel wide at h = 0.5 mm, and the 1.5 mm neutron gauge averages over
+  them and the powder-free gap. This remains the main open discrepancy.
+* **The body near the free end (x < 25 mm, z = 11 mm)** is over-predicted by about 800 µε by
+  both models. The thermo-mechanical model does not remove this error, so it is unlikely to be
+  an inherent-strain artefact. Candidates: the 0.5 mm lumping of the top layers (the
+  re-heating depth of a lumped layer is about one super-layer, against 3–5 layers of 20 µm in
+  reality), the unknown plate temperature, and isotropic hardening without a kinematic part
+  under the repeated reheating.
+
+**Mean plastic strain.** The part's mean equivalent plastic strain is 1.1 % (95th percentile
+1.4 %). This is consistent with a solidification-to-room-temperature thermal strain of about
+1.9 % partly taken up plastically.
+
+**Next steps for this benchmark:**
+* **Time-step and lumping convergence.** Run 4 vs 8 heat steps per super-layer, and 0.25 mm
+  super-layers; the 4-step run is in progress or archived in `results/`.
+* **Moving source on a leg submodel**, calibrated on the AMB2018 thermography
+  (doi:10.18434/M31935; radiant temperature, emissivity correction, valid range 550–1050 °C).
+* **Kinematic (Chaboche) hardening** once cyclic hysteresis data for the build are available.
+* **A finer grid with the plate**, h = 0.25 mm (about 1 M elements): a GPU job.
 
 ## 4. Naghavi, …, Liu (UCL), Bioengineering 9 (2022) 504: Ti6Al4V bone scaffolds
 
@@ -438,6 +527,8 @@ Jiaotong University and others.
 ```bash
 ./benchmarks/literature/run_all.sh                       # all of the above (resumable)
 python benchmarks/literature/nist_ambench2018.py --variant plate   # AM-Bench (downloads NIST data)
+python benchmarks/literature/in625_material.py                     # IN625 flow tables (downloads E8 CSVs)
+python benchmarks/literature/nist_ambench2018_tm.py --tag base && python benchmarks/literature/nist_ambench2018_tm.py --report   # 83 min
 python benchmarks/literature/naghavi_2022.py --config periodic && python benchmarks/literature/naghavi_2022.py --config specimen
 python benchmarks/literature/ahmed_barsoum_2022.py --report
 python benchmarks/literature/van_viet_elrich_2025.py --report-only
@@ -464,3 +555,13 @@ allows the finer grids that would tighten the gyroid and 10 % uncertainties.
   elastic tangent. Newton then converges in 0–4 iterations.
 * **Robustness.** Non-converged increments are automatically halved (cut-back).
 * **Preconditioner cache.** Changing only prescribed values no longer rebuilds it.
+* **Thermo-mechanical build (AM-Bench §3.1).**
+  * **Multigrid smoother.** A new layer is born hot, at E ≈ 148 GPa. As it cools, E rises
+    by 40 %, and the Chebyshev smoother's spectral bound from setup became too small:
+    the smoother amplified the stiffened modes and PCG stalled. The level-0 smoother is now
+    refreshed when the moduli drift by more than 2 %. A regression test covers this.
+  * **Newton stagnation.** Elastic/plastic cycling stalled Newton at about 1e-2 when a hot
+    layer contracted on reheated, softened material. A backtracking line search on ‖R‖ fixes
+    it: 7 iterations instead of a stall and cut-backs.
+  * **Inexact Newton.** Eisenstat–Walker forcing terms solved that increment in 24 s,
+    against 66 s with tightly converged linear solves.

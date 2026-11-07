@@ -20,17 +20,24 @@ fidelity, benchmark credibility).
 
 ## Medium term
 
-6. **Thermo-mechanical layer-by-layer AM** (transient heat conduction per super-layer +
-   thermo-elasto-plasticity) as a higher-fidelity alternative to inherent strain. The
-   Barsoum benchmark (docs/literature_benchmarks.md §2.4) shows a uniform inherent strain
-   cannot rank TPMS topologies by residual-stress sensitivity; this is therefore the top
-   physics item.
+6. ~~Thermo-mechanical layer-by-layer AM~~ **first version done**:
+   * heat conduction (`thermal/heat.py`);
+   * tabulated temperature-dependent J2 plasticity;
+   * a layer-lumped sequentially coupled build (`residual/thermomech.py`);
+   * the AM-Bench 2018 run (docs/literature_benchmarks.md §3).
+
+   Next:
+   * a moving heat source on a submodel, calibrated on the AMB2018 thermography
+     (doi:10.18434/M31935; radiant temperature, emissivity correction, valid range 550–1050 °C);
+   * combined isotropic–kinematic (Chaboche) hardening once hysteresis loops are available;
+   * a GPU heat solver;
+   * the Barsoum TPMS ranking with the thermal model.
 7. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).
 8. **Contact**: press-fit of the cup into bone (interference fit), stem–bone interface, as
    mortar or penalty contact with an augmented Lagrangian on the GPU.
 9. **Bone models**: CT-based heterogeneous bone (HU → E mapping) and bone-remodelling
    (strain-energy-density) loops for stress-shielding studies.
-10. **Fatigue post-processing**: Goodman/Sines/Crossland with as-built LPBF S-N data; ISO 7206-4 / -6 reporting.
+10. **Fatigue post-processing**: strain-life (Basquin–Coffin–Manson, Morrow/SWT, Neuber, cyclic Ramberg–Osgood) **done** (`post/fatigue.py`, as-built LPBF IN625 parameters of Concli et al. 2024). Next: multiaxial criteria (Sines, Crossland, Fatemi–Socie) on FE stress histories, residual stress as mean stress, and ISO 7206-4 / -6 reporting.
 11. **Multi-GPU** domain decomposition (NCCL) for > 1e8 dofs.
 
 ## Long term

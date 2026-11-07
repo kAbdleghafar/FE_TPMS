@@ -221,3 +221,10 @@ def test_gmg_stays_convergent_when_moduli_stiffen_on_cooling():
     md.set_temperature(20.0 + 10.0 * m.points[:, 2])            # cool, with a gradient
     info = md.solve(solver="gmg")
     assert info.converged and info.krylov_iterations < 150
+
+
+def test_mean_expansion_from_instantaneous():
+    T = np.array([20.0, 200.0, 500.0, 900.0])
+    a = 1.2e-5 + 4e-9 * (T - 20.0)                       # linear instantaneous coefficient
+    mean = TemperatureTable.mean_from_instantaneous(T, a, 20.0)
+    assert np.allclose(mean, 1.2e-5 + 2e-9 * (T - 20.0), rtol=1e-12)

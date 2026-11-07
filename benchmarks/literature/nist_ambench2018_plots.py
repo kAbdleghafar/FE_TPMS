@@ -82,9 +82,51 @@ def deflection():
     fig.savefig(os.path.join(IMG, "ambench2018_deflection.png"), dpi=200)
 
 
+def tm_comparison(tag="base"):
+    """Thermo-mechanical (no calibration) vs elastic inherent strain (calibrated) vs measurement:
+    neutron eps_xx along the legs line and the body lines, and the ridge deflections."""
+    path = os.path.join(OUT, "tm", f"analysis_{tag}.json")
+    if not os.path.exists(path):
+        return
+    tm = json.load(open(path))
+    ism = json.load(open(os.path.join(OUT, "analysis_plate.json")))["kappa=0"]
+    x, z = np.array(tm["neutron_points"]["x"]), np.array(tm["neutron_points"]["z"])
+    levels = [11.248, 6.856, 1.0]
+    fig, axes = plt.subplots(len(levels) + 1, 1, figsize=(7.2, 8.4), constrained_layout=True)
+    for ax, zl in zip(axes, levels):
+        sel = np.flatnonzero(np.abs(z - zl) < 1e-6)
+        o = sel[np.argsort(x[sel])]
+        xs = x[o]
+        gap = np.r_[False, np.diff(xs) > 2.0]
+        for res, color, label in ((tm, BLUE, "tpmsfem thermo-mechanical (no calibration)"),
+                                  (ism, "#8a8984", "tpmsfem elastic inherent strain (calibrated)")):
+            ps = 1e6 * np.array(res["neutron_points"]["exx_pred"], float)[o]
+            ax.plot(np.insert(xs, np.flatnonzero(gap), np.nan), np.insert(ps, np.flatnonzero(gap), np.nan),
+                    color=color, lw=2 if res is tm else 1.4, marker="o", ms=3 if res is tm else 0, label=label)
+        ax.plot(xs, 1e6 * np.array(tm["neutron_points"]["exx_meas"], float)[o], "o", color=ORANGE, ms=4.5,
+                markeredgecolor=SURF, markeredgewidth=0.8, label="neutron diffraction (NIST)")
+        ax.axhline(0, color=GRID, lw=0.8, zorder=0)
+        ax.set_ylabel("ε_xx [µε]")
+        ax.set_title(f"z = {zl:g} mm above the plate", fontsize=9, loc="left")
+    axes[0].legend(frameon=False, loc="lower right", fontsize=7.5)
+    axes[len(levels) - 1].set_xlabel("x along the bridge [mm]")
+    ax = axes[-1]
+    xr = [0.5 + 7 * k for k in range(11)]
+    ax.plot(xr, tm["deflection"], "-o", color=BLUE, lw=2, ms=4, label="thermo-mechanical (no calibration)")
+    ax.plot(xr, ism["deflection"], "-", color="#8a8984", lw=1.4, label="elastic inherent strain (calibrated on ridge 1)")
+    ax.plot([0.5], [1.276], "D", color=INK, ms=7, label="measured, ridge 1")
+    ax.set_xlabel("ridge position x [mm]")
+    ax.set_ylabel("deflection after leg cut [mm]")
+    ax.legend(frameon=False, fontsize=7.5)
+    ax.grid(axis="y", color=GRID, lw=0.6)
+    fig.suptitle("AM-Bench 2018 IN625 bridge: thermo-mechanical prediction", fontsize=10, x=0.02, ha="left")
+    fig.savefig(os.path.join(IMG, "ambench2018_tm.png"), dpi=200)
+
+
 if __name__ == "__main__":
     os.makedirs(IMG, exist_ok=True)
     contour_maps()
     neutron_lines()
     deflection()
+    tm_comparison()
     print("written:", sorted(f for f in os.listdir(IMG) if f.startswith("ambench")))

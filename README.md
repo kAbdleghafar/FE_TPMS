@@ -70,11 +70,15 @@ four independent groups and compares them:
     about 5-8 %, P-S within 4-12 %).
   * Their 3x3x3 Ansys moduli equal our elastic-plastic secant modulus at 0.7-0.9 % strain.
   * The residual-stress modulus loss is reproduced in magnitude, but not its topology ranking.
-* **NIST AM-Bench 2018** (IN625 LPBF bridge): with one inherent strain calibrated on the measured
-  deflection, the model predicts the *measured* residual stresses:
-  * contour-method σ_xx, r = 0.77 in the part and 0.85 in the plate;
-  * synchrotron ε_xx / ε_zz, r = 0.75 / 0.89;
-  * neutron ε_xx in the bridge body, r = 0.81. It fails in the thin legs (r = 0.13).
+* **NIST AM-Bench 2018** (IN625 LPBF bridge). The **thermo-mechanical** build uses NIST MaCTO
+  flow curves of the same build and the published layer time, with **no calibration**:
+  * ridge deflection after the leg cut within **3.3 %** of the measurement;
+  * contour-method σ_xx r = 0.71 in the part and 0.87 in the plate;
+  * synchrotron ε_xx / ε_zz r = 0.80 / 0.92;
+  * neutron ε_xx r = 0.88 in the body. The thin legs are still not resolved (r = 0.22),
+    although their tensile bias is gone.
+  * The elastic inherent-strain model, calibrated on the deflection, gives r = 0.77 / 0.85,
+    0.75 / 0.89 and 0.81 / 0.13 for the same quantities.
 * **Naghavi, ..., Liu (UCL), Bioengineering 2022** (Ti6Al4V gyroid/diamond bone scaffolds):
   * Design trends match their Abaqus FE within ±4 % after one common factor; the absolute values
     are 15-21 % lower, which points to the solid modulus used in their FE.
