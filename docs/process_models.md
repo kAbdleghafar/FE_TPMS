@@ -1,0 +1,191 @@
+# Process-scale models: laser scan, melt pool, solidification, surface roughness
+
+`tpmsfem.process` adds melt-pool-scale models of laser powder-bed fusion to the part-scale
+thermo-mechanical AM model. They form one chain:
+
+    scan path + laser  ->  melt pool (meltpool.py)  ->  G, R, cooling rate, melting times
+                                         |                        |
+                                         v                        v
+                         bead size -> surface roughness   solidification microstructure
+                                     (roughness.py)       (solidification.py, ExaCA export)
+
+Everything runs on the NumPy/CuPy backend, so the same code is GPU-ready. The figures and
+numbers below come from a 4-core CPU.
+
+## 1. Melt pool (`process/meltpool.py`)
+
+**Physics.** An explicit finite-volume enthalpy method on a structured voxel grid,
+`dH/dt = div(k grad T) + q_laser - q_surface`. It includes:
+
+* **Enthalpy.** Sensible and latent heat (solidus to liquidus), inverted to `T` by table
+  look-up, so energy is conserved to round-off (tested to 1e-14).
+* **Conductivity.** `k(T)` at faces as a harmonic mean, plus an optional anisotropic
+  enhancement factor in the liquid. This is the standard conduction-model stand-in for
+  Marangoni convection, which is not resolved.
+* **Powder.** A powder layer with reduced conductivity, densified when it melts.
+* **Laser.** A Gaussian (or top-hat) surface source of absorbed power `A·P`, normalised exactly
+  on the grid. An optional absorption depth spreads it into the material.
+* **Scan paths.** Scan vectors and raster hatching with jumps.
+* **Surface losses.** Radiation, convection, and evaporation (Clausius–Clapeyron vapour
+  pressure with a Hertz–Knudsen–Langmuir mass flux and back-condensation). Evaporation caps
+  the surface temperature near boiling, at about 3000 to 3500 °C here.
+* **Symmetry.** A symmetry plane under a single track halves the cost.
+* **Recorded per cell.** Peak temperature, number of melting events, last melting and
+  solidification times, and, at solidification, cooling rate, `G = |grad T|`, its direction
+  and `R = cooling rate / G`. Probes record surface histories, as a thermal camera does.
+
+**Verification.**
+* **Exact solution.** A moving Gaussian source on a semi-infinite body, the Eagar–Tsai
+  integral, with constant properties. With 10 µm cells the solver agrees within 1 % at all
+  checked points. The analytic routine itself reproduces Rosenthal's point-source solution
+  to 6 digits.
+* **Energy balance.** With latent heat and surface losses, the enthalpy balance closes to
+  1e-9 or better.
+
+**Validation, NIST AM-Bench 2018-02** (single tracks on bare IN625, NIST AMMT testbed): see §4.
+
+## 2. Solidification microstructure (`process/solidification.py`)
+
+* **G–R map.** Thermal gradient and solidification velocity at the last liquidus crossing of
+  every melted cell, the cooling rate `G·R`, and the morphology indicator `G/R`.
+* **Cell and dendrite spacing.** Kurz–Fisher (`4.3 (ΔT0 D Γ / k)^¼ G^-½ R^-¼`), Hunt, or a
+  user-fitted cooling-rate law.
+* **Columnar-to-equiaxed transition.** Hunt's (1984) criterion with a tip-undercooling growth
+  law.
+* **Grains.** A reduced cellular-automaton model of epitaxial, competitive columnar growth.
+  * Melted cells re-solidify in time order.
+  * Each one takes the grain of an already solid neighbour. The choice is weighted by how
+    well that grain's nearest <100> axis aligns with the local growth direction (grad T at
+    solidification), so well-oriented grains crowd out the others.
+  * Equiaxed grains nucleate where Hunt predicts equiaxed growth.
+  * Outputs: grain maps, inverse-pole-figure colours and texture fractions.
+* **ExaCA export.** `x,y,z,tm,tl,cr` CSV (SI units) for ORNL's open-source GPU
+  cellular-automaton code. Use it when the full decentred-octahedron kinetics matter.
+
+**Constants.** The alloy constants (Gibbs–Thomson, diffusivity, partition coefficient,
+nucleation density, growth law) are inputs. The defaults are generic Ni–Nb values and are
+**not calibrated for IN625**.
+
+## 3. Surface roughness (`process/roughness.py`)
+
+The as-built topography of a surface tilted by θ from the build direction is the
+superposition of three parts:
+* **Layer staircase.** Peak-to-valley `t |cos θ|`, so `Ra = t |cos θ|/4` for sharp steps.
+* **Melt-pool rounding.** Morphological closing with the bead radius, taken from the
+  melt-pool model.
+* **Partially fused powder.** Spheres from the powder size distribution, stuck on as a
+  Poisson process. Their density rises on down-facing surfaces and falls on up-facing ones.
+
+Roughness parameters follow ISO 4287 and 25178 (Ra, Rq, Rz; Sa, Sq, Sz). `roughness_map` puts
+the model onto any triangulated surface (for example a TPMS implant) by facet inclination.
+
+**Validation, Kasperovich et al. 2021** (LPBF IN718, 30 µm layers): see §5.
+
+## 4. AM-Bench 2018-02 single tracks (melt pool)
+
+NIST laser tracks on bare IN625 plate, AMMT testbed: 1070 nm, D4σ = 170 µm (Gaussian 1/e²
+radius 85 µm), true powers 137.9 / 179.2 / 179.2 W. Measurements are from the
+[AMB2018-02 description](https://www.nist.gov/ambench/amb2018-02-description) and its
+melt-pool-length, cross-section and cooling-rate result pages.
+
+**Model set-up.**
+* 5 µm cells, half-symmetric domain 1.9 × 0.3 × 0.2 mm, 1.5 mm track.
+* Evaporation on. The liquid is not enhanced: enhancing it in depth would have needed a
+  factor of about 7.
+
+**Calibration on case B**, NIST's calibration case. Two parameters are fitted to its width
+and depth:
+* absorptivity A = 0.323;
+* absorption depth δ = 15.3 µm (exponential), the usual effective treatment of the shallow
+  vapour depression at about 1.6 MW/cm² peak intensity.
+
+Without δ, absorptivity alone (0.206) matches the width but gives only 22 µm depth. Cases A
+and C are predictions:
+
+| case | P, v | quantity | measured (NIST AMMT) | tpmsfem | diff |
+|---|---|---|---:|---:|---:|
+| A (prediction) | 137.9 W, 400 mm/s | melt-pool width | 147.9 ± 3.7 µm | 141.7 µm | −4 % |
+| A (prediction) | 137.9 W, 400 mm/s | melt-pool depth | 42.5 ± 1.7 µm | 47.2 µm | +11 % |
+| A (prediction) | 137.9 W, 400 mm/s | melt-pool length (solidus) | 300 ± 12 µm | 357 µm | +19 % |
+| B (calibration) | 179.2 W, 800 mm/s | width / depth (fitted) | 123.5 / 36.0 µm | 123.3 / 36.0 µm | 0 % |
+| B (calibration) | 179.2 W, 800 mm/s | melt-pool length (solidus) | 359 ± 20 µm | 414 µm | +15 % |
+| C (prediction) | 179.2 W, 1200 mm/s | melt-pool width | 106.0 ± 1.4 µm | 100.9 µm | −5 % |
+| C (prediction) | 179.2 W, 1200 mm/s | melt-pool depth | 29.6 ± 0.6 µm | 24.7 µm | −17 % |
+| C (prediction) | 179.2 W, 1200 mm/s | melt-pool length (solidus) | 370 ± 10 µm | 344 µm | −7 % |
+| A / B / C | | surface cooling rate 1290→1190 °C | 1.2 / 1.1 / 1.9 ×10⁶ K/s | 3.3 / 5.9 / 8.9 ×10⁶ K/s | 3–5× too high |
+
+![track B](img/meltpool_track_B.png)
+
+**Reading the results.**
+* **Widths** are predicted within 5 %.
+* **Depths** are within −17 % to +11 %, but the speed trend is too steep: too deep at
+  400 mm/s, too shallow at 1200 mm/s. One fixed absorption depth cannot follow a vapour
+  depression that deepens at low speed. A speed- or intensity-dependent δ, or a
+  free-surface model, would.
+* **Lengths** are within −7 % to +19 %. The two NIST machines differ by about 2× in measured
+  length (CBM 659–782 µm), and NIST left the cause open.
+* **Cooling rates** are 3–5× higher than NIST's thermography. The camera's spatial and
+  temporal resolution and the emissivity assumption smear the steep solidification-front
+  gradient, which likely contributes. NIST also reports that the two machines' cooling rates
+  "differ drastically". The model, however, also omits fluid flow in the melt pool, which reshapes the temperature
+  field near the solidification front. The predicted rates are therefore not validated.
+* **Cost.** One case-B run takes 2.5 minutes on 4 CPU cores (2,528 explicit steps, 0.96 M cells).
+
+## 5. Solidification and grains (track B)
+
+`examples/05_lpbf_meltpool_microstructure.py` (summary in `results/process/summary.json`):
+
+| quantity (re-solidified cells of track B, 5–50–95th percentiles) | value |
+|---|---|
+| thermal gradient G | 5.1e+05 / 7.3e+06 / 2.5e+07 K/m |
+| solidification velocity R | 0.017 / 0.086 / 0.28 m/s (scan speed 0.8 m/s) |
+| cooling rate G·R at the liquidus | 7.5e+04 / 5.2e+05 / 1.6e+06 K/s |
+| primary spacing, Kurz–Fisher (generic constants) | 1.16 / 1.82 / 5.89 µm |
+| Hunt CET (CMSX-4 constants): columnar / mixed / equiaxed | 43 / 36 / 22 % of the fusion zone |
+| grains in the fusion zone (30 µm substrate grains, purely epitaxial) | 110; <100> within 15° of the build direction in 16 % of the volume (random: about 10 %) |
+| ExaCA export | 18,296 cells (`results/process/exaca_track_B.csv`) |
+| 5-track hatch on 20 µm powder | up to 3 melting events per cell; 638 grains in the fused region |
+
+* **Cooling at the liquidus.** The cooling rate at the liquidus crossing is about 10× lower
+  than the surface rate between 1290 and 1190 °C: latent heat slows cooling in the mushy zone.
+* **Texture.** Competitive growth gives a mild <100> texture along the build direction.
+* **First layer.** The grains of the first layer are inherited epitaxially from the plate.
+
+![5-track hatch](img/meltpool_hatch.png)
+
+**Not validated yet.** NIST's AMB2018-02 microstructure data (cell spacing, EBSD grain maps)
+sit behind links that no longer resolve after NIST's data-system upgrade, and
+the papers that tabulate them are not open access. The spacing and CET constants are
+generic, so these numbers show the method working, not IN625 predictions. Validating them
+needs the NIST EBSD/SEM files or the user's own micrographs.
+
+## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
+
+Kasperovich, Becker, Artzt et al., *Materials & Design* 207 (2021) 109858,
+doi:10.1016/j.matdes.2021.109858 (gold open access).
+* **Build.** Concept Laser M2, 30 µm layers, powder D10/D50/D90 = 22/33/45 µm.
+* **Measurement.** Sa by laser scanning microscopy on 2.44 × 2.44 mm² of flat outer surfaces
+  at 45° (upskin), 90° (vertical) and 135° (downskin).
+* **Model inputs.** The edge radius is half the width of the contour track (180 W,
+  1600 mm/s) from the calibrated melt-pool model: 85 µm wide, so 43 µm.
+* **Fit.** The three particle parameters are fitted to the three measured Sa values. This is
+  a calibrated description, not a prediction.
+
+| contour | measured Sa 45° / 90° / 135° | fitted model | particles on a vertical wall | downskin / upskin factors |
+|---|---|---|---:|---:|
+| 180 W, 1600 mm/s (E_L 0.113 J/mm) | 9.01 ± 0.33 / 11.17 ± 1.44 / 52.80 ± 3.41 µm | 9.02 / 11.16 / 52.80 µm | 268 /mm² | k_down 4.3, k_up 0.33 |
+| optimum, E_L 0.18 J/mm | 6.8 / 7.2 / 47.5 µm | 6.79 / 7.22 / 47.21 µm | 179 /mm² | 6.2, 0.18 |
+
+![roughness](img/roughness_vs_angle.png)
+
+**Reading the results.**
+* **Parts of the roughness.** The layer staircase and melt-pool rounding alone give only
+  0–5 µm. Powder stuck to the surface dominates, especially on down-facing surfaces, which
+  rest on the powder bed.
+* **TPMS application.** On a 3 mm, 30 %-dense gyroid sheet cell, 30 % of the area faces
+  down by more than 120°. The area-weighted Sa is therefore 26 µm, against 11 µm for a
+  vertical wall.
+* **Why it matters.** For lattice implants this roughness is
+  * a fatigue concern (notches),
+  * a fluid-flow and osseointegration factor,
+  * and a reason the as-built stiffness of thin sheets falls below the CAD value.

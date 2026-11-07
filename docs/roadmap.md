@@ -32,13 +32,20 @@ fidelity, benchmark credibility).
    * combined isotropic–kinematic (Chaboche) hardening once hysteresis loops are available;
    * a GPU heat solver;
    * the Barsoum TPMS ranking with the thermal model.
-7. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).
-8. **Contact**: press-fit of the cup into bone (interference fit), stem–bone interface, as
+7. **Process-scale models** (`process/`): melt pool, solidification and roughness **first version done**
+   (docs/process_models.md). Next:
+   * a free-surface melt-pool model (keyhole, Marangoni) or a coupling to an open CFD code (e.g. OpenFOAM);
+   * running ExaCA on the exported thermal histories;
+   * validation of spacing and grains against NIST AMB2018-02 EBSD/SEM data, once the files are reachable;
+   * a GPU run of multi-layer patches;
+   * roughness-aware effective wall thickness for TPMS stiffness and fatigue.
+8. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).
+9. **Contact**: press-fit of the cup into bone (interference fit), stem–bone interface, as
    mortar or penalty contact with an augmented Lagrangian on the GPU.
-9. **Bone models**: CT-based heterogeneous bone (HU → E mapping) and bone-remodelling
+10. **Bone models**: CT-based heterogeneous bone (HU → E mapping) and bone-remodelling
    (strain-energy-density) loops for stress-shielding studies.
-10. **Fatigue post-processing**: strain-life (Basquin–Coffin–Manson, Morrow/SWT, Neuber, cyclic Ramberg–Osgood) **done** (`post/fatigue.py`, as-built LPBF IN625 parameters of Concli et al. 2024). Next: multiaxial criteria (Sines, Crossland, Fatemi–Socie) on FE stress histories, residual stress as mean stress, and ISO 7206-4 / -6 reporting.
-11. **Multi-GPU** domain decomposition (NCCL) for > 1e8 dofs.
+11. **Fatigue post-processing**: strain-life (Basquin–Coffin–Manson, Morrow/SWT, Neuber, cyclic Ramberg–Osgood) **done** (`post/fatigue.py`, as-built LPBF IN625 parameters of Concli et al. 2024). Next: multiaxial criteria (Sines, Crossland, Fatemi–Socie) on FE stress histories, residual stress as mean stress, and ISO 7206-4 / -6 reporting.
+12. **Multi-GPU** domain decomposition (NCCL) for > 1e8 dofs.
 
 ## Long term
 

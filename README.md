@@ -21,6 +21,7 @@ implicit TPMS geometry ──► voxel hex8 mesher ─────────�
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
 | Physics | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
+| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
 | Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
@@ -82,6 +83,12 @@ four independent groups and compares them:
     although their tensile bias is gone.
   * The elastic inherent-strain model, calibrated on the deflection, gives r = 0.77 / 0.85,
     0.75 / 0.89 and 0.81 / 0.13 for the same quantities.
+* **NIST AM-Bench 2018-02** (laser tracks on IN625): calibrated on NIST's case B, the melt-pool
+  model predicts the widths of cases A and C within 5 % and the depths within −17 % to +11 %.
+  Surface cooling rates are 3–5× above the thermography ([docs/process_models.md](docs/process_models.md)).
+* **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
+  upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
+  26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
 * **Naghavi, ..., Liu (UCL), Bioengineering 2022** (Ti6Al4V gyroid/diamond bone scaffolds):
   * Design trends match their Abaqus FE within ±4 % after one common factor; the absolute values
     are 15-21 % lower, which points to the solid modulus used in their FE.
@@ -140,6 +147,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 ## Documentation
 
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
+* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure, surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
 

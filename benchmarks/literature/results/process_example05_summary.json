@@ -1,0 +1,94 @@
+{
+ "track_B": {
+  "width_um": 123.30565618579908,
+  "depth_um": 36.05012712274544,
+  "solidification": {
+   "cells": 9148,
+   "G_K_per_m": {
+    "p5": 508416.0888507466,
+    "p50": 7295860.575131701,
+    "p95": 24900764.23218087
+   },
+   "R_m_per_s": {
+    "p5": 0.017293462168693277,
+    "p50": 0.08606788374012378,
+    "p95": 0.27771412104298626
+   },
+   "cooling_rate_K_per_s": {
+    "p5": 75256.31373411213,
+    "p50": 517564.8679047823,
+    "p95": 1595431.2461082651
+   },
+   "G_over_R": {
+    "p5": 2072518.4291379263,
+    "p50": 85831164.09981859,
+    "p95": 1271641689.3953912
+   },
+   "spacing_kurz_fisher_um": {
+    "p5": 1.1550568176811926,
+    "p50": 1.8161409386344012,
+    "p95": 5.892148997656368
+   },
+   "cet_fraction": {
+    "columnar": 0.4278530826410144,
+    "mixed": 0.3569086139046786,
+    "equiaxed": 0.21523830345430695
+   },
+   "constants": "generic Ni-base superalloy values (CET: CMSX-4, Gaumann 2001), not calibrated for IN625"
+  },
+  "grains": {
+   "grains_in_fusion_zone": 110,
+   "nucleated": 0,
+   "section_grains": 4,
+   "section_mean_width_um": 30.553010755606714,
+   "frac_100_build_15deg": 0.15675557498906864,
+   "frac_100_scan_15deg": 0.1733712286838653
+  },
+  "exaca_rows": 18296
+ },
+ "hatch": {
+  "solidification": {
+   "cells": 90391,
+   "G_K_per_m": {
+    "p5": 194398.4541314525,
+    "p50": 3579623.85327628,
+    "p95": 20771253.211714074
+   },
+   "R_m_per_s": {
+    "p5": 0.011629290197775522,
+    "p50": 0.060026404433096696,
+    "p95": 0.23739907230382445
+   },
+   "cooling_rate_K_per_s": {
+    "p5": 25328.333332845068,
+    "p50": 184908.22073371743,
+    "p95": 789114.2388946107
+   },
+   "G_over_R": {
+    "p5": 1031386.5397677829,
+    "p50": 62959186.60136201,
+    "p95": 1351258923.0026178
+   },
+   "spacing_kurz_fisher_um": {
+    "p5": 1.396944862673766,
+    "p50": 2.885243961825566,
+    "p95": 9.406078921095698
+   },
+   "cet_fraction": {
+    "columnar": 0.2859134205839077,
+    "mixed": 0.3665187905875585,
+    "equiaxed": 0.34756778882853384
+   },
+   "constants": "generic Ni-base superalloy values (CET: CMSX-4, Gaumann 2001), not calibrated for IN625"
+  },
+  "grains": {
+   "grains_in_fusion_zone": 638,
+   "nucleated": 0,
+   "section_grains": 0,
+   "section_mean_width_um": null,
+   "frac_100_build_15deg": 0.14143000962485203,
+   "frac_100_scan_15deg": 0.12093018110210087
+  },
+  "max_melt_events": 3
+ }
+}
