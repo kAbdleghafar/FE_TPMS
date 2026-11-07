@@ -38,7 +38,7 @@ the target density with the topology's own Gibson–Ashby exponent before extrap
 | Ahmed, **Barsoum** & Abu Al-Rub 2022 | periodic-cell E vs. the literature fits their Table 3 lists (Lee et al.; Al-Ketan et al.) | IWP-S **−8 … +0.3 %**, IWP-L **−5 … +5 %**, P-S **−12 … −4 %**; G-S +20 … +48 % against an *experimental* reference |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | 3×3×3 specimen E vs. their Ansys Table 3 fits | our elastic moduli are higher: +14 … +40 % (P-S), +41 … +70 % (IWP-S), +32 … +37 % (IWP-L), +81 … +100 % (G-S). For P-S and IWP-S the paper's values equal our elastic-plastic secant modulus at 0.7–0.9 % strain (§2.3) |
 | Ahmed, Barsoum & Abu Al-Rub 2022 | modulus reduction by SLM residual stress | effect and magnitude (5–17 %) reproduced; **topology ranking not reproduced** with a uniform inherent strain (§2.4) |
-| **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, and the deflection after the leg cut | **thermo-mechanical model, no calibration:** deflection **−3.3 %**; contour σ_xx r = 0.71 (part) / 0.87 (plate); synchrotron ε_xx r = 0.80, ε_zz r = 0.92; neutron ε_xx r = 0.88 in the body, 0.22 in the legs (bias +265 → −49 µε) (§3.1). Elastic inherent strain calibrated on the deflection: r = 0.77 / 0.85, 0.75 / 0.89, 0.81 / 0.13 (§3) |
+| **NIST AM-Bench 2018** (IN625 LPBF bridge; NIST, UC Davis, LLNL, Cornell) | residual stress/strain **measured** by contour method, neutron and synchrotron diffraction, and the deflection after the leg cut | **thermo-mechanical model, no calibration:** deflection **−3.3 %** with MaCTO compression of the same build, **+8.5 %** with AMB2022 E8 tension (−40 % with a generic DED table); contour σ_xx r = 0.71 (part) / 0.87 (plate); synchrotron ε_xx r = 0.80, ε_zz r = 0.92; neutron ε_xx r = 0.88 in the body, 0.22 in the legs (bias +265 → −49 µε) (§3.1). Elastic inherent strain calibrated on the deflection: r = 0.77 / 0.85, 0.75 / 0.89, 0.81 / 0.13 (§3) |
 | Naghavi, …, **Liu** (UCL) 2022 | compressive modulus of Ti6Al4V sheet gyroid/diamond bone scaffolds (6 designs), vs their Abaqus FE and experiments | **−15 … −21 %** vs their FE across all six designs (a near-constant factor of 1.23 ± 0.03); relative trends within ±4 %; −10 … −20 % vs experiments (§4) |
 
 ---
@@ -464,6 +464,32 @@ about 3 %, the same size as its deviation from the measurement.
 **Mean plastic strain.** The part's mean equivalent plastic strain is 1.1 % (95th percentile
 1.4 %). This is consistent with a solidification-to-room-temperature thermal strain of about
 1.9 % partly taken up plastically.
+
+**Sensitivity to the plasticity input.** MaCTO's calibration spreadsheet says its data should
+only be used within the NIST MaCTO challenge. We therefore reran the model with two hardening
+sources that carry no such note (`--flow e8`, `--flow baseline`). Nothing else changed:
+
+| part hardening | 0.2 % yield at 20 °C | ridge-1 deflection | contour σ_xx part / plate r | neutron ε_xx body r (RMSE) | legs r | synchrotron ε_xx / ε_zz r (ε_zz RMSE) |
+|---|---:|---:|---:|---:|---:|---:|
+| MaCTO compression, this build (above) | 740 MPa | 1.234 mm (−3.3 %) | 0.71 / 0.87 | 0.88 (608 µε) | 0.22 | 0.80 / 0.92 (643 µε) |
+| AMB2022 E8 tension, another build (doi:10.18434/mds2-2760), ×baseline ratio in T | 812 MPa | 1.384 mm (+8.5 %) | 0.71 / 0.86 | 0.88 (732 µε) | 0.21 | 0.80 / 0.92 (834 µε) |
+| baseline DED table of the data guide, perfectly plastic | 493 MPa | 0.771 mm (−39.6 %) | 0.69 / 0.87 | 0.88 (307 µε) | 0.15 | 0.79 / 0.91 (700 µε) |
+
+* **The deflection is set by the yield strength.** It is almost proportional to the as-built
+  yield: 1.56, 1.67 and 1.70 µm per MPa for the three inputs. A generic wrought/DED property
+  table under-predicts it by 40 %. With measured as-built data from either NIST build the error
+  is −3 % to +9 %.
+* **The pattern of residual strain does not depend on the input.** The correlations move by at
+  most 0.07. The thermo-mechanical model gets the spatial distribution right whichever data are
+  used.
+* **No single yield strength fits everything.** The weak table matches the body strain
+  magnitude best (RMSE 307 µε, bias +94 µε) but gives 40 % too little deflection. This points
+  to model form rather than material data. Candidates are the 0.5 mm layer lumping near the top,
+  isotropic-only hardening, and the unknown plate temperature.
+* **What we post publicly.** Public summaries use the E8-tension run, which has no data-use
+  restriction.
+* **Cost of perfect plasticity.** The baseline run took 2.6 h instead of 1.2 h: perfect
+  plasticity makes Newton cut back.
 
 **Next steps for this benchmark:**
 * **Lumping convergence.** Use 0.25 mm super-layers; the time-step check is done above.

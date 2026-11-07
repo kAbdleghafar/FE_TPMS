@@ -72,7 +72,10 @@ four independent groups and compares them:
   * The residual-stress modulus loss is reproduced in magnitude, but not its topology ranking.
 * **NIST AM-Bench 2018** (IN625 LPBF bridge). The **thermo-mechanical** build uses NIST MaCTO
   flow curves of the same build and the published layer time, with **no calibration**:
-  * ridge deflection after the leg cut within **3.3 %** of the measurement;
+  * ridge deflection after the leg cut within **3.3 %** of the measurement. With NIST AMB2022
+    tension data from another build it is +8.5 %; with a generic DED property table, −40 %.
+    The deflection follows the as-built yield strength, while the strain pattern does not
+    change.
   * contour-method σ_xx r = 0.71 in the part and 0.87 in the plate;
   * synchrotron ε_xx / ε_zz r = 0.80 / 0.92;
   * neutron ε_xx r = 0.88 in the body. The thin legs are still not resolved (r = 0.22),

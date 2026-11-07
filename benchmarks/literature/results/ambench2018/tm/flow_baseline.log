@@ -1,0 +1,31 @@
+numpy 2.5.4 on CPU (x86_64)
+[tm/flow_baseline] Mesh[hex8] 131,188 cells, 145,692 nodes, 437,076 dofs, bbox [ -3.   -4.5 -13. ] .. [78.   7.5 12.5], voxel h=0.5
+SolidModel: 131,188 hex8 elements (B-bar), 437,076 dofs, nq=8, plastic=True (tabulated), thermal=True, backend=numpy, shared voxel kernel
+layer   1/25: z<=  0.50  T_max    959 ->    20 C  newton=[3, 6, 3, 3, 3, 2, 2, 2] krylov=101 heat_its=38 vm_max=   493  80.4s
+layer   2/25: z<=  1.00  T_max    959 ->    20 C  newton=[3, 6, 7, 4, 4, 4, 3, 3, 2, 2] krylov=775 heat_its=38 vm_max=   493  300.5s
+layer   3/25: z<=  1.50  T_max    959 ->    20 C  newton=[3, 8, 7, 6, 4, 3, 3, 3, 2, 2] krylov=805 heat_its=38 vm_max=   493  314.3s
+layer   4/25: z<=  2.00  T_max    959 ->    20 C  newton=[3, 6, 6, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2] krylov=1069 heat_its=38 vm_max=   493  409.4s
+layer   5/25: z<=  2.50  T_max    959 ->    20 C  newton=[3, 6, 6, 3, 4, 4, 4, 4, 3, 4, 3, 3, 2] krylov=1090 heat_its=38 vm_max=   493  428.7s
+layer   6/25: z<=  3.00  T_max    959 ->    20 C  newton=[3, 9, 6, 8, 4, 4, 4, 3, 3, 2] krylov=879 heat_its=38 vm_max=   493  360.0s
+layer   7/25: z<=  3.50  T_max    959 ->    20 C  newton=[3, 13, 4, 3, 4, 3, 3, 2] krylov=351 heat_its=38 vm_max=   493  172.2s
+layer   8/25: z<=  4.00  T_max    959 ->    20 C  newton=[3, 10, 6, 3, 3, 4, 3, 4, 3, 4, 4, 3, 2] krylov=918 heat_its=38 vm_max=   493  374.9s
+layer   9/25: z<=  4.50  T_max    959 ->    20 C  newton=[3, 8, 6, 4, 3, 4, 4, 4, 4, 4, 4, 3, 2] krylov=1132 heat_its=39 vm_max=   493  457.4s
+layer  10/25: z<=  5.00  T_max    959 ->    20 C  newton=[3, 8, 6, 4, 3, 4, 4, 4, 4, 4, 4, 3, 2] krylov=1135 heat_its=39 vm_max=   492  437.5s
+layer  11/25: z<=  5.50  T_max   1264 ->    20 C  newton=[3, 19, 4, 4, 4, 4, 3, 2] krylov=537 heat_its=43 vm_max=   492  248.6s
+layer  12/25: z<=  6.00  T_max   1258 ->    20 C  newton=[3, 14, 4, 4, 4, 4, 3, 2] krylov=566 heat_its=42 vm_max=   492  254.3s
+layer  13/25: z<=  6.50  T_max   1257 ->    20 C  newton=[3, 9, 6, 3, 4, 4, 4, 5, 4, 3, 4, 3, 2] krylov=1597 heat_its=45 vm_max=   492  631.4s
+layer  14/25: z<=  7.00  T_max    990 ->    20 C  newton=[3, 6, 6, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4] krylov=1549 heat_its=40 vm_max=   492  599.2s
+layer  15/25: z<=  7.50  T_max    961 ->    20 C  newton=[3, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3] krylov=2006 heat_its=40 vm_max=   493  748.9s
+layer  16/25: z<=  8.00  T_max    959 ->    20 C  newton=[3, 6, 6, 7, 4, 4, 4, 4, 3, 3] krylov=1073 heat_its=40 vm_max=   493  409.1s
+layer  17/25: z<=  8.50  T_max    959 ->    20 C  newton=[3, 6, 6, 6, 4, 4, 4, 4, 4, 3, 3, 3] krylov=1199 heat_its=41 vm_max=   493  476.7s
+layer  18/25: z<=  9.00  T_max    959 ->    20 C  newton=[3, 6, 6, 6, 4, 4, 4, 4, 3, 3, 3, 3] krylov=1351 heat_its=41 vm_max=   493  532.7s
+layer  19/25: z<=  9.50  T_max    959 ->    20 C  newton=[3, 6, 6, 6, 3, 3, 4, 4, 3, 3, 3, 3] krylov=982 heat_its=41 vm_max=   493  397.7s
+layer  20/25: z<= 10.00  T_max    959 ->    20 C  newton=[3, 7, 6, 5, 4, 3, 4, 3, 3, 3] krylov=404 heat_its=40 vm_max=   493  213.8s
+layer  21/25: z<= 10.50  T_max    959 ->    20 C  newton=[3, 6, 6, 8, 4, 3, 4, 4, 4, 4, 3, 3] krylov=663 heat_its=40 vm_max=   493  315.8s
+layer  22/25: z<= 11.00  T_max    959 ->    20 C  newton=[3, 7, 6, 5, 4, 4, 3, 4, 4, 3] krylov=407 heat_its=40 vm_max=   493  233.7s
+layer  23/25: z<= 11.50  T_max    959 ->    20 C  newton=[3, 6, 6, 6, 3, 3, 4, 3, 3, 4, 4, 3] krylov=806 heat_its=40 vm_max=   493  385.5s
+layer  24/25: z<= 12.00  T_max    959 ->    20 C  newton=[3, 8, 6, 5, 4, 3, 3, 4, 4, 3] krylov=753 heat_its=40 vm_max=   493  321.7s
+layer  25/25: z<= 12.50  T_max    949 ->    20 C  newton=[3, 4, 3, 3, 3, 2, 2, 2] krylov=167 heat_its=35 vm_max=   492  100.1s
+cool-down to 20.0 C: vm_max=492  newton=[0] 36.9s
+removal: vm_max=492 newton=[3]
+[tm/flow_baseline] ridge deflections: [0.771, 0.592, 0.444, 0.325, 0.229, 0.151, 0.09, 0.042, 0.011, -0.0, -0.002] (measured ridge 1: 1.276)  9355s
