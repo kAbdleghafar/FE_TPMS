@@ -1,0 +1,111 @@
+{
+ "source": "https://s3.amazonaws.com/nist-midas/1889/AMB2018-02_CaseB_EBSDdata.zip",
+ "section_x_mm": 0.7,
+ "step_um": 0.28,
+ "centre_um": 82.44134132633947,
+ "fusion_zone_px": 39749,
+ "substrate_median_d_eq_um": 2.745144027730797,
+ "substrate_area_weighted_d_eq_um": 7.944068696428023,
+ "delta_um": 1.3725720138653985,
+ "traces": {
+  "reached": 1.0,
+  "dx_median_um": 0.8128342841713376,
+  "dx_p90_um": 3.5610195773043927,
+  "frac_inplane": 0.6362927369241993,
+  "path_median_um": 11.000000000000009
+ },
+ "agreement_vs_origin_distance": [
+  {
+   "dx_lo": 0.0,
+   "dx_hi": 0.5,
+   "pixels": 15691,
+   "frac_pixels": 0.39475206923444617,
+   "agree": 0.5115671403989548
+  },
+  {
+   "dx_lo": 0.5,
+   "dx_hi": 1.0,
+   "pixels": 6220,
+   "frac_pixels": 0.1564819240735616,
+   "agree": 0.3077170418006431
+  },
+  {
+   "dx_lo": 1.0,
+   "dx_hi": 1.5,
+   "pixels": 4394,
+   "frac_pixels": 0.11054366147576039,
+   "agree": 0.11788802913063268
+  },
+  {
+   "dx_lo": 1.5,
+   "dx_hi": 2.0,
+   "pixels": 3295,
+   "frac_pixels": 0.08289516717401696,
+   "agree": 0.074051593323217
+  },
+  {
+   "dx_lo": 2.0,
+   "dx_hi": 3.0,
+   "pixels": 4493,
+   "frac_pixels": 0.11303429017082191,
+   "agree": 0.07767638548853772
+  },
+  {
+   "dx_lo": 3.0,
+   "dx_hi": 4.0,
+   "pixels": 2758,
+   "frac_pixels": 0.06938539334322875,
+   "agree": 0.07215373459028282
+  },
+  {
+   "dx_lo": 4.0,
+   "dx_hi": 6.0,
+   "pixels": 2846,
+   "frac_pixels": 0.07159928551661678,
+   "agree": 0.06254392129304287
+  }
+ ],
+ "agreement_3d": {
+  "all": [
+   0.2665576492490377,
+   0.006244030199832057
+  ],
+  "inplane": [
+   0.41012968527597665,
+   5.551115123125783e-17
+  ],
+  "upstream": [
+   0.015383551220861866,
+   0.017167735796716096
+  ]
+ },
+ "agreement_3d_area_weighted_grains": {
+  "all": [
+   0.26440916752622706,
+   0.006070025250279375
+  ],
+  "inplane": [
+   0.41012968527597665,
+   5.551115123125783e-17
+  ],
+  "upstream": [
+   0.009476378225081277,
+   0.016689315464712914
+  ]
+ },
+ "grain_stats": {
+  "measured": {
+   "grains": 92,
+   "area_weighted_d_eq_um": 10.083224149080841
+  },
+  "tpmsfem 3-D trace, substrate grains 2.7 um (median)": {
+   "grains": 236,
+   "area_weighted_d_eq_um": 7.207729790505575
+  },
+  "tpmsfem 3-D trace, substrate grains 7.9 um (area-weighted)": {
+   "grains": 121,
+   "area_weighted_d_eq_um": 8.607214813056093
+  }
+ },
+ "random_frac_lt10": 0.006239150670457118
+}

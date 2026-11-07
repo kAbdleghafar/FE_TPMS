@@ -88,7 +88,10 @@ four independent groups and compares them:
   Surface cooling rates are 3–5× above the thermography ([docs/process_models.md](docs/process_models.md)).
   Regrown from NIST's *measured* substrate grains (case-B EBSD map), the simulated melt pool
   reproduces 26–28 % of the measured grain orientations point by point (random: 0.5 %), and,
-  along the simulated gradient, the measured grain count.
+  along the simulated gradient, the measured grain count. A 3-D back-trace through the
+  simulated melt pool explains the rest. Grains that start within 0.5 µm of the measured
+  plane match 51 % of the time. Those starting ≥ 1.5 µm behind it, on substrate NIST did not
+  measure, match only 6–8 %.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.

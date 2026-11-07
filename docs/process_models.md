@@ -210,6 +210,66 @@ measured from the local surface.
     twins).
   * The model resolves the thermal field at 5 µm.
 
+### 5.2 3-D test: where the section's grains come from
+
+**What the 2-D test assumed.** In a moving melt pool the growth direction also points
+forward along the scan, so a grain seen in the transverse section may have started on the
+fusion boundary *behind* it. The 2-D regrowth assumed every grain started in the measured
+plane.
+
+**Method.** `benchmarks/literature/nist_ambench2018_tracks_ebsd3d.py` traces each melt-pool
+pixel of the section backwards through the simulated **3-D** steady-state growth-direction
+field of case B, until it leaves the melt pool. That point is where its grain started.
+
+**Origins.** All 39,749 traces reach the fusion boundary, after a median path of
+11 µm.
+* **Distance behind the section.** The median origin lies 0.8 µm behind
+  the section, the 90th percentile 3.6 µm.
+* **Where.** Grains near the top centre start furthest back; along the sides and bottom they
+  start in the plane.
+* **In-plane share.** 64 % of the pixels have an origin within
+  ±1.4 µm of the plane, half the measured median substrate grain size of
+  2.7 µm.
+
+**Parameter-free check.** Give every pixel the measured in-plane substrate orientation at its
+origin's (y, z), then bin the agreement by the origin's distance from the plane:
+
+| origin behind the section | share of melt-pool pixels | within 10° of measured |
+|---|---:|---:|
+| 0–0.5 µm | 39.5 % | 51.2 % |
+| 0.5–1 µm | 15.6 % | 30.8 % |
+| 1–1.5 µm | 11.1 % | 11.8 % |
+| 1.5–2 µm | 8.3 % | 7.4 % |
+| 2–3 µm | 11.3 % | 7.8 % |
+| 3–4 µm | 6.9 % | 7.2 % |
+| 4–6 µm | 7.2 % | 6.3 % |
+| random orientations | | 0.6 % |
+
+* **Agreement follows the origin's distance.** Half of the pixels whose grains start within
+  0.5 µm of the measured plane are predicted correctly. Agreement falls to a residual 6–8 %
+  once the origin lies 1.5 µm or more behind it. The residual exceeds random because large
+  substrate grains reach a few µm out of the plane.
+* **The prediction is confirmed.** The point-wise failures of the 2-D test are explained by
+  grains from substrate NIST did not measure, and their share is predicted by the 3-D thermal
+  field.
+
+**Hybrid prediction.** Use the measured orientations for in-plane origins, and a
+statistically equivalent 3-D substrate elsewhere: Voronoi grains whose orientations are drawn
+from the measured substrate, 5 realisations.
+* **All pixels:** 26.7 ± 0.6 % within 10°.
+* **In-plane origins:** 41 %.
+* **Upstream origins:** 1.5 %, close to random.
+* **Ceiling.** The 2-D result (27.5 %) is close to the best that can be expected from a single
+  section. Doing better needs the substrate in 3-D, for example from serial sections.
+
+**Grain count.** The hybrid predicts 236 grains in the section with
+2.7 µm stand-in substrate grains, against
+92 measured. With the area-weighted size
+(7.9 µm) it predicts 121. The
+unmeasured 3-D substrate grain size sets the count of the upstream-origin grains.
+
+![3-D origin of the melt-pool grains](img/ebsd_caseB_3d.png)
+
 The remaining NIST track files (SEM and EBSD maps of tracks 3, 5 and 10, the 10 optical
 cross-sections of mds2-3830) did not download: they returned server errors, HTTP 500, on
 2026-11-07.
