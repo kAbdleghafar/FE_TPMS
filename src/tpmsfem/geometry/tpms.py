@@ -202,3 +202,27 @@ class TPMS(Field):
         if callable(self.density):
             raise ValueError("graded lattice has no single nominal density")
         return float(self.density)
+
+
+def sheet_with_thickness(surface: str = "gyroid", cell_size=4.0, thickness=0.3, origin=(0.0, 0.0, 0.0)) -> Field:
+    """TPMS sheet of prescribed wall thickness: ``|d| - t/2`` with ``d = f / |grad f|`` (a
+    first-order distance to the mid-surface ``f = 0``; the plain ``TPMS`` sheet scales ``f``
+    by a constant and so misses the target thickness by 10-20 % on thin walls).
+    ``thickness`` [model units] is a scalar or a callable ``t(x, y, z)`` for a graded sheet."""
+    fn = SURFACES[surface]
+    L = np.broadcast_to(np.asarray(cell_size, float), (3,)).copy()
+    o = np.asarray(origin, float)
+    eps = 1e-5
+
+    def phi(x, y, z):
+        xp = array_module(x)
+        X, Y, Z = TWO_PI * (x - o[0]) / L[0], TWO_PI * (y - o[1]) / L[1], TWO_PI * (z - o[2]) / L[2]
+        f = fn(X, Y, Z)
+        gx = (fn(X + eps, Y, Z) - fn(X - eps, Y, Z)) / (2 * eps) * TWO_PI / L[0]
+        gy = (fn(X, Y + eps, Z) - fn(X, Y - eps, Z)) / (2 * eps) * TWO_PI / L[1]
+        gz = (fn(X, Y, Z + eps) - fn(X, Y, Z - eps)) / (2 * eps) * TWO_PI / L[2]
+        d = f / xp.maximum(xp.sqrt(gx * gx + gy * gy + gz * gz), 1e-9)
+        t = thickness(x, y, z) if callable(thickness) else thickness
+        return xp.abs(d) - 0.5 * t
+
+    return Field(phi, f"sheet-{surface}")

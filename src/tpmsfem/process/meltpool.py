@@ -176,6 +176,34 @@ class MeltPoolModel:
         self.t = 0.0
 
     # ------------------------------------------------------------------
+    def set_part_geometry(self, field, z_offset: float = 0.0):
+        """Make the substrate the previously built part instead of a dense plate.
+
+        ``field(x, y, z)`` is a signed-distance-like field (negative inside the solid, as
+        :class:`tpmsfem.geometry.Field`), evaluated at ``z + z_offset``: the model's
+        ``z = 0`` (top of the substrate, bottom of the new powder layer) is build height
+        ``z_offset``. Substrate cells outside the part become loose powder (reduced
+        conductivity until they melt), so down-facing regions of the new layer sit on
+        powder. The powder layer on top is unchanged. Returns the solid fraction of the
+        substrate."""
+        xp = self.xp
+        nzs = self.nz_sub
+        X, Y, Z = np.meshgrid(self.x, self.y, self.z[:nzs] + z_offset, indexing="ij")
+        solid = np.asarray(field(X, Y, Z)) < 0.0
+        mask = np.zeros(self.shape, dtype=bool)
+        mask[:, :, :nzs] = ~solid
+        mask[:, :, nzs:] = True if self.nz_powder else False
+        self.powder_mask = xp.asarray(mask)
+        return float(solid.mean())
+
+    def set_temperature(self, T):
+        """Initial temperature: a scalar or an array of the grid shape (e.g. a preheat field
+        from a part-scale model)."""
+        xp = self.xp
+        T = xp.asarray(np.broadcast_to(np.asarray(T, float), self.shape), dtype=self.dtype)
+        self.T = T.copy()
+        self.H = xp.interp(self.T.ravel(), self._tt, self._HH).reshape(self.shape)
+
     def _T_of_H(self, H):
         return self.xp.interp(H.ravel(), self._HH, self._tt).reshape(H.shape)
 
