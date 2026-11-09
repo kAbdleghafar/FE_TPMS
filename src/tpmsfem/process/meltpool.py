@@ -215,9 +215,13 @@ class MeltPoolModel:
 
     # ------------------------------------------------------------------
     def run(self, laser: Laser, path: Sequence[ScanVector], t_extra: float = 0.0, probes: Optional[dict] = None,
-            snapshot_times: Sequence[float] = (), verbose: bool = False) -> MeltPoolResult:
+            snapshot_times: Sequence[float] = (), verbose: bool = False,
+            snapshot_reduce=None) -> MeltPoolResult:
         """Scan ``path`` (then let it cool for ``t_extra``). ``probes``: {name: (x, y)} surface
-        points whose temperature history is recorded (top-cell value extrapolated to the surface)."""
+        points whose temperature history is recorded (top-cell value extrapolated to the surface).
+        ``snapshot_reduce``: optional function applied to each temperature snapshot (a host
+        array, shape (nx, ny, nz)) before it is stored, e.g. ``lambda T: T[:, :, -1]`` to keep
+        only the surface when many frames are recorded for an animation."""
         xp, h, dt = self.xp, self.h, self.dt
         nx, ny, nz = self.shape
         t_start = time.perf_counter()
@@ -319,7 +323,8 @@ class MeltPoolModel:
                 for name, (i, j) in probe_ij.items():
                     hist[name].append(float(1.5 * T_new[i, j, -1] - 0.5 * T_new[i, j, -2]))
             while snap_q and self.t >= snap_q[0] - 1e-15:
-                snaps.append((self.t, asnumpy(self.T).copy()))
+                Ts = asnumpy(self.T).copy()
+                snaps.append((self.t, Ts if snapshot_reduce is None else snapshot_reduce(Ts)))
                 snap_q.pop(0)
             if verbose and step % 1000 == 0:
                 print(f"  t = {self.t * 1e3:.3f} ms  T_max = {float(T_new.max()):.0f} C  "
