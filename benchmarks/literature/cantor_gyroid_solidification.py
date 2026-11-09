@@ -66,7 +66,7 @@ EVAP = Evaporation(T_boil=2061.0, L_v=4.02e6, M=0.05494, p0=0.2 * 101325.0)     
 L_CELL, Z_LAYER = 4.0, 1.3
 WINDOWS = {"thin": (0.2, 1.4, 1.0, 2.2), "thick": (2.6, 3.8, 0.55, 1.75)}          # x0, x1, y0, y1 [mm]
 DT0 = (40.0, 60.0, 90.0)
-PF_W0, PF_W, PF_H, PF_GROW = 10e-9, 3.0e-6, 2.0e-6, 10e-6
+PF_W0, PF_W, PF_H, PF_GROW = 10e-9, 6.0e-6, 2.0e-6, 10e-6     # 6 um wide: spacing steps of ~10 %
 
 
 def gyroid():
@@ -281,9 +281,107 @@ def report(store):
     print(text)
 
 
+BLUE, ORANGE, AQUA, INK, MUTED, GRID = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#52514e", "#e4e3df"
+
+
+def _style(ax):
+    ax.grid(True, color=GRID, lw=0.6)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(colors=MUTED, labelsize=8)
+
+
+def figure(store):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    F = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
+    fig = plt.figure(figsize=(13, 8.4))
+    gs = fig.add_gridspec(2, 4, hspace=0.38, wspace=0.42, left=0.05, right=0.97, top=0.93, bottom=0.07)
+    # (a) the layer, windows, scan path of the thin window
+    ax = fig.add_subplot(gs[0, 0])
+    g = np.linspace(0, L_CELL, 400)
+    from tpmsfem.process.scanpath import slice_mask
+    m = slice_mask(gyroid(), Z_LAYER - 0.5 * LAYER, g, g)
+    ax.imshow(m.T, origin="lower", extent=[0, L_CELL, 0, L_CELL], cmap="Greys", vmin=0, vmax=2.2)
+    for name, (x0, x1, y0, y1) in WINDOWS.items():
+        ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, ec=BLUE if name == "thin" else ORANGE, lw=1.5))
+        ax.text(x0, y1 + 0.05, f"{name} walls", color=INK, fontsize=8)
+    ax.set_xlabel("x [mm] (wall 0.2 mm at x = 0 -> 0.6 mm at x = 4)", fontsize=8.5)
+    ax.set_ylabel("y [mm]", fontsize=8.5)
+    ax.set_title("(a) gyroid sheet layer at z = 1.3 mm", fontsize=9, loc="left")
+    ax.tick_params(labelsize=8, colors=MUTED)
+    # (b, c) G maps of the new layer with the down-facing outline
+    for i, name in enumerate(WINDOWS):
+        if f"{name}_G" not in F:
+            continue
+        ax = fig.add_subplot(gs[0, 1 + i])
+        x, y = F[f"{name}_x"], F[f"{name}_y"]
+        from matplotlib.colors import LogNorm
+
+        im = ax.imshow(F[f"{name}_G"].T, origin="lower", extent=[x[0], x[-1], y[0], y[-1]], cmap="viridis",
+                       norm=LogNorm(2e5, 3e7))
+        ax.contour(x, y, (F[f"{name}_powder_below"] & (F[f"{name}_n_melt"] > 0)).T.astype(float), [0.5],
+                   colors=["#ffffff"], linewidths=0.8)
+        ax.set_title(f"({'bc'[i]}) {name} walls: G at solidification, mid-layer\n"
+                     "white outline: built over powder (down-facing)", fontsize=9, loc="left")
+        ax.set_xlabel("x [mm]", fontsize=8.5)
+        ax.tick_params(labelsize=8, colors=MUTED)
+        if i == 1:
+            cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+            cb.set_label("G [K/m]", fontsize=8.5)
+            cb.ax.tick_params(labelsize=8)
+    # (d) spacing by class vs the validation
+    ax = fig.add_subplot(gs[0, 3])
+    ax.axhspan(*CM.PIGLIONE2018["cell_spacing_um"], color="#d6d5d0", lw=0)
+    ax.text(0.02, CM.PIGLIONE2018["cell_spacing_um"][1] + 0.02, "measured, single layer\n(Piglione et al. 2018)",
+            transform=ax.get_yaxis_transform(), fontsize=7.5, color=MUTED, va="bottom")
+    rows = [("validation", store.get("validation_pf|dT0=60"), INK)]
+    for name, col in (("thin", BLUE), ("thick", ORANGE)):
+        for c in ("supported", "down-facing"):
+            lab = "over solid" if c == "supported" else "over powder"
+            rows.append((f"{name}\n{lab}", store.get(f"pf|{name}|{c}"), col))
+    for k, (lab, o, col) in enumerate(rows):
+        if not o:
+            continue
+        lo, hi = min(o["spacing_um_range"]), max(o["spacing_um_range"])
+        ax.errorbar(k, o["spacing_um"], yerr=[[o["spacing_um"] - lo], [hi - o["spacing_um"]]], fmt="o", color=col,
+                    ms=7, capsize=2, mfc="white" if "powder" in lab else col, mew=1.5)
+    ax.set_xticks(range(len(rows)), [r[0] for r in rows], fontsize=7)
+    ax.set_ylim(0, 1.4)
+    ax.set_ylabel("primary cell spacing [um]", fontsize=8.5)
+    ax.set_title("(d) cell spacing (2-D phase field, dT0 = 60 K)", fontsize=9, loc="left")
+    _style(ax)
+    # (e-h) Mn+Ni maps
+    tags = [("validation", "validation (single layer)"), ("thin_supported", "thin wall, supported"),
+            ("thin_down-facing", "thin wall, down-facing"), ("thick_down-facing", "thick wall, down-facing")]
+    for i, (tag, title) in enumerate(tags):
+        if f"{tag}_c" not in F:
+            continue
+        ax = fig.add_subplot(gs[1, i])
+        c = F[f"{tag}_c"].astype(float) * 40.0
+        dx = float(F[f"{tag}_dx"]) * 1e6
+        im = ax.imshow(c, origin="lower", cmap="magma", vmin=34, vmax=56, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
+        ax.set_title(f"({'efgh'[i]}) Mn+Ni, {title}", fontsize=9, loc="left")
+        ax.set_xlabel("x [um]", fontsize=8.5)
+        ax.tick_params(labelsize=8, colors=MUTED)
+        if i == 3:
+            cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+            cb.set_label("Mn + Ni [wt%] (pseudo-binary)", fontsize=8.5)
+            cb.ax.tick_params(labelsize=8)
+    fig.suptitle("Solidification of an LPBF CoCrFeMnNi gyroid sheet (200 W, 0.75 m/s, 30 um layers): melt-pool model + "
+                 "2-D phase field", fontsize=11, x=0.05, ha="left")
+    os.makedirs(os.path.dirname(FIG), exist_ok=True)
+    fig.savefig(FIG, dpi=150)
+    print("wrote", FIG)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--part", default="all", choices=["all", "validation", "gyroid", "report"])
+    ap.add_argument("--part", default="all", choices=["all", "validation", "gyroid", "report", "figure"])
     a = ap.parse_args()
     store = ResultStore(STORE)
     if a.part in ("all", "validation"):
@@ -291,6 +389,8 @@ def main():
     if a.part in ("all", "gyroid"):
         part_gyroid(store)
     report(store)
+    if a.part in ("all", "figure"):
+        figure(store)
     json.dump(store.data, open(STORE, "w"), indent=1)
 
 
