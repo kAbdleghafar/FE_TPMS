@@ -44,8 +44,7 @@ P_W, V_MM_S, R_BEAM = 179.2, 800.0, 0.085
 X0, X1, Y0, Y1, HATCH = 0.15, 0.75, -0.2, 0.2, 0.1
 FRAME_DT = 20e-6                      # s between frames
 T_EXTRA = 3e-4                        # cooling after the last track [s]
-PF_W, PF_H, PF_W0 = 3.0e-6, 1.6e-6, 10e-9
-SHOW_H = 2.6e-6                       # height of the microstructure column shown [m]
+PF_W, PF_H, PF_W0 = 3.0e-6, 2.0e-6, 10e-9
 
 
 def stage_meltpool():
@@ -140,24 +139,10 @@ def stage_phasefield(mp):
 
 
 def asnum_column(pf):
-    """The top SHOW_H of the grown microstructure: rows that left the window plus the window."""
-    c = pf.composition()
-    phi = pf.phi
-    if pf.solid_rows:
-        hist = np.concatenate(pf.solid_rows, axis=0)
-        c = np.concatenate([hist, c], axis=0)
-        phi = np.concatenate([np.ones_like(hist), phi], axis=0)
-    rows = np.flatnonzero((phi > 0).any(axis=1))
-    top = int(rows.max()) if len(rows) else 0
-    n_show = int(round(SHOW_H / (pf.dx * pf.W0)))
-    hi = min(top + int(0.35 * n_show), c.shape[0])
-    lo = hi - n_show
-    if lo < 0:
-        pad = -lo
-        c = np.concatenate([np.full((pad, c.shape[1]), np.nan), c], axis=0)
-        phi = np.concatenate([np.full((pad, c.shape[1]), np.nan), phi], axis=0)
-        lo, hi = 0, n_show
-    return c[lo:hi] * PF.IN625_NB.c_inf, phi[lo:hi]
+    """The live phase-field window (Nb in wt%, phi). Rows that already left the window are not
+    shown: they froze when they left while the grooves in the window keep solidifying, so
+    stitching them below would show a false seam."""
+    return pf.composition() * PF.IN625_NB.c_inf, pf.phi.copy()
 
 
 def render(mp, pfd):
@@ -174,10 +159,10 @@ def render(mp, pfd):
     nshow, ncol = pfd["c"].shape[1:]
     fused = np.zeros(mp["T"].shape[1:], bool)
     fig = plt.figure(figsize=(12.8, 5.6), dpi=100, facecolor="#fcfcfb")
-    axL = fig.add_axes([0.05, 0.11, 0.26, 0.74])
-    axR = fig.add_axes([0.40, 0.11, 0.52, 0.74])
-    caxL = fig.add_axes([0.315, 0.11, 0.01, 0.74])
-    caxR = fig.add_axes([0.93, 0.11, 0.01, 0.74])
+    axL = fig.add_axes([0.05, 0.10, 0.24, 0.66])
+    axR = fig.add_axes([0.43, 0.10, 0.49, 0.66])
+    caxL = fig.add_axes([0.30, 0.10, 0.01, 0.66])
+    caxR = fig.add_axes([0.93, 0.10, 0.01, 0.66])
     fig.text(0.05, 0.95, "One LPBF layer of IN625 and the cells growing at its melt-pool fusion boundary",
              fontsize=13, color="#0b0b0b", weight="bold")
     fig.text(0.05, 0.915, "tpmsfem: melt-pool model (right) and 2-D quantitative phase field (left), on one "
@@ -192,7 +177,7 @@ def render(mp, pfd):
     axL.set_xlabel("x [um]", fontsize=9)
     axL.set_ylabel("growth direction [um]", fontsize=9)
     axL.tick_params(labelsize=8, colors="#52514e")
-    titleL = axL.set_title("", fontsize=9.5, loc="left")
+    titleL = axL.set_title("", fontsize=9, loc="left")
     noteL = axL.text(0.5, 0.5, "", transform=axL.transAxes, ha="center", va="center", color="#f0efec", fontsize=10)
     imR = axR.imshow(mp["T"][0].T, origin="lower", extent=[x[0], x[-1], y[0], y[-1]], cmap="inferno", vmin=25,
                      vmax=2600, interpolation="bilinear")
@@ -204,7 +189,7 @@ def render(mp, pfd):
     axR.set_xlabel("x [mm] (scan direction alternates)", fontsize=9)
     axR.set_ylabel("y [mm]", fontsize=9)
     axR.tick_params(labelsize=8, colors="#52514e")
-    titleR = axR.set_title("", fontsize=9.5, loc="left")
+    titleR = axR.set_title("", fontsize=9, loc="left")
     spot = Circle((0, 0), R_BEAM, fill=False, ec="#e4e3df", lw=1.0, ls="--")
     axR.add_patch(spot)
     marker, = axR.plot([], [], "o", ms=7, mfc="#1baf7a", mec="white", mew=1.2)
@@ -246,10 +231,9 @@ def render(mp, pfd):
                 xx = (np.arange(ncol) + 0.5) * dx_um
                 dyn.append(axL.contour(xx, yy, np.nan_to_num(ph, nan=1.0), levels=[0.0], colors=["#ffffff"],
                                        linewidths=0.6))
-            sp = f", spacing {it['spacing'] * 1e6:.2f} um" if it.get("spacing") else ""
+            sp = f", cell spacing {it['spacing'] * 1e6:.2f} um" if it.get("spacing") else ""
             titleL.set_text(f"cells, track {it['track'] + 1}: G = {trk['G']:.1e} K/m, R = {trk['R']:.3f} m/s\n"
-                            f"t = {it['t_pf'] * 1e6:.0f} us after the front passed, grown "
-                            f"{it['grown'] * 1e6:.1f} um{sp}")
+                            f"{it['t_pf'] * 1e6:.0f} us after the front passed\ngrown {it['grown'] * 1e6:.1f} um{sp}")
             noteL.set_text("")
         else:
             marker.set_data([], [])
@@ -269,7 +253,9 @@ def render(mp, pfd):
             update(n)
             writer.grab_frame(facecolor=fig.get_facecolor())
     print("wrote", out, flush=True)
-    update(int(0.55 * len(mp["t"])))
+    n_still = int(0.55 * len(mp["t"]))
+    fused[:] = (mp["T"][:n_still + 1] >= Tl).any(axis=0)
+    update(n_still)
     fig.savefig(os.path.join(OUT, "layer_cells_frame.png"), dpi=130, facecolor=fig.get_facecolor())
     return out
 
