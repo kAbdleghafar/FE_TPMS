@@ -107,7 +107,7 @@ def part_build(store, layer_time):
     ijk = mesh.cell_data["ijk"]
     hm = HeatModel(mesh, {1: CG.MAT, 2: powder_material()}, T_initial=CG.T_PLATE)
     hm.set_surface_losses(h=1e-5, emissivity=0.4, T_amb=CG.T_PLATE, face_filter=lambda ctr, n: n[:, 2] > 0.5)
-    hm.fix(mesh.nodes_where(lambda p: p[:, 2] < -PLATE + 1e-6), CG.T_PLATE)
+    hm.fix(np.flatnonzero(mesh.points[:, 2] < -PLATE + 1e-6), CG.T_PLATE)
     lump = np.where(ijk[:, 2] < nzp, -1, (ijk[:, 2] - nzp) // LUMP_VOX)
     hm.deactivate(np.flatnonzero(lump >= 0))
     is_solid = np.asarray(mesh.cell_data["material"]) == 1
