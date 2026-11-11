@@ -167,8 +167,14 @@ def part_validation(store):
 # ------------------------------------------------------------------------------ gyroid
 def part_window(store, name):
     key = f"window|{name}"
-    if store.get(key) is not None:
-        return store.get(key)
+    if store.get(key) is None:
+        store.put(key, run_window(name, save_maps=True))
+    return store.get(key)
+
+
+def run_window(name, T0=T_PLATE, save_maps=False, verbose=True):
+    """Melt-pool run of one window of the layer; ``T0``: temperature of the part and powder
+    when the layer starts (plate temperature, or a preheat from the part-scale model)."""
     x0, x1, y0, y1 = WINDOWS[name]
     margin = 0.1
     gy = gyroid()
@@ -176,7 +182,7 @@ def part_window(store, name):
     xc, yc = x0 - margin, 0.5 * (y0 + y1)
     Lx, Ly = (x1 - x0) + 2 * margin, (y1 - y0) + 2 * margin
     local = Field(lambda x, y, z: gy(x + xc, y + yc, z + zb), "gyroid (window)")
-    md = MeltPoolModel(MAT, H, length=Lx, width=Ly, depth=0.15, powder=LAYER, symmetric_y=False, T0=T_PLATE,
+    md = MeltPoolModel(MAT, H, length=Lx, width=Ly, depth=0.15, powder=LAYER, symmetric_y=False, T0=T0,
                        emissivity=0.4, evaporation=EVAP)
     solid_frac = md.set_part_geometry(local)
     powder0 = np.asarray(md.powder_mask).copy()
@@ -187,7 +193,7 @@ def part_window(store, name):
           f"({st['contour_length_mm']:.1f} mm), {st['hatch_vectors']} hatch vectors ({st['hatch_length_mm']:.1f} mm), "
           f"scan time {st['scan_time_s'] * 1e3:.1f} ms", flush=True)
     t0 = time.perf_counter()
-    res = md.run(laser(), path, t_extra=3e-4, verbose=True)
+    res = md.run(laser(), path, t_extra=3e-4, verbose=verbose)
     print(f"  melt pool: {res.steps} steps, {time.perf_counter() - t0:.0f} s, energy balance {res.energy_balance:.1e}",
           flush=True)
     nzs = md.nz_sub
@@ -214,11 +220,11 @@ def part_window(store, name):
                 G=np.where(res.n_melt[:, :, kz] > 0, res.G[:, :, kz] * 1e3, np.nan).astype(np.float32),
                 R=np.where(res.n_melt[:, :, kz] > 0, res.R[:, :, kz] * 1e-3, np.nan).astype(np.float32),
                 powder_below=powder0[:, :, nzs - 1])
-    fields = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
-    for k, v in maps.items():
-        fields[f"{name}_{k}"] = v
-    np.savez_compressed(FIELDS, **fields)
-    store.put(key, out)
+    if save_maps:
+        fields = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
+        for k, v in maps.items():
+            fields[f"{name}_{k}"] = v
+        np.savez_compressed(FIELDS, **fields)
     return out
 
 
