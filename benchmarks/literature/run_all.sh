@@ -24,3 +24,4 @@ python benchmarks/literature/naghavi_2022.py --report
 # phase field (cells, Nb segregation)
 python benchmarks/literature/ghosh_2017_phasefield.py
 python benchmarks/literature/nist_ambench2018_tracks_pf.py
+python benchmarks/literature/cantor_gyroid_solidification.py

@@ -45,6 +45,9 @@ fidelity, benchmark credibility).
      R ≈ 0.05 m/s at W0 = 10 nm, +38 % spacing at 5 nm). Next: 3-D runs on the GPU,
      a thinner interface (or a finite-interface-dissipation model) for R > 0.05 m/s, velocity-dependent
      partitioning, and Laves/NbC from the segregated Nb (CALPHAD), feeding the heat-treatment model;
+   * lattice layers: part-aware melt-pool substrate and clipped scan paths **done**; CoCrFeMnNi gyroid study
+     (docs/process_models.md §7). Next: multi-layer heat accumulation from the part-scale model as preheat, a
+     CALPHAD-based multicomponent Mn/Ni partitioning, Mn-loss tracking, and diamond/IWP comparisons;
    * a GPU run of multi-layer patches;
    * roughness-aware effective wall thickness for TPMS stiffness and fatigue.
 8. **Stress-relief / HIP heat treatment** (creep-based relaxation of the residual stress).

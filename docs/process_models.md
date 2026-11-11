@@ -442,3 +442,110 @@ doi:10.1016/j.matdes.2021.109858 (gold open access).
   * a fatigue concern (notches),
   * a fluid-flow and osseointegration factor,
   * and a reason the as-built stiffness of thin sheets falls below the CAD value.
+
+## 7. Solidification of a CoCrFeMnNi (Cantor alloy) gyroid lattice
+
+**Question.** How do the solidification conditions, cells, Mn/Ni segregation and grain texture
+of an LPBF gyroid-sheet lattice in the equiatomic CoCrFeMnNi high-entropy alloy change between
+thin and thick walls, and on down-facing surfaces built over powder? No study of
+CoCrFeMnNi TPMS solidification turned up in the literature. Script:
+`benchmarks/literature/cantor_gyroid_solidification.py`.
+
+**New model pieces.**
+* **Part-aware substrate.** `MeltPoolModel.set_part_geometry`: the substrate is the part built
+  so far, an implicit field, with loose powder elsewhere. Down-facing regions of a new layer
+  therefore sit on powder.
+* **Preheat.** `MeltPoolModel.set_temperature` sets a preheat field.
+* **Scan paths.** `process/scanpath.py` builds contour and hatch vectors clipped to one layer
+  of an implicit part, with laser-off jumps between them.
+* **Wall thickness.** `geometry.tpms.sheet_with_thickness`: a TPMS sheet with a prescribed or
+  graded wall thickness, from `f/|grad f|`. On a 3-D grid the thin-wall volume fraction is
+  within 3 % of `t · S/V`.
+
+**Alloy data** (`benchmarks/literature/cantor_material.py`).
+* **Thermal.** k(T), cp(T), density 7980 kg/m³, latent heat 2.2e5 J/kg, solidus 1250 °C and
+  liquidus 1340 °C, from Li et al., J. Mater. Sci. Technol. 77 (2021) 187. These are the
+  inputs of their laser-deposition simulation; the paper does not give their measurement
+  source.
+* **Segregation.** The cell cores keep Co, Cr and Fe, and the walls collect Mn and Ni. The
+  phase field uses the pseudo-binary CrFeCo–(MnNi): solute Mn + Ni at 40 wt%, k = 0.74.
+  A laser-remelting study reports k_Mn = 0.81 and k_Ni = 0.92.
+* **Freezing range.** The least certain input. It is run at 40, 60 (baseline) and 90 K.
+* **Evaporation.** Mn evaporation at its 20 at% (Raoult's law).
+
+**Validation: Piglione et al., Mater. Lett. 224 (2018) 22** (open access).
+* **Their build.** A single LPBF layer of 11 tracks on a Renishaw AM250: 200 W, 80 µs
+  exposure, 60 µm point distance, 125 µm hatch.
+* **Their measurement.** Cell spacing 0.52–0.64 µm, mean 0.59 µm. The cells grow with a <001>
+  axis normal to the fusion line.
+* **Model setup.**
+  * The same power and a 70 µm spot, scanned continuously at 0.75 m/s.
+  * Absorptivity 0.35 and absorption depth 15 µm, not calibrated for this alloy.
+  * A 30 µm powder layer on a Cantor plate.
+* **Melt pool.** 97 µm wide; it melts through the powder and 24 µm into the plate. The
+  fusion-boundary medians are G = 3.0e7 K/m and R = 0.027 m/s.
+
+| freezing range | phase-field spacing (6 µm window) | Hunt | Kurz–Fisher | measured |
+|---|---|---|---|---|
+| 40 K | 0.50 µm | 0.54 µm | 0.95 µm | 0.52–0.64 µm (mean 0.59) |
+| 60 K | 0.50 µm | 0.60 µm | 1.05 µm | |
+| 90 K | 0.46 µm | 0.66 µm | 1.17 µm | |
+
+The phase field is 15–22 % below the measured mean. Candidate causes:
+* The AM250 exposes point by point with pauses, so its mean speed is below the 0.75 m/s
+  assumed here, and a slower front grows coarser cells.
+* The absorptivity is a guess.
+* 10 µm of growth may stop short of full coarsening.
+
+**Gyroid.**
+* **Geometry.** A gyroid sheet with a 4 mm cell, its wall thickness graded linearly from
+  0.2 mm at x = 0 to 0.6 mm at x = 4 mm.
+* **Process.** The validation settings, 30 µm layers, 85 µm hatch, one contour, no rotation.
+* **Windows.** Two 1.2 mm windows of the layer at 1.3 mm build height are simulated with the
+  real solid and powder substrate and the clipped scan path: thin walls with a median of
+  0.25 mm, and thick walls with a median of 0.52 mm.
+* **Classes.** A fusion-boundary column is *down-facing* when the layer below it was powder.
+  That covers 7.5 % of the melted columns in the thin window and 3.4 % in the thick one.
+
+| walls | material below | G (median) | R (median) | cooling rate | cell spacing | Mn+Ni: cores / tip liquid / max between cells |
+|---|---|---|---|---|---|---|
+| thin (0.25 mm) | solid | 2.2e7 K/m | 0.025 m/s | 5.1e5 K/s | 0.50 µm | 0.91 / 1.16 / 1.37 × nominal |
+| thin | powder | 2.5e7 K/m | 0.010 m/s | 2.3e5 K/s | **0.86 µm** | 0.91 / 1.19 / 1.38 |
+| thick (0.52 mm) | solid | 1.85e7 K/m | 0.025 m/s | 4.4e5 K/s | 0.50 µm | 0.91 / 1.16 / 1.32 |
+| thick | powder | 2.4e7 K/m | 0.010 m/s | 2.2e5 K/s | **0.86 µm** | 0.91 / 1.19 / 1.38 |
+
+![Cantor gyroid](img/cantor_gyroid.png)
+
+**Reading the results.**
+* **Down-facing surfaces solidify differently. Wall thickness barely matters within a layer.**
+  * Over powder, the solidification front at the fusion boundary moves 2.5× slower and cools
+    half as fast.
+  * The cells there are 1.7× coarser: 0.86 against 0.50 µm, in both thin and thick walls.
+  * A homogenisation anneal needs a time that scales with the cell spacing squared, so the
+    down-facing skin needs about 3× longer to homogenise than the rest of the lattice.
+* **Thick walls are not hotter in a single layer.** Their gradient is 15 % *lower*, because
+  more hatch tracks preheat each other, but that does not change the cell spacing.
+* **Segregation is mild, as expected for k close to 1.** Cell cores hold about 0.91× the
+  nominal Mn + Ni, and the last liquid about 1.4×, roughly 55 wt% Mn + Ni against 40.
+  * This is much weaker than Nb in IN625 (k = 0.48).
+  * It is consistent with the absence of second phases in as-built LPBF CoCrFeMnNi.
+* **Texture.** After one layer grown from random substrate grains, 12.6–13.6 % of the
+  fusion zone has a <100> within 15° of the build direction (random: 10.2 %). The strong
+  <001> build texture reported for LPBF CoCrFeMnNi needs many layers of competitive growth,
+  which this study does not simulate.
+
+**Limits.**
+* **One layer only.** Heat accumulation over many layers is not included, and in thin
+  lattice walls it should raise the temperature and lower G as the build grows. A
+  part-scale thermal model (`thermal/heat.py`) on the lattice could supply that preheat
+  through `set_temperature`.
+* **No keyhole physics.** With a 70 µm spot at 200 W the absorbed intensity is about
+  36 kW/mm², and the conduction model caps the surface only at about 5400 °C. It has no
+  keyhole, recoil pressure or Marangoni flow, so peak temperatures are not physical. The
+  fusion-boundary G and R follow from the overall energy balance.
+* **Uncalibrated inputs.** Absorptivity, layer thickness and the property data are not
+  calibrated for CoCrFeMnNi.
+* **Simplified solidification model.** The phase field is 2-D, and the alloy is treated as
+  a pseudo-binary with an uncertain freezing range.
+* **Mn loss is not tracked.** Mn evaporation cools the surface, but the loss of Mn from the
+  alloy is not computed.

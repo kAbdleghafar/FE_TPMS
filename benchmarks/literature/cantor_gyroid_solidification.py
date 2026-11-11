@@ -299,8 +299,9 @@ def figure(store):
     from matplotlib.patches import Rectangle
 
     F = dict(np.load(FIELDS)) if os.path.exists(FIELDS) else {}
-    fig = plt.figure(figsize=(13, 8.4))
-    gs = fig.add_gridspec(2, 4, hspace=0.38, wspace=0.42, left=0.05, right=0.97, top=0.93, bottom=0.07)
+    fig = plt.figure(figsize=(13.5, 7.2))
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.6, 0.75], hspace=0.42, wspace=0.45, left=0.05, right=0.96,
+                          top=0.91, bottom=0.08)
     # (a) the layer, windows, scan path of the thin window
     ax = fig.add_subplot(gs[0, 0])
     g = np.linspace(0, L_CELL, 400)
@@ -342,7 +343,7 @@ def figure(store):
     rows = [("validation", store.get("validation_pf|dT0=60"), INK)]
     for name, col in (("thin", BLUE), ("thick", ORANGE)):
         for c in ("supported", "down-facing"):
-            lab = "over solid" if c == "supported" else "over powder"
+            lab = "solid" if c == "supported" else "powder"
             rows.append((f"{name}\n{lab}", store.get(f"pf|{name}|{c}"), col))
     for k, (lab, o, col) in enumerate(rows):
         if not o:
@@ -350,14 +351,15 @@ def figure(store):
         lo, hi = min(o["spacing_um_range"]), max(o["spacing_um_range"])
         ax.errorbar(k, o["spacing_um"], yerr=[[o["spacing_um"] - lo], [hi - o["spacing_um"]]], fmt="o", color=col,
                     ms=7, capsize=2, mfc="white" if "powder" in lab else col, mew=1.5)
-    ax.set_xticks(range(len(rows)), [r[0] for r in rows], fontsize=7)
+    ax.set_xticks(range(len(rows)), [r[0] for r in rows], fontsize=7.5)
+    ax.set_xlabel("wall / material below the new layer", fontsize=8)
     ax.set_ylim(0, 1.4)
     ax.set_ylabel("primary cell spacing [um]", fontsize=8.5)
     ax.set_title("(d) cell spacing (2-D phase field, dT0 = 60 K)", fontsize=9, loc="left")
     _style(ax)
     # (e-h) Mn+Ni maps
-    tags = [("validation", "validation (single layer)"), ("thin_supported", "thin wall, supported"),
-            ("thin_down-facing", "thin wall, down-facing"), ("thick_down-facing", "thick wall, down-facing")]
+    tags = [("validation", "validation, single layer"), ("thin_supported", "thin wall over solid"),
+            ("thin_down-facing", "thin wall over powder"), ("thick_down-facing", "thick wall over powder")]
     for i, (tag, title) in enumerate(tags):
         if f"{tag}_c" not in F:
             continue
