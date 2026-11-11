@@ -10,11 +10,13 @@ Part scale (tpmsfem.thermal.HeatModel):
 - voxels of 1/15 mm; the 30 um layers are lumped into 0.133 mm lumps (4.4 layers);
 - each lump receives the energy of its layers where the laser puts it: the contour + hatch
   path of the lump's slice (process.scanpath) deposits ``f_net A P / v`` per unit length
-  into the solid voxels below it, over the first 2 s of the lump. ``f_net`` is the share
+  into the solid voxels below it. The lump's energy arrives in 4 pulses, 1.1 layer times
+  apart (each spread over one heat step, a third of that interval), so the temperature just
+  before a pulse is what a new layer meets. Depositing a lump's energy at once and waiting
+  4.4 layer times would understate it. ``f_net`` is the share
   of the absorbed energy that stays in the part (the rest evaporates or radiates from the
   melt pool); it is taken from a single-track melt-pool run;
-- the lump then cools until the next one (lump time = 4.4 x layer time).
-The temperature of the top of the part at the end of each lump is the preheat the next layer
+The temperature of the top of the part at the end of each lump (just before the next pulse) is the preheat the next layer
 sees, recorded separately for the thin-wall and thick-wall windows of the single-layer study.
 
 Melt-pool scale: the two windows of the single-layer study are re-run at the layer 9.3 mm above
@@ -46,7 +48,7 @@ from tpmsfem.thermal.heat import HeatModel  # noqa: E402
 STORE = "benchmarks/literature/results/cantor_gyroid_multilayer.json"
 N_XY, VOX = 60, 4.0 / 60
 PLATE, HEIGHT, LUMP_VOX = 2.0, 10.0, 2
-T_SRC = 2.0                                      # the lump's energy enters over this time [s]
+N_PULSE, N_SUB = 4, 3                            # energy pulses per lump; heat steps per pulse
 POWDER_K, POWDER_RHO = 0.02, 0.55
 Z_WINDOW = 9.3                                   # layer re-run at the melt-pool scale [mm]
 
@@ -115,8 +117,7 @@ def part_build(store, layer_time):
     lump_h = LUMP_VOX * VOX
     layers_per_lump = lump_h / CG.LAYER
     lump_time = layers_per_lump * layer_time
-    n_cool = 6
-    dt_cool = (lump_time - T_SRC) / n_cool
+    dt = lump_time / (N_PULSE * N_SUB)                     # one step size: one AMG set-up per lump
     win = {n: (ijk[:, 0] * VOX >= w[0]) & (ijk[:, 0] * VOX < w[1]) & (ijk[:, 1] * VOX >= w[2]) & (ijk[:, 1] * VOX < w[3])
            for n, w in CG.WINDOWS.items()}
     recs = []
@@ -132,14 +133,18 @@ def part_build(store, layer_time):
         e_tot = e.sum()
         e_in = np.where(n_s > 0, e, 0.0)
         e_in *= e_tot / max(e_in.sum(), 1e-30)                 # energy that fell beside the voxel solid
-        hm.q_vol[:] = 0.0
-        hm.q_vol[sc] = (e_in / np.maximum(n_s, 1.0))[ijk[sc, 0], ijk[sc, 1]] * layers_per_lump / (VOX ** 3 * T_SRC)
-        for _ in range(2):
-            hm.step(T_SRC / 2)
-        T_hot = float(hm.T.max())
-        hm.q_vol[:] = 0.0
-        for _ in range(n_cool):
-            hm.step(dt_cool)
+        # the lump's layers arrive as N_PULSE pulses one (rescaled) layer time apart, so that the
+        # temperature just before a pulse is the temperature a new layer meets
+        q = (e_in / np.maximum(n_s, 1.0))[ijk[sc, 0], ijk[sc, 1]] * layers_per_lump / N_PULSE / (VOX ** 3 * dt)
+        T_hot = 0.0
+        for _ in range(N_PULSE):
+            hm.q_vol[:] = 0.0
+            hm.q_vol[sc] = q
+            hm.step(dt)
+            T_hot = max(T_hot, float(hm.T.max()))
+            hm.q_vol[:] = 0.0
+            for _ in range(N_SUB - 1):
+                hm.step(dt)
         top = sc[ijk[sc, 2] == ijk[sc, 2].max()]
         Te = hm.T[mesh.cells[top]].mean(axis=1)
         rec = dict(lump=k, z_top=(k + 1) * lump_h, energy_per_layer_mJ=float(e_tot), T_after_source=T_hot,
