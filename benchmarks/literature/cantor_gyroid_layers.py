@@ -75,10 +75,10 @@ def figure():
     store = ResultStore(STORE)
     F = dict(np.load(FIELDS))
     cols = [("first", "first layer (on the plate)"), ("middle", f"middle layer ({Z_MID} mm)"), ("final", f"final layer ({Z_END} mm)")]
-    rows = [("solid", "over solid"), ("powder", "over powder (down-facing)")]
+    rows = [("solid", "over solid"), ("powder", "over powder")]
     BLUE, ORANGE, MUTED, GRID = "#2a78d6", "#eb6834", "#52514e", "#e4e3df"
-    fig = plt.figure(figsize=(13, 7.6))
-    gs = fig.add_gridspec(3, 3, height_ratios=[1, 1, 1.15], hspace=0.5, wspace=0.16, left=0.06, right=0.93, top=0.9,
+    fig = plt.figure(figsize=(13, 6.4))
+    gs = fig.add_gridspec(3, 3, height_ratios=[1, 1, 1.6], hspace=0.35, wspace=0.16, left=0.06, right=0.93, top=0.9,
                           bottom=0.08)
     im = None
     n_rows = min(F[k].shape[0] for k in F if k.endswith("_c"))          # same height for every map
@@ -98,7 +98,7 @@ def figure():
             im = ax.imshow(c, origin="lower", cmap="magma", vmin=34, vmax=56, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
             ax.contour((np.arange(c.shape[1]) + 0.5) * dx, (np.arange(c.shape[0]) + 0.5) * dx, F[key + "_phi"].astype(float)[-n_rows:],
                        [0.0], colors="w", linewidths=0.5)
-            ax.set_title(f"{ltitle if i == 0 else ''}\n{stitle}: new layer meets {o['T0']:.0f} C, cells {o['spacing_um']:.2f} um apart",
+            ax.set_title(f"{ltitle if i == 0 else ''}\n{stitle}: starts at {o['T0']:.0f} C, cell spacing {o['spacing_um']:.2f} um",
                          fontsize=8.5, loc="left")
             ax.tick_params(labelsize=7.5, colors=MUTED)
             if j == 0:
@@ -116,8 +116,9 @@ def figure():
             axp.spines[side].set_visible(False)
         if j == 0:
             axp.set_ylabel("Mn + Ni [wt%]", fontsize=8.5)
+        if j == 1:
             axp.legend(fontsize=7.5, frameon=False, loc="upper right", ncol=2)
-    cax = fig.add_axes([0.945, 0.42, 0.01, 0.46])
+    cax = fig.add_axes([0.945, 0.5, 0.01, 0.38])
     cb = fig.colorbar(im, cax=cax)
     cb.set_label("Mn + Ni [wt%] (pseudo-binary)", fontsize=8.5)
     cb.ax.tick_params(labelsize=7.5)
