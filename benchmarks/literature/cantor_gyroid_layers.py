@@ -64,5 +64,71 @@ def main():
               flush=True)
 
 
+FIG = "docs/img/cantor_gyroid_layers.png"
+
+
+def figure():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    store = ResultStore(STORE)
+    F = dict(np.load(FIELDS))
+    cols = [("first", "first layer (on the plate)"), ("middle", f"middle layer ({Z_MID} mm)"), ("final", f"final layer ({Z_END} mm)")]
+    rows = [("solid", "over solid"), ("powder", "over powder (down-facing)")]
+    BLUE, ORANGE, MUTED, GRID = "#2a78d6", "#eb6834", "#52514e", "#e4e3df"
+    fig = plt.figure(figsize=(13, 7.6))
+    gs = fig.add_gridspec(3, 3, height_ratios=[1, 1, 1.15], hspace=0.5, wspace=0.16, left=0.06, right=0.93, top=0.9,
+                          bottom=0.08)
+    im = None
+    n_rows = min(F[k].shape[0] for k in F if k.endswith("_c"))          # same height for every map
+    for j, (lay, ltitle) in enumerate(cols):
+        axp = fig.add_subplot(gs[2, j])
+        for i, (sub, stitle) in enumerate(rows):
+            ax = fig.add_subplot(gs[i, j])
+            key = f"{lay}|{sub}"
+            if key + "_c" not in F:
+                ax.text(0.5, 0.5, "not applicable:\nthe first layer lies on the solid plate" if lay == "first"
+                        else "run pending", ha="center", va="center", fontsize=9, color=MUTED, transform=ax.transAxes)
+                ax.set_axis_off()
+                continue
+            c = F[key + "_c"].astype(float)[-n_rows:] * 40.0
+            dx = float(F[key + "_dx"]) * 1e6
+            o = store.get(key)
+            im = ax.imshow(c, origin="lower", cmap="magma", vmin=34, vmax=56, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx])
+            ax.contour((np.arange(c.shape[1]) + 0.5) * dx, (np.arange(c.shape[0]) + 0.5) * dx, F[key + "_phi"].astype(float)[-n_rows:],
+                       [0.0], colors="w", linewidths=0.5)
+            ax.set_title(f"{ltitle if i == 0 else ''}\n{stitle}: new layer meets {o['T0']:.0f} C, cells {o['spacing_um']:.2f} um apart",
+                         fontsize=8.5, loc="left")
+            ax.tick_params(labelsize=7.5, colors=MUTED)
+            if j == 0:
+                ax.set_ylabel("growth direction [um]", fontsize=8.5)
+            # profile across the cells, 0.6 um below the top of the map
+            row = c[max(c.shape[0] - int(0.75 / dx), 0)]
+            axp.plot((np.arange(len(row)) + 0.5) * dx, row, color=BLUE if sub == "solid" else ORANGE, lw=1.2, label=stitle)
+        axp.axhline(40.0, color=MUTED, lw=0.8, ls=":")
+        axp.set_ylim(34, 58)
+        axp.set_xlabel("across the cells [um]", fontsize=8.5)
+        axp.set_title(f"Mn+Ni across the cells, {lay} layer (dotted: nominal 40 wt%)", fontsize=8.5, loc="left")
+        axp.tick_params(labelsize=7.5, colors=MUTED)
+        axp.grid(True, color=GRID, lw=0.6)
+        for side in ("top", "right"):
+            axp.spines[side].set_visible(False)
+        if j == 0:
+            axp.set_ylabel("Mn + Ni [wt%]", fontsize=8.5)
+            axp.legend(fontsize=7.5, frameon=False, loc="upper right", ncol=2)
+    cax = fig.add_axes([0.945, 0.42, 0.01, 0.46])
+    cb = fig.colorbar(im, cax=cax)
+    cb.set_label("Mn + Ni [wt%] (pseudo-binary)", fontsize=8.5)
+    cb.ax.tick_params(labelsize=7.5)
+    fig.suptitle("Cells and Mn+Ni segregation in the first, middle and final layers of the LPBF CoCrFeMnNi gyroid "
+                 "(2-D phase field; white line: solid-liquid front)", fontsize=10.5, x=0.06, ha="left")
+    fig.savefig(FIG, dpi=150)
+    print("wrote", FIG)
+
+
 if __name__ == "__main__":
-    main()
+    if "--figure" in sys.argv:
+        figure()
+    else:
+        main()
