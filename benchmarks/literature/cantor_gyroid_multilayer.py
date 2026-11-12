@@ -200,9 +200,83 @@ def part_windows(store, layer_time, T_override=None, tag=None):
                       f"{o['intercell_max_rel']:.2f} x nominal", flush=True)
 
 
+FIG = "docs/img/cantor_gyroid_multilayer.png"
+
+
+def report_and_figure(store, layer_time=10.0):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    b = store.get(f"build|layer_time={layer_time:g}") or store.get(f"build|layer_time={layer_time:g}|partial")
+    rs = b["records"]
+    z = np.array([r["z_top"] for r in rs])
+    pre = ResultStore(CG.STORE.replace(".json", "_preheat.json"))
+    base = ResultStore(CG.STORE)
+    cases = [("single layer on the plate", CG.T_PLATE, lambda n, c: base.get(f"window|{n}")[c], lambda n, c: base.get(f"pf|{n}|{c}")),
+             ("9.3 mm above the plate", None, lambda n, c: (pre.get(f"window|{n}|z9.3") or {}).get(c), lambda n, c: pre.get(f"pf|{n}|{c}|z9.3")),
+             ("upper-bound case", 500.0, lambda n, c: (pre.get(f"window|{n}|T500") or {}).get(c),
+              lambda n, c: pre.get(f"pf|{n}|{c}|T500"))]
+    lines = ["| start temperature | walls | below | G p50 [K/m] | R p50 [m/s] | cooling [K/s] | cell spacing [um] | cores | max between cells |",
+             "|---|---|---|---|---|---|---|---|---|"]
+    pts = {}
+    for label, T0, wf, pf in cases:
+        for n in CG.WINDOWS:
+            w = pre.get(f"window|{n}|z9.3") if T0 is None else None
+            Tn = w["T0"] if w else T0
+            for c in ("supported", "down-facing"):
+                d, o = wf(n, c), pf(n, c)
+                if not d or not o or Tn is None:
+                    continue
+                lines.append(f"| {Tn:.0f} C, {label} | {n} | {'solid' if c == 'supported' else 'powder'} | {d['G']['p50']:.2e} | "
+                             f"{d['R']['p50']:.3f} | {d['cr']['p50']:.1e} | {o['spacing_um']:.2f} | {o['cs_rel']:.3f} | "
+                             f"{o['intercell_max_rel']:.2f} |")
+                pts.setdefault((n, c), []).append((Tn, o["spacing_um"], d["G"]["p50"], d["cr"]["p50"]))
+    text = "\n".join(lines)
+    open(STORE.replace(".json", ".md"), "w").write(text + "\n")
+    print(text)
+    BLUE, ORANGE, MUTED, GRID = "#2a78d6", "#eb6834", "#52514e", "#e4e3df"
+    fig, ax = plt.subplots(1, 3, figsize=(13, 4.2))
+    for name, col in (("thin", BLUE), ("thick", ORANGE)):
+        T = np.array([r[f"T_top_{name}"] if r[f"T_top_{name}"] is not None else np.nan for r in rs])
+        ax[0].plot(z, T, "-", color=col, lw=1.5, label=f"{name} walls")
+    ax[0].plot(z, [r["T_top_mean"] for r in rs], "--", color=MUTED, lw=1, label="whole layer")
+    ax[0].axhline(CG.T_PLATE, color=MUTED, lw=0.8)
+    ax[0].text(0.1, CG.T_PLATE + 1.5, "plate", fontsize=8, color=MUTED)
+    ax[0].set_xlabel("build height [mm]", fontsize=9)
+    ax[0].set_ylabel("temperature a new layer meets [C]", fontsize=9)
+    ax[0].set_title(f"(a) heat accumulation, {layer_time:g} s layer time", fontsize=9, loc="left")
+    ax[0].legend(fontsize=8, frameon=False)
+    for k, (yl, idx, title) in enumerate((("cooling rate at the fusion boundary [K/s]", 3, "(b) cooling rate vs start temperature"),
+                                          ("primary cell spacing [um]", 1, "(c) cell spacing vs start temperature"))):
+        a = ax[k + 1]
+        for (n, c), v in pts.items():
+            v = sorted(v)
+            a.plot([q[0] for q in v], [q[idx] for q in v], "o-", color=BLUE if n == "thin" else ORANGE, lw=1.5, ms=6,
+                   mfc="white" if c == "down-facing" else None, mew=1.5,
+                   label=f"{n} walls, over {'powder' if c == 'down-facing' else 'solid'}")
+        a.set_xlabel("temperature a new layer meets [C]", fontsize=9)
+        a.set_ylabel(yl, fontsize=9)
+        a.set_title(title, fontsize=9, loc="left")
+        if k == 0:
+            a.set_yscale("log")
+        else:
+            a.set_ylim(0, 1.2)
+            a.legend(fontsize=7.5, frameon=False, loc="lower right")
+    for a in ax:
+        a.grid(True, color=GRID, lw=0.6)
+        a.set_axisbelow(True)
+        for side in ("top", "right"):
+            a.spines[side].set_visible(False)
+        a.tick_params(colors=MUTED, labelsize=8)
+    fig.tight_layout()
+    fig.savefig(FIG, dpi=150)
+    print("wrote", FIG)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--part", default="build", choices=["build", "windows"])
+    ap.add_argument("--part", default="build", choices=["build", "windows", "report"])
     ap.add_argument("--layer-time", type=float, default=10.0)
     ap.add_argument("--preheat", type=float, default=None, help="override the preheat [C] (scenario)")
     ap.add_argument("--tag", default=None)
@@ -210,6 +284,9 @@ def main():
     store = ResultStore(STORE)
     if a.part == "build":
         part_build(store, a.layer_time)
+    elif a.part == "report":
+        report_and_figure(store, a.layer_time)
+        return
     else:
         part_windows(store, a.layer_time, a.preheat, a.tag)
     json.dump(store.data, open(STORE, "w"), indent=1)

@@ -40,7 +40,8 @@ def power_fit(rho, y):
 
 
 class ResultStore:
-    """Append-only JSON cache so long benchmark runs can be resumed."""
+    """Append-only JSON cache so long benchmark runs can be resumed. Keys written by other
+    processes since this store was opened are kept (merged on every put)."""
 
     def __init__(self, path):
         self.path = path
@@ -50,6 +51,11 @@ class ResultStore:
         return self.data.get(key)
 
     def put(self, key, value):
+        if os.path.exists(self.path):                 # merge: another process may have added keys
+            try:
+                self.data = {**json.load(open(self.path)), **self.data}
+            except ValueError:
+                pass
         self.data[key] = value
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         json.dump(self.data, open(self.path, "w"), indent=1)
