@@ -549,3 +549,76 @@ The phase field is 15–22 % below the measured mean. Candidate causes:
   a pseudo-binary with an uncertain freezing range.
 * **Mn loss is not tracked.** Mn evaporation cools the surface, but the loss of Mn from the
   alloy is not computed.
+
+### 7.1 Heat accumulation over many layers
+
+**Question.** §7 simulated one layer on an 80 °C substrate. Does heat building up over many
+layers change the picture, and does it separate thin from thick walls? Script:
+`benchmarks/literature/cantor_gyroid_multilayer.py`.
+
+**Part-scale build** (`thermal/heat.py`).
+* **Geometry.** One 4 × 4 mm gyroid cell column with the graded walls, on a 2 mm plate whose
+  bottom is held at 80 °C. The surrounding powder is part of the model (2 % of the solid
+  conductivity). The side faces are adiabatic, as for a cell inside a large lattice.
+* **Layers.** 30 µm layers, 10 s per layer, lumped into 0.133 mm lumps on 1/15 mm voxels.
+* **Energy input.** Each lump receives the energy of its layers where the laser puts it. The
+  contour and hatch path of the slice deposits `f_net · A · P / v` per unit length.
+  `f_net = 0.70` is the share of the absorbed energy that stays in the part in a single-track
+  melt-pool run; the rest evaporates or radiates from the pool. That is about 3.1–3.9 J per
+  layer for the cell.
+* **Timing.** The lump's energy arrives in four pulses 1.1 layer times apart, so the
+  temperature just before a pulse is what a new layer meets. Depositing a lump at once and
+  waiting 4.4 layer times understates it.
+* **Extent.** The build was simulated to 8.8 mm (66 of 75 lumps). The run was interrupted
+  twice by infrastructure restarts; the two runs agree to 0.1 °C where they overlap.
+
+**Result.**
+* **Rise with height.** The temperature a new layer meets rises about 7 °C per millimetre of
+  build height once the column is a few millimetres tall: 97 °C at 4.1 mm and 132 °C at
+  8.8 mm. It wobbles by about ±5 °C with the slice.
+* **No thin/thick difference.** The thin-wall and thick-wall regions never differ by more
+  than 1 °C. Heat spreads sideways through the lattice much faster than a layer takes.
+
+**Effect on solidification.** The two melt-pool windows of §7 were re-run with the part
+starting hotter, followed by the phase field:
+* at 140 °C, the preheat at 9.3 mm (extrapolated from 8.8 mm; this is the slice of §7 two
+  cells higher);
+* at 500 °C, an upper-bound case. On the 7 °C/mm slope that is a part about 60 mm tall at a
+  10 s layer time, or a shorter part with a shorter layer time. The slope is extrapolated,
+  not simulated, beyond 8.8 mm.
+
+| start temperature | walls | below | G [K/m] | R [m/s] | cooling rate [K/s] | cell spacing |
+|---|---|---|---|---|---|---|
+| 80 °C (single layer) | thin / thick | solid | 2.2e7 / 1.85e7 | 0.025 | 5.1e5 / 4.4e5 | 0.50 / 0.50 µm |
+| | thin / thick | powder | 2.5e7 / 2.4e7 | 0.010 | 2.3e5 / 2.2e5 | 0.86 / 0.86 µm |
+| 140 °C (9.3 mm up) | thin / thick | solid | 2.0e7 / 1.7e7 | 0.025 / 0.024 | 4.6e5 / 3.9e5 | 0.50 / 0.55 µm |
+| | thin / thick | powder | 2.5e7 / 2.2e7 | 0.010 / 0.011 | 2.2e5 / 2.1e5 | 0.86 / 0.86 µm |
+| 500 °C (upper bound) | thin / thick | solid | 1.15e7 / 0.93e7 | 0.017 | 1.8e5 / 1.5e5 | 0.75 / 0.75 µm |
+| | thin / thick | powder | 1.6e7 / 1.7e7 | 0.009 | 1.2e5 / 1.3e5 | 1.00 / 0.90 µm |
+
+![heat accumulation](img/cantor_gyroid_multilayer.png)
+
+**Reading the results.**
+* **Ten millimetres of build height does not change the cells.** The 60 °C of accumulated
+  heat lowers the cooling rate by about 10 %. The cell spacing stays within one counting step
+  of the single-layer values, and the segregation is unchanged.
+* **A much hotter part does.** At 500 °C the gradient halves and the cooling rate falls to a
+  third. The cells over solid coarsen by 50 % (0.50 → 0.75 µm), and the down-facing cells by
+  5–15 %. The down-facing skin stays the coarsest region, but the contrast shrinks from 1.7×
+  to about 1.3×.
+* **Wall thickness still does not matter**, at any of the three temperatures. The conclusion
+  of §7 holds with heat accumulation included: in this lattice the microstructure contrast is
+  between down-facing skin and the rest, not between thin and thick walls.
+* **Segregation is insensitive.** Cell cores stay at 0.90–0.91× the nominal Mn + Ni, and the
+  last liquid at 1.3–1.4×.
+
+**Limits.**
+* The build covers 8.8 mm; taller parts are a linear extrapolation.
+* The adiabatic sides represent a cell deep inside a wide lattice. A slender part loses heat
+  sideways and stays cooler; a part on a poorly conducting support stays hotter.
+* The energy pulses are spread over a third of a layer time, which slightly overstates the
+  temperature a new layer meets.
+* A single 10 s layer time was run. The accumulated temperature rise scales roughly inversely
+  with it.
+* The limits of §7 (no keyhole physics, uncalibrated absorptivity, 2-D pseudo-binary phase
+  field) apply unchanged.

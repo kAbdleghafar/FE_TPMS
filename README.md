@@ -101,7 +101,9 @@ four independent groups and compares them:
 * **CoCrFeMnNi (Cantor alloy) gyroid lattice** (new study, validated on Piglione et al. 2018): the phase field gives
   0.46–0.50 µm cells for a single LPBF layer (measured 0.52–0.64 µm). In a graded gyroid sheet, down-facing
   surfaces built over powder solidify 2.5× slower and grow 1.7× coarser cells (0.86 vs 0.50 µm), whatever the
-  wall thickness; Mn+Ni segregation is mild (cores 0.91×, last liquid ~1.4× nominal) ([docs/process_models.md](docs/process_models.md) §7).
+  wall thickness; Mn+Ni segregation is mild (cores 0.91×, last liquid ~1.4× nominal). A part-scale build shows the
+  preheat rising ~7 °C per mm of height with no thin/thick difference; 10 mm of height leaves the cells unchanged,
+  a 500 °C part coarsens them by 50 % ([docs/process_models.md](docs/process_models.md) §7, §7.1).
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.

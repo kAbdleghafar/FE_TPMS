@@ -25,3 +25,4 @@ python benchmarks/literature/naghavi_2022.py --report
 python benchmarks/literature/ghosh_2017_phasefield.py
 python benchmarks/literature/nist_ambench2018_tracks_pf.py
 python benchmarks/literature/cantor_gyroid_solidification.py
+python benchmarks/literature/cantor_gyroid_multilayer.py --part build && python benchmarks/literature/cantor_gyroid_multilayer.py --part windows && python benchmarks/literature/cantor_gyroid_multilayer.py --part report
