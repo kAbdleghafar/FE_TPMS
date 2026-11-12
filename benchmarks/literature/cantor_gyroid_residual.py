@@ -112,9 +112,16 @@ def _save(tm, k):
 
     _pickle_modules()
     tmp = CKPT + ".tmp"
-    with open(tmp, "wb") as f:
-        pickle.dump((k, tm), f, protocol=pickle.HIGHEST_PROTOCOL)
-    os.replace(tmp, CKPT)
+    cache, pre = tm.model._cache, getattr(tm.heat, "_M", None)
+    tm.model._cache, tm.heat._M = {}, (None, None)     # solver caches hold closures; they are rebuilt on demand
+    try:
+        with open(tmp, "wb") as f:
+            pickle.dump((k, tm), f, protocol=pickle.HIGHEST_PROTOCOL)
+        os.replace(tmp, CKPT)
+    finally:
+        tm.model._cache = cache
+        if pre is not None:
+            tm.heat._M = pre
 
 
 def _build_from(tm, k0, t0):
