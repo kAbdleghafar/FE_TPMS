@@ -90,29 +90,80 @@ def hooke_strain(sig, E, nu):
     return e
 
 
+def _top_faces(c, n):
+    return (n[:, 2] > 0.5) & (c[:, 2] > 1e-6)
+
+
+CKPT = OUT.replace(".npz", "_checkpoint.pkl")
+
+
+def _pickle_modules():
+    """The models keep a reference to their array module (numpy / cupy): pickle it by name."""
+    import copyreg
+    import importlib
+    import types
+
+    copyreg.pickle(types.ModuleType, lambda m: (importlib.import_module, (m.__name__,)))
+
+
+def _save(tm, k):
+    """Checkpoint after every lump: long runs get interrupted on this infrastructure."""
+    import pickle
+
+    _pickle_modules()
+    tmp = CKPT + ".tmp"
+    with open(tmp, "wb") as f:
+        pickle.dump((k, tm), f, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(tmp, CKPT)
+
+
+def _build_from(tm, k0, t0):
+    """ThermoMechanicalAM.build for lumps k0.. (the same steps, without the initial set-up)."""
+    m, hm = tm.model, tm.heat
+    for k in range(k0, tm.n_layers):
+        t1 = time.perf_counter()
+        cells = np.flatnonzero(tm.layer_of_cell == k)
+        if len(cells) == 0:
+            continue
+        hm.activate(cells, T_new=tm.T_deposit)
+        m.set_temperature(hm.T, ramp=False)
+        m.activate(cells, strain_free=True)
+        for i, dt in enumerate(tm.steps):
+            hm.step(dt, tol=1.0)       # the heat iteration can sit in a 0.3 K limit cycle; 1 K is ample
+            if (i + 1) % tm.mech_every == 0 or i == len(tm.steps) - 1:
+                tm._mech(f"layer{k}.{i}")
+        print(f"lump {k + 1:2d}/{tm.n_layers}: z <= {(k + 1) * LUMP:4.1f} mm, max von Mises {tm._max_vm():5.0f} MPa, "
+              f"{time.perf_counter() - t1:5.0f} s (total {time.perf_counter() - t0:.0f} s)", flush=True)
+        try:
+            _save(tm, k + 1)
+        except Exception as err:                       # keep building if the state cannot be pickled
+            print(f"checkpoint failed: {err!r}", flush=True)
+
+
 def run(layers=None):
-    mesh = build_mesh()
-    mat = CM.mechanical_material()
-    mats = {1: mat, 2: mat}
-    md = tf.SolidModel(mesh, mats, T_initial=CG.T_PLATE)
-    hm = HeatModel(mesh, mats, T_initial=CG.T_PLATE)
-    hm.set_surface_losses(h=1e-5, emissivity=0.4, T_amb=CG.T_PLATE,
-                          face_filter=lambda c, n: (n[:, 2] > 0.5) & (c[:, 2] > 1e-6))
-    # the heat iteration can settle into a 0.3 K limit cycle across the latent-heat range on this
-    # voxel lattice; 1 K is ample for the thermal strains
-    heat_step = hm.step
-    hm.step = lambda dt, **kw: heat_step(dt, tol=1.0, **kw)
-    print(mesh.summary(), flush=True)
-    sub = np.flatnonzero(mesh.cell_data["material"] == 2)
-    tm = ThermoMechanicalAM(md, hm, layer_height=LUMP, T_deposit=CM.LI2021["liquidus_C"],
-                            layer_time=LUMP / CG.LAYER * LAYER_TIME, n_steps=6, first_step=0.05, mech_every=2,
-                            T_plate=CG.T_PLATE, substrate=sub, n_inc=N_INC)
-    tm.layer_of_cell = connected_order(mesh, tm.layer_of_cell)
+    import pickle
+
     t0 = time.perf_counter()
-    tm.build(layers=layers)
-    if layers is not None:
-        print(f"{layers} lumps in {time.perf_counter() - t0:.0f} s", flush=True)
-        return
+    if os.path.exists(CKPT):
+        k0, tm = pickle.load(open(CKPT, "rb"))
+        md, mesh = tm.model, tm.model.mesh
+        print(f"resuming after lump {k0}", flush=True)
+    else:
+        mesh = build_mesh()
+        mat = CM.mechanical_material()
+        mats = {1: mat, 2: mat}
+        md = tf.SolidModel(mesh, mats, T_initial=CG.T_PLATE)
+        hm = HeatModel(mesh, mats, T_initial=CG.T_PLATE)
+        hm.set_surface_losses(h=1e-5, emissivity=0.4, T_amb=CG.T_PLATE, face_filter=_top_faces)
+        print(mesh.summary(), flush=True)
+        sub = np.flatnonzero(mesh.cell_data["material"] == 2)
+        tm = ThermoMechanicalAM(md, hm, layer_height=LUMP, T_deposit=CM.LI2021["liquidus_C"],
+                                layer_time=LUMP / CG.LAYER * LAYER_TIME, n_steps=6, first_step=0.05, mech_every=2,
+                                T_plate=CG.T_PLATE, substrate=sub, n_inc=N_INC)
+        tm.layer_of_cell = connected_order(mesh, tm.layer_of_cell)
+        tm.build(layers=0)                                  # initial set-up only (plate, supports)
+        k0 = 0
+    _build_from(tm, k0, t0)
     tm.cool_down(T_room=20.0)
     E, nu = float(CM.youngs_modulus_MPa(20.0)), 0.25
     sig_plate = md.stress().mean(axis=1)

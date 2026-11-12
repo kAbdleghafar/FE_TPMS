@@ -12,3 +12,4 @@ dist/
 *.cvg
 *.12d
 spooles.out
+benchmarks/literature/results/*_checkpoint.pkl*
