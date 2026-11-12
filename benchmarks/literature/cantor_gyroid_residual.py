@@ -53,6 +53,34 @@ def build_mesh():
     return mesh
 
 
+def connected_order(mesh, layer):
+    """Postpone voxels that would be born unsupported. A gyroid slice can contain a piece that
+    only joins the part a few layers higher; in the machine the powder holds it, here it would
+    float. Each lump therefore activates only the cells connected (by faces) to what is already
+    built; the rest wait for the lump in which they connect."""
+    from scipy import ndimage
+
+    ijk = mesh.cell_data["ijk"]
+    grid = np.full(tuple(ijk.max(axis=0) + 1), -2, np.int64)             # -2: no cell
+    grid[ijk[:, 0], ijk[:, 1], ijk[:, 2]] = layer
+    built = grid == -1
+    out = np.where(grid == -1, -1, -2)
+    structure = ndimage.generate_binary_structure(3, 1)
+    n_layers = int(layer.max()) + 1
+    for k in range(n_layers):
+        cand = built | ((grid >= 0) & (grid <= k) & (out == -2))
+        lab, _ = ndimage.label(cand, structure=structure)
+        keep = np.isin(lab, np.unique(lab[built])) & cand & ~built
+        out[keep] = k
+        built |= keep
+    left = (grid >= 0) & (out == -2)
+    out[left] = n_layers - 1                                              # never connected: with the last lump
+    new = out[ijk[:, 0], ijk[:, 1], ijk[:, 2]]
+    print(f"build order: {int((new != layer).sum())} of {int((layer >= 0).sum())} part cells postponed, "
+          f"{int(left.sum())} never connect", flush=True)
+    return new
+
+
 def hooke_strain(sig, E, nu):
     """Elastic strain (..., 6) from stress (..., 6) [xx, yy, zz, yz, xz, xy] (engineering shear)."""
     e = np.empty_like(sig)
@@ -79,6 +107,7 @@ def run(layers=None):
     tm = ThermoMechanicalAM(md, hm, layer_height=LUMP, T_deposit=CM.LI2021["liquidus_C"],
                             layer_time=LUMP / CG.LAYER * LAYER_TIME, n_steps=6, first_step=0.05, mech_every=2,
                             T_plate=CG.T_PLATE, substrate=sub, n_inc=N_INC)
+    tm.layer_of_cell = connected_order(mesh, tm.layer_of_cell)
     t0 = time.perf_counter()
     tm.build(layers=layers)
     if layers is not None:
