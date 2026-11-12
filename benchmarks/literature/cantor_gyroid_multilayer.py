@@ -155,6 +155,7 @@ def part_build(store, layer_time):
             rec[f"T_top_{n}"] = float(Te[sel].mean()) if sel.any() else None
         recs.append(rec)
         if k % 5 == 0 or k == n_lumps - 1:
+            store.put(key + "|partial", dict(layer_time=layer_time, f_net=f_net, records=recs))
             print(f"lump {k + 1:3d}/{n_lumps}: z = {rec['z_top']:5.2f} mm, {rec['energy_per_layer_mJ']:.0f} mJ/layer, "
                   f"after source {T_hot:5.0f} C, before the next lump: mean {rec['T_top_mean']:5.1f} C, thin "
                   f"{rec['T_top_thin'] or float('nan'):5.1f}, thick {rec['T_top_thick'] or float('nan'):5.1f} "
@@ -165,7 +166,7 @@ def part_build(store, layer_time):
 
 
 def preheat(store, layer_time, name, z=Z_WINDOW):
-    b = store.get(f"build|layer_time={layer_time:g}")
+    b = store.get(f"build|layer_time={layer_time:g}") or store.get(f"build|layer_time={layer_time:g}|partial")
     zs = np.array([r["z_top"] for r in b["records"]])
     Ts = np.array([r[f"T_top_{name}"] if r[f"T_top_{name}"] is not None else np.nan for r in b["records"]])
     ok = np.isfinite(Ts)
