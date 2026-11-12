@@ -68,3 +68,48 @@ def pseudo_binary(freezing_range=60.0, k=0.74, eps4=0.02):
 def effective_speed_m_s(p=PIGLIONE2018, delay_us=0.0):
     """Mean speed of a point-exposure scan: point distance / (exposure + delay)."""
     return p["point_distance_um"] * 1e-6 / ((p["exposure_us"] + delay_us) * 1e-6)
+
+
+# ------------------------------------------------------------------ mechanical data
+KIM2020 = dict(
+    source="Kim, Yang & Lee, Sci. Rep. 10 (2020) 8045, Table 1: compressive yield strength of as-built SLM "
+           "CoCrFeMnNi (Concept Laser Mlab, 90 W, 600 mm/s)",
+    T_C=[25.0, 500.0, 600.0, 700.0, 800.0, 900.0], yield_MPa=[756.5, 594.4, 551.3, 545.8, 376.6, 223.0],
+)
+LAPLANCHE2015 = dict(
+    source="Laplanche et al., J. Alloys Compd. 623 (2015) 348: E = 214 - 35/(exp(416/T) - 1) GPa, "
+           "alpha = 23.7e-6 (1 - exp(-T/299)) 1/K (T in K), nu = 0.25",
+)
+
+
+def youngs_modulus_MPa(T_C):
+    T = np.asarray(T_C, float) + 273.15
+    return (214.0 - 35.0 / np.expm1(416.0 / T)) * 1e3
+
+
+def cte_instantaneous(T_C):
+    T = np.asarray(T_C, float) + 273.15
+    return 23.7e-6 * (1.0 - np.exp(-T / 299.0))
+
+
+def mechanical_material(hardening_MPa=1500.0):
+    """Temperature-dependent elasto-plastic CoCrFeMnNi for the thermo-mechanical build model.
+
+    - E(T) and the expansion: Laplanche et al. (2015), measured on wrought material to 1000 K
+      and 1270 K; extrapolated above with their fits.
+    - Yield strength: Kim et al. (2020), as-built SLM, compression, 25-900 C. Above 900 C it is
+      continued to 80 MPa at 1100 C and 40 MPa at the solidus (an assumption; a lower floor
+      makes the freshly deposited lump nearly strengthless and the Newton iteration fail).
+    - Hardening: linear, ``hardening_MPa`` at room temperature and scaled with the yield
+      strength at temperature (an assumption; no as-built flow curves were found).
+    """
+    from tpmsfem.fem.materials import FlowTable, TemperatureTable
+
+    T = np.array([20.0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1250.0])
+    sy = np.interp(T, np.r_[KIM2020["T_C"], 1100.0, 1250.0], np.r_[KIM2020["yield_MPa"], 80.0, 40.0])
+    H = hardening_MPa * sy / sy[0]
+    flow = FlowTable([0.0, 0.2], np.c_[sy, sy + 0.2 * H], T, 0.0, "Kim 2020 yield + linear hardening")
+    alpha = TemperatureTable.mean_from_instantaneous(T, cte_instantaneous(T), 20.0)
+    table = TemperatureTable(T=T, E=youngs_modulus_MPa(T), alpha=alpha, T_ref=20.0, T_cap=LI2021["solidus_C"])
+    return Material("CoCrFeMnNi_LPBF", E=float(youngs_modulus_MPa(20.0)), nu=0.25, flow=flow, temperature=table,
+                    thermal=thermal_properties(), density=LI2021["density_kg_m3"] * 1e-12)
