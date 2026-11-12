@@ -70,6 +70,10 @@ def run(layers=None):
     hm = HeatModel(mesh, mats, T_initial=CG.T_PLATE)
     hm.set_surface_losses(h=1e-5, emissivity=0.4, T_amb=CG.T_PLATE,
                           face_filter=lambda c, n: (n[:, 2] > 0.5) & (c[:, 2] > 1e-6))
+    # the heat iteration can settle into a 0.3 K limit cycle across the latent-heat range on this
+    # voxel lattice; 1 K is ample for the thermal strains
+    heat_step = hm.step
+    hm.step = lambda dt, **kw: heat_step(dt, tol=1.0, **kw)
     print(mesh.summary(), flush=True)
     sub = np.flatnonzero(mesh.cell_data["material"] == 2)
     tm = ThermoMechanicalAM(md, hm, layer_height=LUMP, T_deposit=CM.LI2021["liquidus_C"],
