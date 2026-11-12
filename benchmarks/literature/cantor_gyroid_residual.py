@@ -129,6 +129,97 @@ def run(layers=None):
     print(f"done in {time.perf_counter() - t0:.0f} s", flush=True)
 
 
+def figure():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    d = np.load(OUT)
+    ijk, vox = d["ijk"], float(d["vox"])
+    shape = tuple(ijk.max(axis=0) + 1)
+
+    def grid(v):
+        g = np.full(shape, np.nan)
+        g[ijk[:, 0], ijk[:, 1], ijk[:, 2]] = v
+        return g
+
+    x = (np.arange(shape[0]) + 0.5) * vox - MARGIN
+    z = (np.arange(shape[2]) + 0.5) * vox - PLATE
+    ezz_p, ezz_r = grid(d["eps_el_on_plate"][:, 2] * 1e6), grid(d["eps_el_removed"][:, 2] * 1e6)
+    exx_r = grid(d["eps_el_removed"][:, 0] * 1e6)
+    peeq = grid(d["peeq"] * 100.0)
+    s = d["stress_removed"]
+    vm = grid(np.sqrt(0.5 * ((s[:, 0] - s[:, 1]) ** 2 + (s[:, 1] - s[:, 2]) ** 2 + (s[:, 2] - s[:, 0]) ** 2)
+                      + 3.0 * (s[:, 3] ** 2 + s[:, 4] ** 2 + s[:, 5] ** 2)))
+    jy = int(np.argmin(np.abs(x - 2.0)))
+    lim = float(np.nanpercentile(np.abs(ezz_p[:, :, z > 0]), 98))
+    lim = max(round(lim, -2), 500.0)
+    MUTED, GRID, BLUE, ORANGE = "#52514e", "#e4e3df", "#2a78d6", "#eb6834"
+    fig = plt.figure(figsize=(13.5, 9.2))
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.45, 1], hspace=0.3, wspace=0.42, left=0.05, right=0.97, top=0.92,
+                          bottom=0.07)
+    ext = [x[0] - vox / 2, x[-1] + vox / 2, z[0] - vox / 2, z[-1] + vox / 2]
+    panels = [(ezz_p, "(a) elastic strain eps_zz, on the plate", "RdBu_r", -lim, lim, "microstrain"),
+              (ezz_r, "(b) elastic strain eps_zz, plate removed", "RdBu_r", -lim, lim, "microstrain"),
+              (exx_r, "(c) elastic strain eps_xx, plate removed", "RdBu_r", -lim, lim, "microstrain"),
+              (peeq, "(d) equivalent plastic strain", "viridis", 0.0, float(np.nanpercentile(peeq, 99)), "%")]
+    for k, (g, title, cmap, lo, hi, unit) in enumerate(panels):
+        ax = fig.add_subplot(gs[0, k])
+        im = ax.imshow(g[:, jy, :].T, origin="lower", extent=ext, cmap=cmap, vmin=lo, vmax=hi, interpolation="nearest")
+        ax.set_facecolor("#f1f0ec")
+        ax.set_title(title + "\nsection y = 2 mm (thin walls left, thick right)", fontsize=8.5, loc="left")
+        ax.set_xlabel("x [mm]", fontsize=8.5)
+        if k == 0:
+            ax.set_ylabel("build height z [mm]", fontsize=8.5)
+        ax.tick_params(labelsize=7.5, colors=MUTED)
+        cb = fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
+        cb.set_label(unit, fontsize=8)
+        cb.ax.tick_params(labelsize=7.5)
+    # layers: first, middle, final (horizontal sections of eps_zz after removal)
+    part = z > 0
+    zs = z[part]
+    for k, (zl, name) in enumerate(((0.25, "first layers"), (0.5 * HEIGHT, "middle"), (HEIGHT - 0.25, "final layers"))):
+        ax = fig.add_subplot(gs[1, k])
+        kz = int(np.argmin(np.abs(z - zl)))
+        im = ax.imshow(ezz_r[:, :, kz].T, origin="lower", extent=[ext[0], ext[1], ext[0], ext[1]], cmap="RdBu_r",
+                       vmin=-lim, vmax=lim, interpolation="nearest")
+        ax.set_facecolor("#f1f0ec")
+        ax.set_title(f"({'efg'[k]}) eps_zz, plate removed: {name}, z = {z[kz]:.2f} mm", fontsize=8.5, loc="left")
+        ax.set_xlabel("x [mm]", fontsize=8.5)
+        if k == 0:
+            ax.set_ylabel("y [mm]", fontsize=8.5)
+        ax.tick_params(labelsize=7.5, colors=MUTED)
+    cb = fig.colorbar(im, ax=fig.axes[-3:], fraction=0.02, pad=0.02)
+    cb.set_label("microstrain", fontsize=8)
+    cb.ax.tick_params(labelsize=7.5)
+    # profiles with height
+    ax = fig.add_subplot(gs[1, 3])
+    thin, thick = x < 2.0, x >= 2.0
+    for sel, col, lab in ((thin, BLUE, "thin-wall half"), (thick, ORANGE, "thick-wall half")):
+        ax.plot(np.nanmean(np.abs(ezz_r[sel][:, :, part]), axis=(0, 1)), zs, color=col, lw=1.5, label=f"|eps_zz|, {lab}")
+    ax.set_xlabel("mean |elastic eps_zz|, plate removed [microstrain]", fontsize=8.5)
+    ax.set_ylabel("build height z [mm]", fontsize=8.5)
+    ax.set_title("(h) residual strain against height", fontsize=8.5, loc="left")
+    ax.legend(fontsize=7.5, frameon=False)
+    ax.grid(True, color=GRID, lw=0.6)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(labelsize=7.5, colors=MUTED)
+    fig.suptitle("Residual strain in the LPBF CoCrFeMnNi gyroid column (thermo-mechanical build, 0.1 mm voxels, room temperature)",
+                 fontsize=10.5, x=0.05, ha="left")
+    fig.savefig(FIG, dpi=150)
+    print("wrote", FIG)
+    lat = d["material"] == 1
+    out = dict(vm_removed_p50=float(np.nanmedian(vm[:, :, part])), vm_removed_p95=float(np.nanpercentile(vm[:, :, part], 95)),
+               ezz_plate_p5_p95=[float(v) for v in np.percentile(d["eps_el_on_plate"][lat, 2] * 1e6, [5, 95])],
+               ezz_removed_p5_p95=[float(v) for v in np.percentile(d["eps_el_removed"][lat, 2] * 1e6, [5, 95])],
+               exx_removed_p5_p95=[float(v) for v in np.percentile(d["eps_el_removed"][lat, 0] * 1e6, [5, 95])],
+               peeq_percent_p50_p95=[float(v) for v in np.percentile(d["peeq"][lat] * 100, [50, 95])],
+               seconds=float(d["seconds"]))
+    json.dump(out, open(OUT.replace(".npz", ".json"), "w"), indent=1)
+    print(json.dumps(out, indent=1))
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--layers", type=int, default=None)
@@ -136,3 +227,5 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if not a.figure:
         run(a.layers)
+    if a.layers is None:
+        figure()
