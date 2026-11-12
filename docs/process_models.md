@@ -622,3 +622,79 @@ starting hotter, followed by the phase field:
   with it.
 * The limits of §7 (no keyhole physics, uncalibrated absorptivity, 2-D pseudo-binary phase
   field) apply unchanged.
+
+### 7.2 First, middle and final layers: segregation and residual strain
+
+**Segregation at three heights** (`benchmarks/literature/cantor_gyroid_layers.py`). The
+phase field was run at the fusion-boundary conditions of three layers of the column:
+* the first layer, on the plate at 80 °C (the single-track conditions on a solid plate);
+* the middle layer at 4.4 mm, which starts from 102 °C;
+* the final layer at 8.8 mm, which starts from 132 °C.
+
+For the middle and final layers, G and R are interpolated in the start temperature between
+the melt-pool runs at 80 °C and 140 °C (§7.1), for wall regions over solid and over powder.
+
+| layer | starts from | over solid: spacing, cores, max between cells | over powder |
+|---|---|---|---|
+| first | 80 °C | 0.50 µm, 0.92×, 1.39× nominal Mn + Ni | does not apply (solid plate) |
+| middle, 4.4 mm | 102 °C | 0.50 µm, 0.91×, 1.37× | 0.86 µm, 0.91×, 1.38× |
+| final, 8.8 mm | 132 °C | 0.50 µm, 0.91×, 1.32× | 0.86 µm, 0.91×, 1.38× |
+
+![segregation in three layers](img/cantor_gyroid_layers.png)
+
+The three layers have the same cell spacing and the same segregation. Cell cores hold about
+36 wt% Mn + Ni against the nominal 40, and the boundaries between cells peak at 53–54 wt%.
+The contrast is within each layer, between regions over solid and over powder, not between
+layers.
+
+**Residual strain** (`benchmarks/literature/cantor_gyroid_residual.py`).
+* **Model.** The graded column, 8 mm tall on a 1 mm plate, is built with the layer-lumped
+  thermo-mechanical model (`residual/thermomech.py`): 0.1 mm voxels, 0.4 mm lumps born at the
+  liquidus, 10 s per 30 µm layer, plate at 80 °C. The part then cools to 20 °C and is
+  released from the plate.
+* **Material.** E(T) and the expansion are from Laplanche et al., J. Alloys Compd. 623 (2015)
+  348. The yield strength is that of as-built SLM CoCrFeMnNi in compression from Kim, Yang &
+  Lee, Sci. Rep. 10 (2020) 8045: 757 MPa at 25 °C falling to 223 MPa at 900 °C.
+* **Assumptions.** Linear hardening of 1.5 GPa at room temperature, scaled with the yield
+  strength; the yield strength above 900 °C, continued to 40 MPa at the solidus.
+* **Build order.** A gyroid slice can contain a piece that only joins the part a few layers
+  higher. The powder holds it in the machine; in the model it would float. Each lump
+  therefore activates only cells connected to what is built (90 of 37,196 cells wait, by at
+  most two lumps).
+
+| quantity (lattice, room temperature) | value |
+|---|---|
+| elastic strain ε_zz on the plate, 5th–95th percentile | −2590 … +2690 microstrain |
+| elastic strain ε_zz, plate removed | −2420 … +2620 microstrain |
+| elastic strain ε_xx, plate removed | −2040 … +1900 microstrain |
+| von Mises stress, plate removed, median / 95th percentile | 584 / 748 MPa |
+| equivalent plastic strain, median / 95th percentile | 0.9 / 2.5 % |
+
+![residual strain](img/cantor_gyroid_residual.png)
+
+**Reading the results.**
+* **The walls are in bending.** Across each wall the build-direction strain changes sign:
+  tension on one face, compression on the other, at about ±2500 microstrain. This follows
+  the wall's inclination: each new lump shrinks on an inclined wall and bends it.
+* **Removing the plate changes little.** The strains in the lattice are self-equilibrated
+  wall by wall; only the first half millimetre above the plate relaxes.
+* **The stresses are close to yield.** The median von Mises stress is 584 MPa against a
+  room-temperature yield strength of 757 MPa, and the lattice has yielded throughout during
+  the build (median plastic strain 0.9 %, 95th percentile 2.5 %).
+* **Thick walls carry somewhat more strain.** The mean |ε_zz| is 1000–1750 microstrain in the
+  thick-wall half and 750–1500 in the thin-wall half.
+* **First, middle and final layers.** The first layers are held by the plate, with tension
+  and compression side by side. The middle layers show the wall-bending pattern. The final
+  layers are in mild compression in the build direction, since nothing was deposited on top
+  of them.
+
+**Limits.**
+* The thinnest walls are two voxels wide, so their through-thickness strain gradient is
+  poorly resolved. The numbers are indicative, not converged.
+* The lumps are 13 layers thick. Lumping is known to change the stress level; in the
+  AM-Bench bridge the same model landed within 3–9 % of the measured deflection, with
+  measured flow curves.
+* The hardening and the high-temperature yield strength are assumed, and the yield data are
+  from another machine and parameter set. No residual-strain measurement on a CoCrFeMnNi
+  lattice was found to compare with.
+* Powder is not modelled, thermally or mechanically.

@@ -103,7 +103,9 @@ four independent groups and compares them:
   surfaces built over powder solidify 2.5× slower and grow 1.7× coarser cells (0.86 vs 0.50 µm), whatever the
   wall thickness; Mn+Ni segregation is mild (cores 0.91×, last liquid ~1.4× nominal). A part-scale build shows the
   preheat rising ~7 °C per mm of height with no thin/thick difference; 10 mm of height leaves the cells unchanged,
-  a 500 °C part coarsens them by 50 % ([docs/process_models.md](docs/process_models.md) §7, §7.1).
+  a 500 °C part coarsens them by 50 %. First, middle and final layers have the same cells and segregation; a
+  thermo-mechanical build gives wall-bending residual strains of about ±2500 microstrain and a median von Mises
+  stress of 584 MPa ([docs/process_models.md](docs/process_models.md) §7–§7.2).
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.

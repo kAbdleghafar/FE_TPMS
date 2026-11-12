@@ -242,7 +242,7 @@ def figure():
         im = ax.imshow(ezz_r[:, :, kz].T, origin="lower", extent=[ext[0], ext[1], ext[0], ext[1]], cmap="RdBu_r",
                        vmin=-lim, vmax=lim, interpolation="nearest")
         ax.set_facecolor("#f1f0ec")
-        ax.set_title(f"({'efg'[k]}) eps_zz, plate removed: {name}, z = {z[kz]:.2f} mm", fontsize=8.5, loc="left")
+        ax.set_title(f"({'efg'[k]}) eps_zz, plate removed\n{name}, z = {z[kz]:.2f} mm", fontsize=8.5, loc="left")
         ax.set_xlabel("x [mm]", fontsize=8.5)
         if k == 0:
             ax.set_ylabel("y [mm]", fontsize=8.5)
@@ -254,11 +254,11 @@ def figure():
     ax = fig.add_subplot(gs[1, 3])
     thin, thick = x < 2.0, x >= 2.0
     for sel, col, lab in ((thin, BLUE, "thin-wall half"), (thick, ORANGE, "thick-wall half")):
-        ax.plot(np.nanmean(np.abs(ezz_r[sel][:, :, part]), axis=(0, 1)), zs, color=col, lw=1.5, label=f"|eps_zz|, {lab}")
+        ax.plot(np.nanmean(np.abs(ezz_r[sel][:, :, part]), axis=(0, 1)), zs, color=col, lw=1.5, label=lab)
     ax.set_xlabel("mean |elastic eps_zz|, plate removed [microstrain]", fontsize=8.5)
     ax.set_ylabel("build height z [mm]", fontsize=8.5)
     ax.set_title("(h) residual strain against height", fontsize=8.5, loc="left")
-    ax.legend(fontsize=7.5, frameon=False)
+    ax.legend(fontsize=7.5, frameon=False, loc="center left")
     ax.grid(True, color=GRID, lw=0.6)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
