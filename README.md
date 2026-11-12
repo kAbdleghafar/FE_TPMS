@@ -171,6 +171,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
 * [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, phase-field cells), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
+* [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
 
 ## Limitations (read before using results for design decisions)

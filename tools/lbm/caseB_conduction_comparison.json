@@ -1,0 +1,32 @@
+{
+ "cell_um": 5.0,
+ "cells": 360000,
+ "t_end_ms": 0.8749999999999999,
+ "tpmsfem": {
+  "pool_um": {
+   "length": 295.0,
+   "width": 110.0,
+   "depth": 30.0
+  },
+  "T_max": 2329.4545105322404,
+  "steps": 1064,
+  "seconds": 33.73621202099997,
+  "energy_balance": 7.42642842062459e-15
+ },
+ "openlb": {
+  "pool_um": {
+   "length": 290.0,
+   "width": 100.0,
+   "depth": 30.0
+  },
+  "T_max": 2272.454506133608,
+  "seconds": 5.577,
+  "MLUPS": 86.2
+ },
+ "difference": {
+  "rms_K_where_hot": 9.990143171692319,
+  "max_abs_K": 86.09625201939411,
+  "rel_rms_where_hot": 0.012997532287464354,
+  "energy_ratio": 0.9877783062127335
+ }
+}

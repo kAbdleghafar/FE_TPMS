@@ -34,7 +34,10 @@ fidelity, benchmark credibility).
    * the Barsoum TPMS ranking with the thermal model.
 7. **Process-scale models** (`process/`): melt pool, solidification and roughness **first version done**
    (docs/process_models.md). Next:
-   * a free-surface melt-pool model (keyhole, Marangoni) or a coupling to an open CFD code (e.g. OpenFOAM);
+   * a free-surface melt-pool model (keyhole, Marangoni): lattice Boltzmann feasibility checked
+     (docs/lbm_feasibility.md). OpenLB reproduces our conduction melt pool to 1.3 %; laser-melting physics
+     and a GPU are needed for flow. Next: numba kernel for MeltPoolModel; OpenLB free-surface + melting
+     coupling, offline via files;
    * running ExaCA on the exported thermal histories;
    * grains: validated against the NIST case-B EBSD map, in 2-D (26–28 % point-wise, grain
      count from gradient-following epitaxy) and in 3-D (agreement 51 % for in-plane grain
