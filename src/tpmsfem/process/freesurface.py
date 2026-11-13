@@ -1,0 +1,551 @@
+"""Free-surface lattice Boltzmann melt-pool model (powder-scale LPBF, stage 1).
+
+The melt is a free-surface flow on a D3Q19 lattice; the gas above it is not simulated
+(Koerner et al., J. Mater. Process. Technol. 168 (2005) 263; Thuerey, PhD thesis,
+Erlangen 2007):
+
+* each cell is GAS, INTERFACE (partly filled, fill level eps = m / rho), LIQUID or WALL;
+* interface cells exchange mass with their neighbours from the streamed populations;
+  populations that would come from the gas are rebuilt from the gas pressure, which carries
+  the Laplace pressure sigma * kappa (curvature from the fill-level field);
+* cells fill (m > rho) or empty (m < 0) and the interface layer moves; the excess mass goes
+  to the neighbouring interface cells, so the metal mass is conserved to round-off;
+* collision: two-relaxation-time (TRT) with Guo forcing, so that the very low viscosity
+  of liquid metal (tau ~ 0.51) stays stable;
+* melting and solidification act on the flow through a Carman-Kozeny (Darcy) damping
+  -C (1 - f_l)^2 / (f_l^3 + b) rho u, applied semi-implicitly so that a solid cell holds
+  still for any C. Unmelted metal is therefore part of the lattice and the plate,
+  the powder and the melt share one set of cells.
+
+Heat: volumetric enthalpy on the same cells (metal only; finite volume, explicit), with
+conduction, first-order upwind advection by the lattice velocity, and the laser absorbed
+below the local surface height with an exponential depth (the same discretisation as
+:class:`tpmsfem.process.MeltPoolModel`, so the two can be compared).
+
+Stage 1 contains no Marangoni stress, recoil pressure or evaporation; those come next.
+
+Arrays live on the active backend (NumPy or CuPy): the same code runs on a GPU.
+Units: SI for the physical interface; the lattice works in lattice units
+(dx = dt = 1, reference density 1).
+"""
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+
+import numpy as np
+
+from ..backend import asnumpy, get_xp
+
+GAS, INTERFACE, LIQUID, WALL = 0, 1, 2, 3
+
+# D3Q19: rest, 6 faces, 12 edges
+C = np.array([[0, 0, 0],
+              [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+              [1, 1, 0], [-1, -1, 0], [1, -1, 0], [-1, 1, 0],
+              [1, 0, 1], [-1, 0, -1], [1, 0, -1], [-1, 0, 1],
+              [0, 1, 1], [0, -1, -1], [0, 1, -1], [0, -1, 1]], dtype=np.int64)
+W = np.array([1 / 3] + [1 / 18] * 6 + [1 / 36] * 12)
+OPP = np.array([0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17])
+Q = 19
+
+
+def _roll(xp, a, c):
+    """Value at x - c (pull from the upstream neighbour along c)."""
+    return xp.roll(a, shift=(int(c[0]), int(c[1]), int(c[2])), axis=(0, 1, 2))
+
+
+def _nb(xp, a, c):
+    """Value at the neighbour x + c."""
+    return xp.roll(a, shift=(-int(c[0]), -int(c[1]), -int(c[2])), axis=(0, 1, 2))
+
+
+class FreeSurfaceLBM:
+    """Free-surface D3Q19 TRT lattice Boltzmann solver in lattice units.
+
+    ``flag``: int8 array (nx, ny, nz) with GAS / INTERFACE / LIQUID / WALL; ``fill``: fill
+    level of interface cells (1 for liquid). Domain faces should be WALL or GAS cells: the
+    shifts are periodic, and only cells next to a wall see across it.
+    """
+
+    def __init__(self, flag, fill=None, tau: float = 0.6, sigma: float = 0.0, gravity=(0.0, 0.0, 0.0),
+                 magic: float = 3.0 / 16.0, rho_gas: float = 1.0, dtype=np.float64, fill_offset: float = 1e-3):
+        self.xp = xp = get_xp()
+        self.dtype = dtype
+        flag = np.asarray(flag, dtype=np.int8)
+        self.shape = flag.shape
+        self.flag = xp.asarray(flag)
+        fill = np.where(flag == LIQUID, 1.0, 0.0) if fill is None else np.asarray(fill, float)
+        fill = np.where(flag == LIQUID, 1.0, np.where(flag == INTERFACE, fill, 0.0))
+        self.rho = xp.ones(self.shape, dtype=dtype)
+        self.u = xp.zeros((3,) + self.shape, dtype=dtype)
+        self.mass = xp.asarray(fill, dtype=dtype)
+        self.f = self._feq(self.rho, self.u)
+        self.set_tau(tau, magic)
+        self.sigma = float(sigma)
+        self.g = np.asarray(gravity, float)
+        self.rho_gas = float(rho_gas)
+        self.off = float(fill_offset)
+        self.force = None              # extra body force (3, nx, ny, nz), lattice units, set by a coupler
+        self.damping = None            # Darcy coefficient K (lattice units, per step), set by a coupler
+        self.gas_pressure = None       # extra gas density (pressure * 3) on interface cells (recoil)
+        self.lost_mass = 0.0
+        self.kappa = xp.zeros(self.shape, dtype=dtype)
+        self.smooth = 1                # smoothing passes for the normal and curvature
+        self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
+        self.steps = 0
+
+    # ------------------------------------------------------------------ basics
+    def set_tau(self, tau, magic=3.0 / 16.0):
+        self.tau = float(tau)
+        self.w_plus = 1.0 / self.tau
+        lam = magic / (self.tau - 0.5)
+        self.w_minus = 1.0 / (lam + 0.5)
+
+    @property
+    def nu(self):
+        return (self.tau - 0.5) / 3.0
+
+    def _feq(self, rho, u):
+        xp = self.xp
+        usq = u[0] * u[0] + u[1] * u[1] + u[2] * u[2]
+        f = xp.empty((Q,) + self.shape, dtype=self.dtype)
+        for i in range(Q):
+            cu = C[i, 0] * u[0] + C[i, 1] * u[1] + C[i, 2] * u[2]
+            f[i] = W[i] * rho * (1.0 + 3.0 * cu + 4.5 * cu * cu - 1.5 * usq)
+        return f
+
+    def _feq_i(self, i, rho, u):
+        cu = C[i, 0] * u[0] + C[i, 1] * u[1] + C[i, 2] * u[2]
+        usq = u[0] * u[0] + u[1] * u[1] + u[2] * u[2]
+        return W[i] * rho * (1.0 + 3.0 * cu + 4.5 * cu * cu - 1.5 * usq)
+
+    @property
+    def fill(self):
+        xp = self.xp
+        eps = xp.where(self.flag == LIQUID, 1.0, xp.where(self.flag == INTERFACE, self.mass / self.rho, 0.0))
+        return xp.clip(eps, 0.0, 1.0)
+
+    def total_mass(self):
+        xp = self.xp
+        fluid = (self.flag == LIQUID) | (self.flag == INTERFACE)
+        return float(xp.sum(xp.where(fluid, self.mass, 0.0))) + self.lost_mass
+
+    # ------------------------------------------------------------------ curvature
+    def normal_curvature(self, smooth: int = 1):
+        """Interface normal (unit, pointing into the liquid) and mean curvature (sum of the
+        principal curvatures, positive for a convex liquid) from the fill-level field,
+        smoothed ``smooth`` times with a [1 2 1] filter per axis."""
+        xp = self.xp
+        e = self.fill
+        for _ in range(smooth):
+            for ax in range(3):
+                e = 0.25 * (xp.roll(e, 1, ax) + 2.0 * e + xp.roll(e, -1, ax))
+        g = [0.5 * (xp.roll(e, -1, ax) - xp.roll(e, 1, ax)) for ax in range(3)]
+        norm = xp.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2) + 1e-12
+        n = [gi / norm for gi in g]
+        div = sum(0.5 * (xp.roll(n[ax], -1, ax) - xp.roll(n[ax], 1, ax)) for ax in range(3))
+        return xp.stack(n), -div
+
+    def curvature(self):
+        return self.normal_curvature()[1]
+
+    # ------------------------------------------------------------------ one step
+    def step(self):
+        xp = self.xp
+        flag, f = self.flag, self.f
+        fluid = (flag == LIQUID) | (flag == INTERFACE)
+        itf = flag == INTERFACE
+        # gas density at the interface: Laplace pressure (+ recoil, set by a coupler)
+        nrm, kap = self.normal_curvature(self.smooth)
+        if self.sigma != 0.0:
+            self.kappa = xp.clip(kap, -0.5, 0.5)
+            rho_g = self.rho_gas + 3.0 * self.sigma * self.kappa
+        else:
+            rho_g = xp.full(self.shape, self.rho_gas, dtype=self.dtype)
+        if self.gas_pressure is not None:
+            rho_g = rho_g + self.gas_pressure
+        u = self.u
+        eps = self.fill
+        # streaming (pull), wall bounce-back, gas reconstruction, mass exchange
+        fs = xp.empty_like(f)
+        dm = xp.zeros(self.shape, dtype=self.dtype)
+        for i in range(Q):
+            c = C[i]
+            fi = _roll(xp, f[i], c)
+            if i == 0:
+                fs[0] = fi
+                continue
+            src = _roll(xp, flag, c)
+            o = OPP[i]
+            fi = xp.where(src == WALL, f[o], fi)
+            ex = fi - f[o]                                   # mass exchange uses the streamed values
+            # rebuild what comes from the gas, and (Koerner 2005) everything arriving from the
+            # gas side of the interface, so the gas pressure acts evenly on a staircase surface
+            cn = C[i, 0] * nrm[0] + C[i, 1] * nrm[1] + C[i, 2] * nrm[2]
+            rebuild = itf & ((src == GAS) | ((cn > 0.0) & (src != WALL) & self.rebuild_normal))
+            if bool(rebuild.any()):
+                rec = self._feq_i(i, rho_g, u) + self._feq_i(o, rho_g, u) - f[o]
+                fi = xp.where(rebuild, rec, fi)
+            fs[i] = fi
+            # mass exchange of interface cells with liquid / interface neighbours
+            src_eps = _roll(xp, eps, c)
+            wgt = xp.where(src == LIQUID, 1.0, xp.where(src == INTERFACE, 0.5 * (eps + src_eps), 0.0))
+            dm += xp.where(itf, wgt * ex, 0.0)
+        self.mass = xp.where(itf, self.mass + dm, self.mass)
+        # macroscopic fields
+        rho = fs.sum(axis=0)
+        rho = xp.where(fluid, rho, 1.0)
+        j = xp.stack([sum(float(C[i, a]) * fs[i] for i in range(Q) if C[i, a] != 0) for a in range(3)])
+        F = xp.zeros((3,) + self.shape, dtype=self.dtype)
+        for a in range(3):
+            if self.g[a] != 0.0:
+                F[a] = rho * self.g[a]
+        if self.force is not None:
+            F = F + self.force
+        K = self.damping if self.damping is not None else 0.0
+        u = (j + 0.5 * F) / rho / (1.0 + 0.5 * K)
+        F = F - K * rho * u
+        u = xp.where(fluid, u, 0.0)
+        F = xp.where(fluid, F, 0.0)
+        # TRT collision with Guo forcing
+        feq = self._feq(rho, u)
+        wp, wm = self.w_plus, self.w_minus
+        uF = u[0] * F[0] + u[1] * F[1] + u[2] * F[2]
+        out = xp.empty_like(fs)
+        for i in range(Q):
+            o = OPP[i]
+            fp, fm = 0.5 * (fs[i] + fs[o]), 0.5 * (fs[i] - fs[o])
+            ep, em = 0.5 * (feq[i] + feq[o]), 0.5 * (feq[i] - feq[o])
+            cF = C[i, 0] * F[0] + C[i, 1] * F[1] + C[i, 2] * F[2]
+            cu = C[i, 0] * u[0] + C[i, 1] * u[1] + C[i, 2] * u[2]
+            Sp = W[i] * (9.0 * cu * cF - 3.0 * uF)
+            Sm = W[i] * 3.0 * cF
+            out[i] = fs[i] - wp * (fp - ep) - wm * (fm - em) + (1.0 - 0.5 * wp) * Sp + (1.0 - 0.5 * wm) * Sm
+        self.f = xp.where(fluid[None], out, fs)
+        self.rho, self.u = rho, u
+        self.mass = xp.where(flag == LIQUID, rho, self.mass)
+        self._convert()
+        self.steps += 1
+
+    # ------------------------------------------------------------------ interface motion
+    def _any_nb(self, mask):
+        xp = self.xp
+        out = xp.zeros(self.shape, dtype=bool)
+        for i in range(1, Q):
+            out |= _nb(xp, mask, C[i])
+        return out
+
+    def _distribute(self, excess, src_mask, recv_mask):
+        """Spread ``excess`` of the cells in ``src_mask`` equally over their neighbours in
+        ``recv_mask``; what has no receiver is spread over all interface cells."""
+        xp = self.xp
+        ex = xp.where(src_mask, excess, 0.0)
+        n = xp.zeros(self.shape, dtype=self.dtype)
+        rcv = recv_mask.astype(self.dtype)
+        for i in range(1, Q):
+            n += _nb(xp, rcv, C[i])
+        share = xp.where(n > 0, ex / xp.maximum(n, 1.0), 0.0)
+        got = xp.zeros(self.shape, dtype=self.dtype)
+        for i in range(1, Q):
+            got += _nb(xp, share, C[i])
+        self.mass = self.mass + xp.where(recv_mask, got, 0.0)
+        orphan = float(xp.sum(xp.where(n > 0, 0.0, ex)))
+        if orphan != 0.0:
+            n_itf = int(xp.sum(recv_mask))
+            if n_itf:
+                self.mass = self.mass + xp.where(recv_mask, orphan / n_itf, 0.0)
+            else:
+                self.lost_mass += orphan
+
+    def _convert(self):
+        xp = self.xp
+        flag, rho, m = self.flag, self.rho, self.mass
+        itf = flag == INTERFACE
+        fill = itf & (m > (1.0 + self.off) * rho)
+        empty = itf & (m < -self.off * rho) & ~fill
+        if not bool(fill.any()) and not bool(empty.any()):
+            self._close_layer()
+            return
+        # cells that are emptied next to cells that fill keep their state this step
+        empty &= ~self._any_nb(fill)
+        excess_fill = m - rho
+        excess_empty = m.copy()
+        # filling: gas neighbours become interface, initialised from their fluid neighbours
+        new_itf = (flag == GAS) & self._any_nb(fill)
+        if bool(new_itf.any()):
+            fluid = (flag == LIQUID) | (flag == INTERFACE)
+            s_rho = xp.zeros(self.shape, dtype=self.dtype)
+            s_u = xp.zeros((3,) + self.shape, dtype=self.dtype)
+            cnt = xp.zeros(self.shape, dtype=self.dtype)
+            fl = fluid.astype(self.dtype)
+            for i in range(1, Q):
+                c = C[i]
+                w = _nb(xp, fl, c)
+                cnt += w
+                s_rho += w * _nb(xp, rho, c)
+                for a in range(3):
+                    s_u[a] += w * _nb(xp, self.u[a], c)
+            r0 = xp.where(cnt > 0, s_rho / xp.maximum(cnt, 1.0), 1.0)
+            u0 = s_u / xp.maximum(cnt, 1.0)
+            feq = self._feq(r0, u0)
+            self.f = xp.where(new_itf[None], feq, self.f)
+            self.rho = xp.where(new_itf, r0, self.rho)
+            self.u = xp.where(new_itf[None], u0, self.u)
+            self.mass = xp.where(new_itf, 0.0, self.mass)
+            flag = xp.where(new_itf, INTERFACE, flag).astype(np.int8)
+        flag = xp.where(fill, LIQUID, flag).astype(np.int8)
+        # emptying: liquid neighbours become interface (full)
+        new_from_liq = (flag == LIQUID) & self._any_nb(empty)
+        flag = xp.where(new_from_liq, INTERFACE, flag).astype(np.int8)
+        flag = xp.where(empty, GAS, flag).astype(np.int8)
+        self.flag = flag
+        self.mass = xp.where(fill, self.rho, self.mass)
+        self.mass = xp.where(empty, 0.0, self.mass)
+        itf_now = self.flag == INTERFACE
+        self._distribute(excess_fill, fill, itf_now)
+        self._distribute(excess_empty, empty, itf_now)
+        self._close_layer()
+
+    def _close_layer(self):
+        """Keep the interface closed: liquid cells next to gas become (full) interface
+        cells; interface cells without gas neighbours become liquid."""
+        xp = self.xp
+        gas = self.flag == GAS
+        liq_gas = (self.flag == LIQUID) & self._any_nb(gas)
+        if bool(liq_gas.any()):
+            self.flag = xp.where(liq_gas, INTERFACE, self.flag).astype(np.int8)
+        itf = self.flag == INTERFACE
+        no_gas = itf & ~self._any_nb(self.flag == GAS)
+        if bool(no_gas.any()):
+            excess = self.mass - self.rho
+            self.flag = xp.where(no_gas, LIQUID, self.flag).astype(np.int8)
+            self.mass = xp.where(no_gas, self.rho, self.mass)
+            self._distribute(excess, no_gas, self.flag == INTERFACE)
+
+
+# ====================================================================== LPBF coupling
+@dataclass
+class LBMResult:
+    dx: float
+    dt: float
+    T: np.ndarray
+    T_peak: np.ndarray
+    flag: np.ndarray
+    fill: np.ndarray
+    surface: np.ndarray            # surface height per column [m] (metal fill)
+    u_max: float                   # m/s
+    mass_error: float              # relative
+    energy_balance: float          # (dE - absorbed + lost) / absorbed
+    absorbed: float                # J
+    steps: int
+    seconds: float
+    mlups: float
+
+
+class FreeSurfaceMeltPool:
+    """Laser melting of a metal plate (optionally with powder) on the free-surface lattice.
+
+    The domain is ``nx * ny * nz`` cells of size ``dx`` [m]; ``metal`` is a boolean array
+    (True where there is metal at the start: plate and powder particles), with gas above.
+    ``material``: :class:`tpmsfem.fem.materials.Material` with ``ThermalProperties`` (tpmsfem
+    units; converted to SI here). ``viscosity`` [Pa s], ``sigma`` [N/m] surface tension.
+    ``dt`` [s] sets the lattice time step; tau follows from the viscosity.
+    ``mushy_C`` [1/s]: Carman-Kozeny constant of the Darcy damping.
+    """
+
+    def __init__(self, material, dx: float, metal, *, dt: float = 1e-7, viscosity: float = 5e-3,
+                 sigma: float = 1.8, mushy_C: float = 1e9, T0: float = 25.0, T_max: float = 6000.0,
+                 dtype=np.float64, magic: float = 3.0 / 16.0, smooth_surface_tension: bool = True):
+        th = material.thermal
+        self.xp = xp = get_xp()
+        self.dtype = dtype
+        self.dx, self.dt = float(dx), float(dt)
+        metal = np.asarray(metal, bool)
+        self.shape = metal.shape
+        # SI properties
+        self.rho0 = th.rho * 1e12
+        tt, HH = th.enthalpy_table(T_lo=T0 - 50.0, T_hi=T_max, dT=1.0)
+        self._tt = xp.asarray(tt, dtype=dtype)
+        self._HH = xp.asarray(HH * 1e6, dtype=dtype)                    # mJ/mm^3 -> J/m^3
+        self._kT = xp.asarray(th.conductivity(tt), dtype=dtype)
+        self.Ts, self.Tl = float(th.T_solidus), float(th.T_liquidus)
+        self.T0 = float(T0)
+        rc = self.rho0 * np.interp(tt, th.T, th.cp) * 1e-6
+        alpha = th.conductivity(tt) / rc
+        dt_heat = dx * dx / (6.0 * alpha.max())
+        if self.dt > 0.9 * dt_heat:
+            raise ValueError(f"dt = {dt:.2e} s exceeds the conduction limit {0.9 * dt_heat:.2e} s")
+        # lattice
+        nu = viscosity / self.rho0
+        tau = 0.5 + 3.0 * nu * dt / dx ** 2
+        sigma_lat = sigma * dt ** 2 / (self.rho0 * dx ** 3)
+        flag = np.full(self.shape, GAS, np.int8)
+        flag[metal] = LIQUID
+        gas = ~metal
+        # metal cells next to gas are interface cells
+        nbgas = np.zeros(self.shape, bool)
+        for c in C[1:]:
+            nbgas |= np.roll(gas, shift=(-c[0], -c[1], -c[2]), axis=(0, 1, 2))
+        flag[metal & nbgas] = INTERFACE
+        # walls on the domain faces
+        flag[0, :, :] = flag[-1, :, :] = WALL
+        flag[:, 0, :] = flag[:, -1, :] = WALL
+        flag[:, :, 0] = flag[:, :, -1] = WALL
+        fill = np.where(metal, 1.0, 0.0)
+        self.lbm = FreeSurfaceLBM(flag, fill, tau=tau, sigma=sigma_lat if smooth_surface_tension else 0.0,
+                                  magic=magic, dtype=dtype)
+        self.mushy_C = float(mushy_C)
+        self.tau, self.sigma_lat = tau, sigma_lat
+        # heat
+        self.H = xp.full(self.shape, float(np.interp(T0, tt, HH * 1e6)), dtype=dtype)
+        self.T = xp.full(self.shape, T0, dtype=dtype)
+        self.z = (np.arange(self.shape[2]) + 0.5) * dx
+        self.x = (np.arange(self.shape[0]) + 0.5) * dx
+        self.y = (np.arange(self.shape[1]) + 0.5) * dx
+        self.t = 0.0
+        self.H_ref = float(np.interp(T0, tt, HH * 1e6))
+
+    # ------------------------------------------------------------------ helpers
+    def _T_of_H(self, H):
+        return self.xp.interp(H.ravel(), self._HH, self._tt).reshape(H.shape)
+
+    def metal(self):
+        f = self.lbm.flag
+        return (f == LIQUID) | (f == INTERFACE)
+
+    def surface_height(self):
+        """Metal surface height per column [m]: sum of fill levels above the bottom wall."""
+        return self.lbm.fill.sum(axis=2) * self.dx
+
+    def _laser_source(self, x_l, y_l, power, absorptivity, radius, depth):
+        """Absorbed power density [W/m^3] below the local surface, exactly A*P in total."""
+        xp, dx = self.xp, self.dx
+        X, Y = xp.meshgrid(xp.asarray(self.x), xp.asarray(self.y), indexing="ij")
+        f = xp.exp(-2.0 * ((X - x_l) ** 2 + (Y - y_l) ** 2) / radius ** 2)
+        f = f / (f.sum() * dx * dx)
+        qs = absorptivity * power * f                                         # W/m^2
+        zs = self.surface_height() + dx                                        # z of the surface (bottom wall at 0..dx)
+        z0 = xp.asarray(self.z - 0.5 * dx)[None, None, :]
+        z1 = z0 + dx
+        top = zs[:, :, None]
+        d_hi = xp.clip(top - z0, 0.0, None)                                    # depth of the cell bottom
+        d_lo = xp.clip(top - z1, 0.0, None)                                    # depth of the cell top
+        if depth > 0:
+            wz = (xp.exp(-d_lo / depth) - xp.exp(-d_hi / depth)) / dx
+        else:
+            wz = ((d_hi > 0) & (d_lo <= 0)).astype(self.dtype) / dx
+        wz = xp.where(self.metal(), wz, 0.0)
+        norm = wz.sum(axis=2, keepdims=True) * dx
+        wz = xp.where(norm > 0, wz / xp.maximum(norm, 1e-30), 0.0)
+        return qs[:, :, None] * wz
+
+    def _heat_step(self, q):
+        xp, dx, dt = self.xp, self.dx, self.dt
+        T, H = self.T, self.H
+        m = self.metal()
+        k = xp.interp(T.ravel(), self._tt, self._kT).reshape(T.shape)
+        u = self.lbm.u * (dx / dt)                                            # m/s
+        div = xp.zeros(self.shape, dtype=self.dtype)
+        for ax in range(3):
+            a_ = [slice(None)] * 3
+            b_ = [slice(None)] * 3
+            a_[ax], b_[ax] = slice(None, -1), slice(1, None)
+            a_, b_ = tuple(a_), tuple(b_)
+            both = m[a_] & m[b_]
+            ka, kb = k[a_], k[b_]
+            kf = 2.0 * ka * kb / (ka + kb)
+            flux = xp.where(both, kf * (T[b_] - T[a_]) / dx, 0.0)              # W/m^2, + in +axis... (into a)
+            # advection (upwind), face velocity = mean of the two cells
+            uf = 0.5 * (u[ax][a_] + u[ax][b_])
+            adv = xp.where(both, uf * xp.where(uf > 0, H[a_], H[b_]), 0.0)
+            flux = flux - adv
+            div[a_] += flux / dx
+            div[b_] -= flux / dx
+        self.H = xp.where(m, H + dt * (div + q), H)
+        self.T = xp.where(m, self._T_of_H(self.H), self.T)
+
+    def _couple(self):
+        """Darcy damping from the liquid fraction (lattice units)."""
+        xp = self.xp
+        fl = xp.clip((self.T - self.Ts) / max(self.Tl - self.Ts, 1e-9), 0.0, 1.0)
+        self.lbm.damping = self.mushy_C * self.dt * (1.0 - fl) ** 2 / (fl ** 3 + 1e-3)
+
+    def _new_metal_cells(self, before):
+        """Gas cells that became interface: give them the mean enthalpy of their metal
+        neighbours."""
+        xp = self.xp
+        m = self.metal()
+        new = m & ~before
+        if not bool(new.any()):
+            return
+        s = xp.zeros(self.shape, dtype=self.dtype)
+        n = xp.zeros(self.shape, dtype=self.dtype)
+        mb = before.astype(self.dtype)
+        for c in C[1:]:
+            w = _nb(xp, mb, c)
+            s += w * _nb(xp, self.H, c)
+            n += w
+        self.H = xp.where(new, xp.where(n > 0, s / xp.maximum(n, 1.0), self.H_ref), self.H)
+        self.T = xp.where(new, self._T_of_H(self.H), self.T)
+
+    # ------------------------------------------------------------------ run
+    def run(self, laser, path, t_extra: float = 0.0, verbose: bool = False, frozen_flow: bool = False,
+            snapshot_every: int = 0):
+        """Scan ``path`` (list of :class:`tpmsfem.process.ScanVector`, positions in **m**,
+        speed in m/s) with ``laser`` (:class:`tpmsfem.process.Laser`, radius and depth in
+        **m**), then cool for ``t_extra`` s. ``frozen_flow``: skip the flow (conduction only,
+        for comparison with the conduction model)."""
+        xp, dx, dt = self.xp, self.dx, self.dt
+        seg = []
+        tc = 0.0
+        for v in path:
+            L = float(np.hypot(v.x1 - v.x0, v.y1 - v.y0))
+            seg.append((tc, tc + L / v.speed, v))
+            tc += L / v.speed
+        t_end = tc + t_extra
+        m0 = self.lbm.total_mass()
+        E0 = float(xp.sum(xp.where(self.metal(), self.H - self.H_ref, 0.0))) * dx ** 3
+        absorbed = 0.0
+        T_peak = self.T.copy()
+        t_start = time.perf_counter()
+        n = 0
+        snaps = []
+        while self.t < t_end - 1e-15:
+            tm = self.t + 0.5 * dt
+            q = None
+            for (a, b, v) in seg:
+                if a <= tm < b:
+                    P = laser.power if v.power is None else v.power
+                    if P > 0:
+                        s = (tm - a) / (b - a)
+                        q = self._laser_source(v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0), P,
+                                               laser.absorptivity, laser.radius, laser.depth)
+                    break
+            if not frozen_flow:
+                self._couple()
+                before = self.metal()
+                self.lbm.step()
+                self._new_metal_cells(before)
+            self._heat_step(q if q is not None else 0.0)
+            if q is not None:
+                absorbed += float(q.sum()) * dx ** 3 * dt
+            T_peak = xp.maximum(T_peak, xp.where(self.metal(), self.T, -1e9))
+            self.t += dt
+            n += 1
+            if snapshot_every and n % snapshot_every == 0:
+                snaps.append((self.t, asnumpy(self.T[:, :, :]).astype(np.float32), asnumpy(self.lbm.fill).astype(np.float32)))
+            if verbose and n % 500 == 0:
+                um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
+                print(f"  t = {self.t * 1e6:7.1f} us  T_max {float(self.T.max()):6.0f} C  u_max {um:5.2f} m/s  "
+                      f"mass err {(self.lbm.total_mass() - m0) / m0:.1e}  ({time.perf_counter() - t_start:.0f} s)",
+                      flush=True)
+        secs = time.perf_counter() - t_start
+        E1 = float(xp.sum(xp.where(self.metal(), self.H - self.H_ref, 0.0))) * dx ** 3
+        um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
+        res = LBMResult(dx, dt, asnumpy(self.T), asnumpy(T_peak), asnumpy(self.lbm.flag), asnumpy(self.lbm.fill),
+                        asnumpy(self.surface_height()), um, (self.lbm.total_mass() - m0) / m0,
+                        ((E1 - E0) - absorbed) / max(absorbed, 1e-30), absorbed, n, secs,
+                        n * np.prod(self.shape) / secs / 1e6)
+        res.snapshots = snaps
+        return res
