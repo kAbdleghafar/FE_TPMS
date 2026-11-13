@@ -30,7 +30,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cantor_gyroid_solidification as CG  # noqa: E402
-import cantor_material as CM  # noqa: E402
 from common import ResultStore  # noqa: E402
 
 from tpmsfem.process import Laser, MeltPoolModel, ScanVector  # noqa: E402
