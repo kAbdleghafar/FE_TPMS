@@ -738,7 +738,7 @@ front; longer pauses make it slightly faster. Point exposure does not explain th
 | A = 0.60 | 114 × 36 µm | 0.021 | **0.60 µm** |
 | D doubled | | | **0.67 µm** |
 | k = 0.81 (the reported k_Mn) | | | 0.50 µm |
-| k = 0.88 | | | K88_SPACING |
+| k = 0.88 (walls counted at a 0.05 contrast threshold) | | | 0.50 µm |
 | ε4 = 0.01 / 0.04 | | | 0.59 / 0.55 µm |
 
 * **Absorptivity and diffusivity both move the result.** Either a higher absorptivity or a

@@ -163,9 +163,11 @@ def figure(store):
                 ax.plot(f(o) / f(ref), len(metrics) - 1 - i + 0.15 * (1 - j), "o", color=col, ms=7,
                         label=lab if i == 0 else None)
         ax.axvline(1.0, color=MUTED, lw=0.8)
-        ax.legend(fontsize=7, loc="lower left", frameon=False, bbox_to_anchor=(0, -0.42))
+        ax.legend(fontsize=7, loc="center right", frameon=False, handletextpad=0.3)
     ax.set_yticks(range(len(metrics)), [m[0] for m in metrics][::-1], fontsize=7.5)
-    ax.set_xlabel("relative to the study's resolution (2 mm column, plate removed)", fontsize=8)
+    ax.set_xlabel("relative to the study's build (2 mm column, plate removed)", fontsize=8)
+    ax.set_xlim(0.95, 2.05)
+    ax.set_xticks([1.0, 1.1, 1.2, 1.3])
     _style(ax, "(f) residual strain: voxel and lump size")
 
     fig.suptitle("CoCrFeMnNi gyroid: checks before publication (cell spacing at dT0 = 60 K; grey band: measured, "
