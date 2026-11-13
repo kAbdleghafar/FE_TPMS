@@ -423,6 +423,7 @@ class FreeSurfaceMeltPool:
         self.emissivity = float(emissivity)
         self.T_amb = float(T_ambient)
         self.lost = 0.0                       # J, through the surface
+        self.eps_min = 0.1                    # heat-capacity floor of nearly empty interface cells
 
     # ------------------------------------------------------------------ helpers
     def _T_of_H(self, H):
@@ -467,7 +468,16 @@ class FreeSurfaceMeltPool:
         wz = xp.where(norm > 0, wz / xp.maximum(norm, 1e-30), 0.0)
         return qs[:, :, None] * wz
 
-    def _heat_step(self, q):
+    def energy(self):
+        """Thermal energy of the metal [J] above the initial state: each cell weighted by its
+        metal mass (lattice mass, 1 for a full cell at the reference density)."""
+        xp = self.xp
+        return float(xp.sum(xp.where(self.metal(), self.lbm.mass * (self.H - self.H_ref), 0.0))) * self.dx ** 3
+
+    def _heat_step(self, q, loss=None):
+        """Advance the enthalpy one step. The heat capacity of a cell is its metal mass
+        (floored at ``eps_min`` so that nearly empty interface cells stay stable). Returns the
+        energy [J] that the source ``q`` and the surface ``loss`` [W/m^3] put in and took out."""
         xp, dx, dt = self.xp, self.dx, self.dt
         T, H = self.T, self.H
         m = self.metal()
@@ -489,8 +499,15 @@ class FreeSurfaceMeltPool:
             flux = flux - adv
             div[a_] += flux / dx
             div[b_] -= flux / dx
-        self.H = xp.where(m, H + dt * (div + q), H)
+        mass = xp.where(m, self.lbm.mass, 0.0)
+        cap = xp.maximum(mass, self.eps_min)
+        rate = div + q - (loss if loss is not None else 0.0)
+        self.H = xp.where(m, H + dt * rate / cap, H)
         self.T = xp.where(m, self._T_of_H(self.H), self.T)
+        frac = mass / cap
+        e_in = float(xp.sum(frac * q)) * dx ** 3 * dt if not np.isscalar(q) else 0.0
+        e_out = float(xp.sum(frac * loss)) * dx ** 3 * dt if loss is not None else 0.0
+        return e_in, e_out
 
     def _surface_terms(self):
         """Marangoni force and recoil pressure for the lattice, and the surface heat loss
@@ -584,7 +601,7 @@ class FreeSurfaceMeltPool:
         t_end = tc + t_extra
         m0 = self.lbm.total_mass()
         self.lost = 0.0
-        E0 = float(xp.sum(xp.where(self.metal(), self.H - self.H_ref, 0.0))) * dx ** 3
+        E0 = self.energy()
         absorbed = 0.0
         T_peak = self.T.copy()
         t_start = time.perf_counter()
@@ -607,13 +624,9 @@ class FreeSurfaceMeltPool:
                 before = self.metal()
                 self.lbm.step()
                 self._new_metal_cells(before)
-            src = q if q is not None else 0.0
-            if loss is not None:
-                src = src - loss
-                self.lost += float(loss.sum()) * dx ** 3 * dt
-            self._heat_step(src)
-            if q is not None:
-                absorbed += float(q.sum()) * dx ** 3 * dt
+            e_in, e_out = self._heat_step(q if q is not None else 0.0, loss)
+            absorbed += e_in
+            self.lost += e_out
             T_peak = xp.maximum(T_peak, xp.where(self.metal(), self.T, -1e9))
             self.t += dt
             n += 1
@@ -625,7 +638,7 @@ class FreeSurfaceMeltPool:
                       f"mass err {(self.lbm.total_mass() - m0) / m0:.1e}  ({time.perf_counter() - t_start:.0f} s)",
                       flush=True)
         secs = time.perf_counter() - t_start
-        E1 = float(xp.sum(xp.where(self.metal(), self.H - self.H_ref, 0.0))) * dx ** 3
+        E1 = self.energy()
         um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
         res = LBMResult(dx, dt, asnumpy(self.T), asnumpy(T_peak), asnumpy(self.lbm.flag), asnumpy(self.lbm.fill),
                         asnumpy(self.surface_height()), um, (self.lbm.total_mass() - m0) / m0,
