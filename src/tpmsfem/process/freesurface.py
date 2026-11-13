@@ -394,13 +394,22 @@ class FreeSurfaceMeltPool:
                  sigma: float = 1.8, mushy_C: float = 1e9, T0: float = 25.0, T_max: float = 6000.0,
                  dtype=np.float64, magic: float = 3.0 / 16.0, smooth_surface_tension: bool = True,
                  dsigma_dT: float = 0.0, evaporation=None, recoil_factor: float = 0.54, emissivity: float = 0.0,
-                 T_ambient: float = 25.0):
+                 T_ambient: float = 25.0, gravity=(0.0, 0.0, -9.81)):
         th = material.thermal
         self.xp = xp = get_xp()
         self.dtype = dtype
         self.dx, self.dt = float(dx), float(dt)
-        metal = np.asarray(metal, bool)
+        metal = np.asarray(metal)
         self.shape = metal.shape
+        wall = np.zeros(self.shape, bool)
+        wall[0, :, :] = wall[-1, :, :] = wall[:, 0, :] = wall[:, -1, :] = wall[:, :, 0] = wall[:, :, -1] = True
+        if metal.dtype == bool:
+            fill = metal.astype(float)
+        else:                                       # fill levels, e.g. from process.powder.voxelise
+            fill = np.clip(metal.astype(float), 0.0, 1.0)
+            fill[fill < 0.02] = 0.0
+        fill[wall] = 0.0
+        metal = fill > 0.0
         # SI properties
         self.rho0 = th.rho * 1e12
         tt, HH = th.enthalpy_table(T_lo=T0 - 50.0, T_hi=T_max, dT=1.0)
@@ -420,19 +429,16 @@ class FreeSurfaceMeltPool:
         sigma_lat = sigma * dt ** 2 / (self.rho0 * dx ** 3)
         flag = np.full(self.shape, GAS, np.int8)
         flag[metal] = LIQUID
-        gas = ~metal
-        # metal cells next to gas are interface cells
+        gas = ~metal & ~wall
+        # partly filled cells, and full cells next to gas, are interface cells
         nbgas = np.zeros(self.shape, bool)
         for c in C[1:]:
             nbgas |= np.roll(gas, shift=(-c[0], -c[1], -c[2]), axis=(0, 1, 2))
-        flag[metal & nbgas] = INTERFACE
-        # walls on the domain faces
-        flag[0, :, :] = flag[-1, :, :] = WALL
-        flag[:, 0, :] = flag[:, -1, :] = WALL
-        flag[:, :, 0] = flag[:, :, -1] = WALL
-        fill = np.where(metal, 1.0, 0.0)
+        flag[metal & (nbgas | (fill < 1.0))] = INTERFACE
+        flag[wall] = WALL
+        g_lat = tuple(float(g) * dt * dt / dx for g in gravity)
         self.lbm = FreeSurfaceLBM(flag, fill, tau=tau, sigma=sigma_lat if smooth_surface_tension else 0.0,
-                                  magic=magic, dtype=dtype)
+                                  magic=magic, dtype=dtype, gravity=g_lat)
         self.mushy_C = float(mushy_C)
         self.tau, self.sigma_lat = tau, sigma_lat
         # heat

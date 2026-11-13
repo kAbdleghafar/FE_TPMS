@@ -111,7 +111,8 @@ def test_marangoni_force_and_quiescent_plate():
     col = Fx[10, 3, :]
     assert col[6] == pytest.approx(-1e-4 * 1e6 / h, rel=1e-6)             # surface cell: tau / dx
     assert np.all(col[:6] == 0.0)
-    md2 = FreeSurfaceMeltPool(_const_material(), h, metal, dt=1e-7, T0=1400.0, T_max=4000.0, sigma=1.8)
+    md2 = FreeSurfaceMeltPool(_const_material(), h, metal, dt=1e-7, T0=1400.0, T_max=4000.0, sigma=1.8,
+                              gravity=(0.0, 0.0, 0.0))
     m0 = md2.lbm.total_mass()
     for _ in range(50):
         md2._surface_terms()
