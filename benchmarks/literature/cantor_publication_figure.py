@@ -136,7 +136,7 @@ def figure(store):
     rows = [("base: D 3e-9 m2/s, k 0.74,\neps4 0.02", sp("pf|num|supported|base"), hu("pf|num|supported|base"), INK),
             ("D 6e-9 m2/s", sp("pf|mat|D=6e-9"), hu("pf|mat|D=6e-9"), BLUE),
             ("k 0.81 (Mn)", sp("pf|mat|k=0.81"), hu("pf|mat|k=0.81"), BLUE),
-            ("k 0.88", sp("pf|mat|k=0.88"), hu("pf|mat|k=0.88"), BLUE),
+            ("k 0.88 (walls counted at\n0.05 c_inf contrast)", sp("pf|mat|k=0.88|prom=0.05"), hu("pf|mat|k=0.88|prom=0.05"), BLUE),
             ("eps4 0.01", sp("pf|mat|eps4=0.01"), hu("pf|mat|eps4=0.01"), BLUE),
             ("eps4 0.04", sp("pf|mat|eps4=0.04"), hu("pf|mat|eps4=0.04"), BLUE)]
     _dotrows(ax, rows, "primary cell spacing [um]")

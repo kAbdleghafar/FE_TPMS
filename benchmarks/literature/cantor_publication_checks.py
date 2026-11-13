@@ -52,7 +52,7 @@ BAND_DOWN = (0.6, 1.0, 1.2, 1.5, 2.0)
 
 # ------------------------------------------------------------------------- phase field
 def pf(G, R, *, dT0=60.0, width=6e-6, W0=10e-9, grow=10e-6, height=2e-6, D=3e-9, k=0.74, eps4=0.02, seed=0,
-       lam0=None, n_chunks=25):
+       lam0=None, n_chunks=25, prominence=0.2):
     """2-D phase field at (G, R); spacing from boundary counting averaged over the last 40 %.
     ``lam0`` [m]: seed the front with cells of this spacing instead of random noise."""
     alloy = PF.DiluteAlloy(c_inf=40.0, k=k, freezing_range=dT0, D=D, gibbs_thomson=3.65e-7, eps4=eps4)
@@ -67,14 +67,14 @@ def pf(G, R, *, dT0=60.0, width=6e-6, W0=10e-9, grow=10e-6, height=2e-6, D=3e-9,
     hist = []
     for _ in range(n_chunks):
         r = m.run(grow / R / n_chunks, record_every=500)
-        hist.append(r.boundaries())
+        hist.append(r.boundaries(prominence=prominence))
     late = [max(h, 1.0) for h in hist[int(0.6 * n_chunks):]]
     Lx = m.nx * m.dx * m.W0
     tips = r.tips()
     liq = r.c[r.phi < 0.0]
     sc = S.SolidificationConstants(freezing_range=dT0, D_liquid=D, gibbs_thomson=3.65e-7, partition=k)
     return dict(G=G, R=R, dT0=dT0, width_um=width * 1e6, W0_nm=W0 * 1e9, grow_um=grow * 1e6, height_um=height * 1e6,
-                D=D, k=k, eps4=eps4, seed=seed, n0=n0, lam0_um=None if lam0 is None else Lx / n0 * 1e6,
+                D=D, k=k, eps4=eps4, seed=seed, n0=n0, prominence=prominence, lam0_um=None if lam0 is None else Lx / n0 * 1e6,
                 n_history=hist, n_final=hist[-1], spacing_um=Lx / float(np.mean(late)) * 1e6,
                 cs_rel=float(np.nanmedian([t["cs"] for t in tips])) if tips else float("nan"),
                 intercell_max_rel=float(liq.max()) if liq.size else float("nan"),
@@ -193,7 +193,10 @@ def part_material(store):
     G, R = SUPPORTED
     pf_cached(store, "pf|mat|D=6e-9", G, R, D=6e-9)
     pf_cached(store, "pf|mat|k=0.81", G, R, k=0.81)
-    pf_cached(store, "pf|mat|k=0.88", G, R, k=0.88)
+    # k = 0.88: the walls reach only ~1.15 c_inf, below the default 0.2 c_inf prominence; count at 0.05
+    # (checked to give the same count as 0.2 at k = 0.74)
+    pf_cached(store, "pf|mat|k=0.88|prom=0.05", G, R, k=0.88, prominence=0.05)
+    pf_cached(store, "pf|mat|k=0.74|prom=0.05", G, R, prominence=0.05)
     pf_cached(store, "pf|mat|eps4=0.01", G, R, eps4=0.01)
     pf_cached(store, "pf|mat|eps4=0.04", G, R, eps4=0.04)
 
