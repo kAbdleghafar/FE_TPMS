@@ -89,6 +89,8 @@ class FreeSurfaceLBM:
         self.force = None              # extra body force (3, nx, ny, nz), lattice units, set by a coupler
         self.damping = None            # Darcy coefficient K (lattice units, per step), set by a coupler
         self.gas_pressure = None       # extra gas density (pressure * 3) on interface cells (recoil)
+        self.solid = None              # bool mask of solid (unmelted) cells, set by a coupler: they
+                                       # exchange no mass
         self.lost_mass = 0.0
         self.kappa = xp.zeros(self.shape, dtype=dtype)
         self.smooth = 1                # smoothing passes for the normal and curvature
@@ -227,6 +229,8 @@ class FreeSurfaceLBM:
             # mass exchange of interface cells with liquid / interface neighbours
             src_eps = _roll(xp, eps, c)
             wgt = xp.where(src == LIQUID, 1.0, xp.where(src == INTERFACE, 0.5 * (eps + src_eps), 0.0))
+            if self.solid is not None:
+                wgt = xp.where(self.solid | _roll(xp, self.solid, c), 0.0, wgt)
             dm += xp.where(itf, wgt * ex, 0.0)
         self.mass = xp.where(itf, self.mass + dm, self.mass)
         # macroscopic fields
@@ -303,8 +307,6 @@ class FreeSurfaceLBM:
         if not bool(fill.any()) and not bool(empty.any()):
             self._close_layer()
             return
-        # cells that are emptied next to cells that fill keep their state this step
-        empty &= ~self._any_nb(fill)
         excess_fill = m - rho
         excess_empty = m.copy()
         # filling: gas neighbours become interface, initialised from their fluid neighbours
@@ -436,6 +438,11 @@ class FreeSurfaceMeltPool:
             nbgas |= np.roll(gas, shift=(-c[0], -c[1], -c[2]), axis=(0, 1, 2))
         flag[metal & (nbgas | (fill < 1.0))] = INTERFACE
         flag[wall] = WALL
+        # partly filled cells with no gas around them (necks between touching particles) are
+        # filled: a voxelisation detail, not worth a mass redistribution on the first step
+        enclosed = (flag == INTERFACE) & ~nbgas
+        flag[enclosed] = LIQUID
+        fill[enclosed] = 1.0
         g_lat = tuple(float(g) * dt * dt / dx for g in gravity)
         self.lbm = FreeSurfaceLBM(flag, fill, tau=tau, sigma=sigma_lat if smooth_surface_tension else 0.0,
                                   magic=magic, dtype=dtype, gravity=g_lat)
@@ -456,7 +463,11 @@ class FreeSurfaceMeltPool:
         self.emissivity = float(emissivity)
         self.T_amb = float(T_ambient)
         self.lost = 0.0                       # J, through the surface
-        self.eps_min = 0.1                    # heat-capacity floor of nearly empty interface cells
+        self.recoil_cap = 0.1                 # largest recoil density jump on the lattice (3 p dt^2 / rho dx^2)
+        self.recoil_clipped = 0               # most interface cells clipped in one step
+        # heat-capacity floor of nearly empty interface cells: low enough to hold their heat,
+        # high enough for the explicit conduction step to stay stable (6 alpha dt / dx^2 / cap < 1)
+        self.eps_min = max(0.1, 1.25 * 6.0 * float(alpha.max()) * self.dt / dx ** 2)
 
     # ------------------------------------------------------------------ helpers
     def _T_of_H(self, H):
@@ -480,23 +491,21 @@ class FreeSurfaceMeltPool:
         return xp.where(any_m, (k_top + f_top) * dx, 0.0)
 
     def _laser_source(self, x_l, y_l, power, absorptivity, radius, depth):
-        """Absorbed power density [W/m^3] below the local surface, exactly A*P in total."""
+        """Absorbed power density [W/m^3], exactly A*P in total. The beam comes straight down
+        and is absorbed along each column by Beer-Lambert over the *metal* it crosses (depth
+        ``depth`` of metal): each cell takes exp(-s/d) - exp(-(s + eps dx)/d), with s the
+        metal above it and eps its fill level. Gaps between powder particles let the light
+        through, and a thin sliver of metal takes only its share."""
         xp, dx = self.xp, self.dx
         X, Y = xp.meshgrid(xp.asarray(self.x), xp.asarray(self.y), indexing="ij")
         f = xp.exp(-2.0 * ((X - x_l) ** 2 + (Y - y_l) ** 2) / radius ** 2)
         f = f / (f.sum() * dx * dx)
         qs = absorptivity * power * f                                         # W/m^2
-        zs = self.surface_height()
-        z0 = xp.asarray(self.z - 0.5 * dx)[None, None, :]
-        z1 = z0 + dx
-        top = zs[:, :, None]
-        d_hi = xp.clip(top - z0, 0.0, None)                                    # depth of the cell bottom
-        d_lo = xp.clip(top - z1, 0.0, None)                                    # depth of the cell top
-        if depth > 0:
-            wz = (xp.exp(-d_lo / depth) - xp.exp(-d_hi / depth)) / dx
-        else:
-            wz = ((d_hi > 0) & (d_lo <= 0)).astype(self.dtype) / dx
-        wz = xp.where(self.metal(), wz, 0.0)
+        eps = xp.where(self.metal(), self.lbm.fill, 0.0)
+        d = depth if depth > 0 else 0.25 * dx
+        below_top = xp.cumsum(eps[:, :, ::-1], axis=2)[:, :, ::-1] * dx           # metal from the top down to the cell bottom
+        above = below_top - eps * dx                                           # metal above the cell
+        wz = (xp.exp(-above / d) - xp.exp(-below_top / d)) / dx
         norm = wz.sum(axis=2, keepdims=True) * dx
         wz = xp.where(norm > 0, wz / xp.maximum(norm, 1e-30), 0.0)
         return qs[:, :, None] * wz
@@ -590,14 +599,20 @@ class FreeSurfaceMeltPool:
             expo = xp.minimum(ev.L_v * ev.M / 8.314462618 * (1.0 / (ev.T_boil + 273.15) - 1.0 / Tk_), 50.0)
             p_r = self.recoil_factor * ev.p0 * xp.exp(expo)                               # Pa
             p_lat = p_r * dt * dt / (self.rho0 * dx * dx)
-            self.lbm.gas_pressure = xp.where(self.lbm.flag == INTERFACE, 3.0 * p_lat, 0.0)
+            rp = xp.where(self.lbm.flag == INTERFACE, 3.0 * p_lat, 0.0)
+            # the lattice carries density jumps of a few percent; beyond that the step is too long
+            cap = self.recoil_cap
+            self.recoil_clipped = max(self.recoil_clipped, int(xp.sum(rp > cap)))
+            self.lbm.gas_pressure = xp.minimum(rp, cap)
         return loss
 
     def _couple(self):
-        """Darcy damping from the liquid fraction (lattice units)."""
+        """Darcy damping from the liquid fraction (lattice units); cells below the solidus are
+        solid for the free surface (no mass exchange, no filling or emptying)."""
         xp = self.xp
         fl = xp.clip((self.T - self.Ts) / max(self.Tl - self.Ts, 1e-9), 0.0, 1.0)
         self.lbm.damping = self.mushy_C * self.dt * (1.0 - fl) ** 2 / (fl ** 3 + 1e-3)
+        self.lbm.solid = self.T < self.Ts
 
     def _new_metal_cells(self, before):
         """Gas cells that became interface: give them the mean enthalpy of their metal

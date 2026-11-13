@@ -3,7 +3,8 @@ Boltzmann melt pool (IN625 properties, Marangoni, recoil, evaporation, radiation
 
 Powder: log-normal sizes (d50 30 um, 15-45 um), rained and rolled onto the plate, recoater at
 40 um (tpmsfem.process.powder). Laser 200 W, 0.8 m/s, 1/e^2 radius 40 um, absorptivity 0.40
-(first surface hit from above), absorption depth 5 um. 5 um cells.
+(Beer-Lambert along the metal), absorption depth 5 um. 5 um cells, 0.05 us steps (recoil-driven
+flow reaches ~10 m/s).
 
     python tools/lbm/freesurface_powder_track.py powder|plate
 """
@@ -45,7 +46,7 @@ def geometry(case, seed=3):
 def run(case):
     fill, bed, npl = geometry(case)
     mat = tf.Material("IN625", 208_000.0, 0.278, thermal=IM.thermal_properties())
-    md = FreeSurfaceMeltPool(mat, H, fill, dt=1e-7, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=6000.0,
+    md = FreeSurfaceMeltPool(mat, H, fill, dt=5e-8, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=6000.0,
                              dsigma_dT=-1.1e-4, evaporation=Evaporation(), emissivity=0.4)
     s0 = np.asarray(md.surface_height()).copy()
     y = H + 0.5 * LY
