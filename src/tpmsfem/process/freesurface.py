@@ -132,19 +132,28 @@ class FreeSurfaceLBM:
         return float(xp.sum(xp.where(fluid, self.mass, 0.0))) + self.lost_mass
 
     # ------------------------------------------------------------------ curvature
-    def normal_curvature(self, smooth: int = 1):
+    def _shift_mirror(self, a, ax, d, wall):
+        """Neighbour value along axis ``ax`` (d = +1 / -1); across a wall the cell's own value
+        (a zero-gradient wall: 90 degree contact angle)."""
+        xp = self.xp
+        nb = xp.roll(a, -d, ax)
+        return xp.where(xp.roll(wall, -d, ax), a, nb)
+
+    def normal_curvature(self, smooth: int = 1, eps=None):
         """Interface normal (unit, pointing into the liquid) and mean curvature (sum of the
         principal curvatures, positive for a convex liquid) from the fill-level field,
-        smoothed ``smooth`` times with a [1 2 1] filter per axis."""
+        smoothed ``smooth`` times with a [1 2 1] filter per axis. Walls act as mirrors."""
         xp = self.xp
-        e = self.fill
+        wall = self.flag == WALL
+        e = self.fill if eps is None else eps
+        sm = self._shift_mirror
         for _ in range(smooth):
             for ax in range(3):
-                e = 0.25 * (xp.roll(e, 1, ax) + 2.0 * e + xp.roll(e, -1, ax))
-        g = [0.5 * (xp.roll(e, -1, ax) - xp.roll(e, 1, ax)) for ax in range(3)]
+                e = 0.25 * (sm(e, ax, -1, wall) + 2.0 * e + sm(e, ax, 1, wall))
+        g = [0.5 * (sm(e, ax, 1, wall) - sm(e, ax, -1, wall)) for ax in range(3)]
         norm = xp.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2) + 1e-12
         n = [gi / norm for gi in g]
-        div = sum(0.5 * (xp.roll(n[ax], -1, ax) - xp.roll(n[ax], 1, ax)) for ax in range(3))
+        div = sum(0.5 * (sm(n[ax], ax, 1, wall) - sm(n[ax], ax, -1, wall)) for ax in range(3))
         return xp.stack(n), -div
 
     def curvature(self):
@@ -356,7 +365,9 @@ class FreeSurfaceMeltPool:
 
     def __init__(self, material, dx: float, metal, *, dt: float = 1e-7, viscosity: float = 5e-3,
                  sigma: float = 1.8, mushy_C: float = 1e9, T0: float = 25.0, T_max: float = 6000.0,
-                 dtype=np.float64, magic: float = 3.0 / 16.0, smooth_surface_tension: bool = True):
+                 dtype=np.float64, magic: float = 3.0 / 16.0, smooth_surface_tension: bool = True,
+                 dsigma_dT: float = 0.0, evaporation=None, recoil_factor: float = 0.54, emissivity: float = 0.0,
+                 T_ambient: float = 25.0):
         th = material.thermal
         self.xp = xp = get_xp()
         self.dtype = dtype
@@ -405,6 +416,13 @@ class FreeSurfaceMeltPool:
         self.y = (np.arange(self.shape[1]) + 0.5) * dx
         self.t = 0.0
         self.H_ref = float(np.interp(T0, tt, HH * 1e6))
+        # surface physics (stage 2): Marangoni stress, recoil pressure, evaporation and radiation
+        self.dsigma_dT = float(dsigma_dT)
+        self.evaporation = evaporation
+        self.recoil_factor = float(recoil_factor)
+        self.emissivity = float(emissivity)
+        self.T_amb = float(T_ambient)
+        self.lost = 0.0                       # J, through the surface
 
     # ------------------------------------------------------------------ helpers
     def _T_of_H(self, H):
@@ -415,8 +433,17 @@ class FreeSurfaceMeltPool:
         return (f == LIQUID) | (f == INTERFACE)
 
     def surface_height(self):
-        """Metal surface height per column [m]: sum of fill levels above the bottom wall."""
-        return self.lbm.fill.sum(axis=2) * self.dx
+        """Height [m] of the first metal surface seen from above, per column: the bottom of
+        the topmost cell holding metal plus its fill level (z = 0 is the bottom of the
+        domain, i.e. of the wall layer). Powder gaps below it are not counted."""
+        xp, dx = self.xp, self.dx
+        eps = self.lbm.fill
+        nz = self.shape[2]
+        has = eps > 1e-6
+        k_top = nz - 1 - xp.argmax(has[:, :, ::-1], axis=2)                       # topmost cell with metal
+        any_m = has.any(axis=2)
+        f_top = xp.take_along_axis(eps, k_top[:, :, None], axis=2)[:, :, 0]
+        return xp.where(any_m, (k_top + f_top) * dx, 0.0)
 
     def _laser_source(self, x_l, y_l, power, absorptivity, radius, depth):
         """Absorbed power density [W/m^3] below the local surface, exactly A*P in total."""
@@ -425,7 +452,7 @@ class FreeSurfaceMeltPool:
         f = xp.exp(-2.0 * ((X - x_l) ** 2 + (Y - y_l) ** 2) / radius ** 2)
         f = f / (f.sum() * dx * dx)
         qs = absorptivity * power * f                                         # W/m^2
-        zs = self.surface_height() + dx                                        # z of the surface (bottom wall at 0..dx)
+        zs = self.surface_height()
         z0 = xp.asarray(self.z - 0.5 * dx)[None, None, :]
         z1 = z0 + dx
         top = zs[:, :, None]
@@ -464,6 +491,57 @@ class FreeSurfaceMeltPool:
             div[b_] -= flux / dx
         self.H = xp.where(m, H + dt * (div + q), H)
         self.T = xp.where(m, self._T_of_H(self.H), self.T)
+
+    def _surface_terms(self):
+        """Marangoni force and recoil pressure for the lattice, and the surface heat loss
+        [W/m^3], with the interface spread over the cells by |grad eps| (continuum surface
+        force)."""
+        xp, dx, dt = self.xp, self.dx, self.dt
+        m = self.metal()
+        # surface area per interface cell [in dx^2]: its faces to the gas, divided by
+        # |nx| + |ny| + |nz| (a staircase overstates a tilted surface by that factor);
+        # walls are mirrors. A flat surface gets exactly 1 per column.
+        flag = self.lbm.flag
+        gas = flag == GAS
+        n_arr, _ = self.lbm.normal_curvature(1)
+        n = [n_arr[a] for a in range(3)]
+        faces = xp.zeros(self.shape, dtype=self.dtype)
+        for ax in range(3):
+            faces += xp.roll(gas, -1, ax).astype(self.dtype) + xp.roll(gas, 1, ax).astype(self.dtype)
+        l1 = xp.maximum(xp.abs(n[0]) + xp.abs(n[1]) + xp.abs(n[2]), 1.0)
+        delta = xp.where(flag == INTERFACE, faces / l1, 0.0)
+        T = self.T
+        Tk = xp.where(m, T, 0.0)
+        loss = None
+        if self.emissivity > 0.0 or self.evaporation is not None:
+            q = xp.zeros(self.shape, dtype=self.dtype)
+            if self.emissivity > 0.0:
+                q += self.emissivity * 5.670374419e-8 * ((T + 273.15) ** 4 - (self.T_amb + 273.15) ** 4)
+            if self.evaporation is not None:
+                q += self.evaporation.flux(T, xp) * 1e3                                  # mW/mm^2 -> W/m^2
+            loss = xp.where(m, q * delta / dx, 0.0)
+        if self.dsigma_dT != 0.0:
+            gT = []
+            for ax in range(3):
+                up = xp.roll(m, -1, ax)
+                dn = xp.roll(m, 1, ax)
+                Tu = xp.where(up, xp.roll(Tk, -1, ax), T)
+                Td = xp.where(dn, xp.roll(Tk, 1, ax), T)
+                w = xp.where(up & dn, 0.5, 1.0)
+                gT.append(w * (Tu - Td) / dx)                                             # K/m
+            nT = n[0] * gT[0] + n[1] * gT[1] + n[2] * gT[2]
+            Fm = [self.dsigma_dT * (gT[a] - n[a] * nT) * delta / dx for a in range(3)]    # N/m^3
+            scale = dt * dt / (self.rho0 * dx)
+            hot = m & (T > self.Ts)
+            self.lbm.force = xp.stack([xp.where(hot, Fm[a] * scale, 0.0) for a in range(3)])
+        if self.evaporation is not None and self.recoil_factor > 0.0:
+            ev = self.evaporation
+            Tk_ = xp.maximum(T + 273.15, 300.0)
+            expo = xp.minimum(ev.L_v * ev.M / 8.314462618 * (1.0 / (ev.T_boil + 273.15) - 1.0 / Tk_), 50.0)
+            p_r = self.recoil_factor * ev.p0 * xp.exp(expo)                               # Pa
+            p_lat = p_r * dt * dt / (self.rho0 * dx * dx)
+            self.lbm.gas_pressure = xp.where(self.lbm.flag == INTERFACE, 3.0 * p_lat, 0.0)
+        return loss
 
     def _couple(self):
         """Darcy damping from the liquid fraction (lattice units)."""
@@ -505,6 +583,7 @@ class FreeSurfaceMeltPool:
             tc += L / v.speed
         t_end = tc + t_extra
         m0 = self.lbm.total_mass()
+        self.lost = 0.0
         E0 = float(xp.sum(xp.where(self.metal(), self.H - self.H_ref, 0.0))) * dx ** 3
         absorbed = 0.0
         T_peak = self.T.copy()
@@ -522,12 +601,17 @@ class FreeSurfaceMeltPool:
                         q = self._laser_source(v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0), P,
                                                laser.absorptivity, laser.radius, laser.depth)
                     break
+            loss = self._surface_terms()
             if not frozen_flow:
                 self._couple()
                 before = self.metal()
                 self.lbm.step()
                 self._new_metal_cells(before)
-            self._heat_step(q if q is not None else 0.0)
+            src = q if q is not None else 0.0
+            if loss is not None:
+                src = src - loss
+                self.lost += float(loss.sum()) * dx ** 3 * dt
+            self._heat_step(src)
             if q is not None:
                 absorbed += float(q.sum()) * dx ** 3 * dt
             T_peak = xp.maximum(T_peak, xp.where(self.metal(), self.T, -1e9))
@@ -545,7 +629,7 @@ class FreeSurfaceMeltPool:
         um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
         res = LBMResult(dx, dt, asnumpy(self.T), asnumpy(T_peak), asnumpy(self.lbm.flag), asnumpy(self.lbm.fill),
                         asnumpy(self.surface_height()), um, (self.lbm.total_mass() - m0) / m0,
-                        ((E1 - E0) - absorbed) / max(absorbed, 1e-30), absorbed, n, secs,
+                        ((E1 - E0) - absorbed + self.lost) / max(absorbed, 1e-30), absorbed, n, secs,
                         n * np.prod(self.shape) / secs / 1e6)
         res.snapshots = snaps
         return res

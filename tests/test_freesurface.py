@@ -74,3 +74,48 @@ def test_heat_matches_conduction_model():
     hot = T_fd > 200.0
     # different time steps (1e-6 vs the conduction model's own): agree to a few percent
     assert np.sqrt(np.mean((T_lbm - T_fd)[hot] ** 2)) / np.mean(T_fd[hot] - 25.0) < 0.03
+
+
+def test_surface_shear_gives_couette_profile():
+    """A tangential stress on the interface cells of a periodic liquid layer on a no-slip
+    floor: steady linear profile u = tau z / mu (free-surface stress boundary)."""
+    n = (4, 4, 14)
+    flag = np.full(n, GAS, np.int8)
+    flag[:, :, 0] = flag[:, :, -1] = WALL
+    flag[:, :, 1:9] = LIQUID
+    flag[:, :, 9] = INTERFACE
+    fill = np.where((flag == LIQUID) | (flag == INTERFACE), 1.0, 0.0)
+    s = FreeSurfaceLBM(flag, fill, tau=0.8)
+    F = np.zeros((3,) + n)
+    F[0][:, :, 9] = 1e-6
+    s.force = F
+    nu = 0.1
+    for _ in range(int(6 * 9 * 9 / nu)):
+        s.step()
+    u = np.asarray(s.u[0])[0, 0, 1:10]
+    z = np.arange(9) + 0.5
+    np.testing.assert_allclose(u[:-1], 1e-6 * z[:-1] / nu, rtol=0.01)
+
+
+def test_marangoni_force_and_quiescent_plate():
+    """dsigma/dT * grad T on a flat surface: one cell of force per column, along -grad T for
+    dsigma/dT < 0; and a plate at rest stays at rest (walls do not act as surfaces)."""
+    h = 5e-6
+    metal = np.zeros((20, 6, 12), bool)
+    metal[1:-1, 1:-1, 1:7] = True
+    md = FreeSurfaceMeltPool(_const_material(), h, metal, dt=1e-7, T0=25.0, T_max=4000.0, dsigma_dT=-1e-4)
+    x = (np.arange(20) + 0.5) * h
+    md.T = md.xp.asarray(np.broadcast_to((1400.0 + 1e6 * x)[:, None, None], md.shape).copy())
+    md._surface_terms()
+    Fx = np.asarray(md.lbm.force[0]) / (md.dt ** 2 / (md.rho0 * h))          # N/m^3
+    col = Fx[10, 3, :]
+    assert col[6] == pytest.approx(-1e-4 * 1e6 / h, rel=1e-6)             # surface cell: tau / dx
+    assert np.all(col[:6] == 0.0)
+    md2 = FreeSurfaceMeltPool(_const_material(), h, metal, dt=1e-7, T0=1400.0, T_max=4000.0, sigma=1.8)
+    m0 = md2.lbm.total_mass()
+    for _ in range(50):
+        md2._surface_terms()
+        md2._couple()
+        md2.lbm.step()
+    assert float(np.abs(np.asarray(md2.lbm.u)).max()) < 1e-12
+    assert abs(md2.lbm.total_mass() - m0) / m0 < 1e-12

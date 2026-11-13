@@ -16,3 +16,4 @@ benchmarks/literature/results/*_checkpoint.pkl*
 
 # residual-strain resolution check: large intermediate fields (statistics are in cantor_publication_checks.json)
 benchmarks/literature/results/cantor_residual_check_*
+tools/lbm/*.npz
