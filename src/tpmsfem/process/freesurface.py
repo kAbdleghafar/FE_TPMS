@@ -92,6 +92,7 @@ class FreeSurfaceLBM:
         self.lost_mass = 0.0
         self.kappa = xp.zeros(self.shape, dtype=dtype)
         self.smooth = 1                # smoothing passes for the normal and curvature
+        self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
         self.steps = 0
 
@@ -159,6 +160,30 @@ class FreeSurfaceLBM:
     def curvature(self):
         return self.normal_curvature()[1]
 
+    def height_function_curvature(self, normal=None, half: int = 3):
+        """Mean curvature by the height-function method (Cummins, Francois & Kothe 2005): the
+        fill levels are summed along the axis closest to the interface normal over a
+        (2 half + 1)-cell column, giving local surface heights on a 3 x 3 stencil, and
+        kappa = -div(grad h / sqrt(1 + |grad h|^2)). Second-order accurate, unlike the
+        smoothed-gradient estimate."""
+        xp = self.xp
+        e = self.fill
+        if normal is None:
+            normal = self.normal_curvature(1)[0]
+        kap = xp.zeros(self.shape, dtype=self.dtype)
+        best = xp.argmax(xp.abs(normal), axis=0)
+        for a in range(3):
+            S = sum(xp.roll(e, k, a) for k in range(-half, half + 1))
+            b, c = [ax for ax in range(3) if ax != a]
+            Sp_b, Sm_b = xp.roll(S, -1, b), xp.roll(S, 1, b)
+            Sp_c, Sm_c = xp.roll(S, -1, c), xp.roll(S, 1, c)
+            hb, hc = 0.5 * (Sp_b - Sm_b), 0.5 * (Sp_c - Sm_c)
+            hbb, hcc = Sp_b - 2.0 * S + Sm_b, Sp_c - 2.0 * S + Sm_c
+            hbc = 0.25 * (xp.roll(Sp_b, -1, c) - xp.roll(Sp_b, 1, c) - xp.roll(Sm_b, -1, c) + xp.roll(Sm_b, 1, c))
+            k_a = -(hbb * (1.0 + hc * hc) + hcc * (1.0 + hb * hb) - 2.0 * hb * hc * hbc) / (1.0 + hb * hb + hc * hc) ** 1.5
+            kap = xp.where(best == a, k_a, kap)
+        return kap
+
     # ------------------------------------------------------------------ one step
     def step(self):
         xp = self.xp
@@ -167,6 +192,8 @@ class FreeSurfaceLBM:
         itf = flag == INTERFACE
         # gas density at the interface: Laplace pressure (+ recoil, set by a coupler)
         nrm, kap = self.normal_curvature(self.smooth)
+        if self.sigma != 0.0 and self.curvature_method == "height":
+            kap = self.height_function_curvature(nrm)
         if self.sigma != 0.0:
             self.kappa = xp.clip(kap, -0.5, 0.5)
             rho_g = self.rho_gas + 3.0 * self.sigma * self.kappa
