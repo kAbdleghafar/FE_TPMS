@@ -698,3 +698,139 @@ layers.
   from another machine and parameter set. No residual-strain measurement on a CoCrFeMnNi
   lattice was found to compare with.
 * Powder is not modelled, thermally or mechanically.
+
+### 7.3 Checks before publication
+
+**Question.** Which results of §7–§7.2 survive the checks a reviewer would ask for? These
+are the checks that need no experiment:
+* the validation offset, where the phase field gave 0.50 µm against a measured 0.59 µm;
+* the numerics of the phase field;
+* the uncertain inputs: absorptivity and the pseudo-binary parameters;
+* the resolution of the residual-strain build.
+
+Script: `benchmarks/literature/cantor_publication_checks.py` (about 9 h on 4 cores). Unless
+stated, the phase field runs as in §7: a 6 µm window, W0 = 10 nm, 10 µm of growth, ΔT0 = 60 K.
+A 6 µm window counts spacing in steps of about 8 % (6/12 = 0.50, 6/11 = 0.55, 6/10 = 0.60 µm).
+
+![publication checks](img/cantor_publication_checks.png)
+
+**1. The validation offset.** The validation track was re-run in three ways.
+
+*Point-by-point exposure, as on the Renishaw AM250.* The beam dwells 80 µs on each point,
+then moves 60 µm with the laser off. The delay is not reported, so 1, 20 and 50 µs were
+tried. Result:
+* the pool is the same, 101 × 24 µm;
+* the fusion-boundary speed is 0.025–0.030 m/s, against 0.027 m/s for the continuous scan;
+* the cells are 0.46–0.50 µm.
+
+Each point melts and freezes almost on its own, so the pauses do not slow the solidification
+front; longer pauses make it slightly faster. Point exposure does not explain the offset.
+
+*A continuous scan at the slower mean speeds.* 0.60 m/s gives 0.46 µm; 0.46 m/s gives 0.55 µm.
+
+*Absorptivity and the pseudo-binary inputs.*
+
+| change from the baseline (A = 0.35, D = 3e-9 m²/s, k = 0.74, ε4 = 0.02) | pool | R [m/s] | spacing |
+|---|---|---|---|
+| none | 97 × 24 µm | 0.027 | 0.50 µm |
+| A = 0.30 | 96 × 20 µm | 0.030 | 0.46 µm |
+| A = 0.45 | 106 × 29 µm | 0.025 | 0.50 µm |
+| A = 0.60 | 114 × 36 µm | 0.021 | **0.60 µm** |
+| D doubled | | | **0.67 µm** |
+| k = 0.81 (the reported k_Mn) | | | 0.50 µm |
+| k = 0.88 | | | K88_SPACING |
+| ε4 = 0.01 / 0.04 | | | 0.59 / 0.55 µm |
+
+* **Absorptivity and diffusivity both move the result.** Either a higher absorptivity or a
+  higher liquid diffusivity brings the spacing onto the measurement. A = 0.6 is plausible at
+  this intensity (about 36 kW/mm², near keyhole). D for this melt is not measured.
+* **What would separate them.** Measured single-track widths and depths at 200 W would fix A
+  through the pool size. D would then remain the free parameter.
+* **The anisotropy has no clear effect.** Both directions coarsen the cells by one or two
+  counting steps. That is the scatter of the spacing selection (point 2), not a trend.
+
+**2. What the phase-field spacing is.**
+
+*Numerics.* The spacing over solid does not change with:
+* the interface width (W0 = 7 nm: 0.50 µm);
+* the random seed (0.50 µm);
+* a taller window (3 µm: 0.50 µm).
+
+A 12 µm window grown for 20 µm gives 0.55 µm: 39 cells merge to 22 and then stay. Over
+powder, the seed gives 0.83 against 0.86 µm, and the 12 µm window gives 0.92 µm.
+
+*Stability band.* The front was seeded with a set spacing instead of random noise:
+
+| seeded spacing [µm] | 0.40 | 0.60 | 0.75 | 1.00 | 1.20 | 1.50 | 2.00 |
+|---|---|---|---|---|---|---|---|
+| over solid (G 3.0e7 K/m, R 0.027 m/s) | 0.40 | 0.60 | 0.75 | 0.50 | | 0.55 | |
+| over powder (G 2.5e7 K/m, R 0.010 m/s) | | 0.60 | 1.00 | 1.00 | 1.00 | 0.75 | 1.00 |
+
+* **Many spacings are stable.** Over solid, spacings from at least 0.40 to 0.75 µm persist,
+  and coarser fronts split down to 0.50–0.55 µm. As in experiments and other phase-field
+  studies, the spacing within this band depends on how the front developed.
+* **The measurement is inside the band.** The measured 0.52–0.64 µm lies inside the band
+  over solid. The value reached from a planar front, 0.50–0.55 µm, sits near its lower end.
+* **How to report the validation.** The measurement lies inside the predicted band, and the
+  value reached from a planar front is 7–15 % below the measured mean.
+* **Over powder the band extends higher.** The coarsest stable spacing is 1.0–1.2 µm over
+  powder, against 0.75–1.0 µm over solid. Coarse fronts split to 0.75–1.0 µm over powder,
+  against 0.50–0.55 µm over solid.
+
+**3. Does the down-facing contrast survive?** The thin-wall window was re-run at two more
+absorptivities.
+
+| absorptivity | over solid: R, spacing | over powder: R, spacing | ratio |
+|---|---|---|---|
+| 0.30 | 0.028 m/s, 0.46 µm | 0.010 m/s, 0.86 µm | 1.9 |
+| 0.35 (§7) | 0.025 m/s, 0.50 µm | 0.010 m/s, 0.86 µm | 1.7 |
+| 0.50 | 0.020 m/s, 0.67 µm | 0.0085 m/s, 1.00 µm | 1.5 |
+
+The 12 µm window gives a ratio of 1.7 (0.92 / 0.55 µm). Coarse seeded fronts give 1.4–2.0
+(0.75–1.0 µm against 0.50–0.55 µm). Across these checks the down-facing skin grows cells
+**1.4–2.0× coarser, typically 1.7×**. The front over
+powder is 2.3–2.8× slower in every case. The headline holds, but as a range rather than 1.7×.
+
+**4. Segregation.**
+* **Cell cores** hold 0.90–0.93× the nominal Mn + Ni in every run at k = 0.74.
+* **The last liquid** holds 1.32–1.46×.
+* **Dependence on k.** The amplitude follows k directly. At k = 0.81 the cores hold 0.94× and
+  the walls 1.26×; at k = 0.88, 0.97× and 1.15×.
+* **For a paper.** Segregation numbers need a multicomponent check (Scheil, or EDS across the
+  cells).
+
+**5. Residual strain: voxel and lump size.** A 2 mm column on a 0.5 mm plate was built three
+ways. The statistics are over the lattice between 0.5 and 1.5 mm, after plate removal.
+
+| build | ε_zz 5th / 95th pct. [µstrain] | mean abs(ε_zz) | von Mises median | plastic strain median | run time |
+|---|---|---|---|---|---|
+| 0.1 mm voxels, 0.4 mm lumps (§7.2) | −1760 / +2400 | 973 | 511 MPa | 1.01 % | 12 min |
+| 0.05 mm voxels, 0.4 mm lumps | −1800 / +2370 | 970 | 516 MPa | 1.08 % | 138 min |
+| 0.1 mm voxels, 0.2 mm lumps | −2200 / +2920 | 1173 | 540 MPa | 1.27 % | 8 min |
+
+* **The voxel size is converged.**
+  * Halving the voxel changes the strain statistics by less than 3 %, the stress by 1 % and
+    the plastic strain by 7 %.
+  * Cell by cell, the build-direction strain correlates at 0.95 with the 0.1 mm build (the
+    fine cells averaged onto the coarse ones).
+  * The two-voxel walls were not a problem.
+* **The lump size is not converged.** Halving the lumps from 13 layers to 7 raises the strain
+  by about 20 %, the stress by 6 % and the plastic strain by 25 %.
+* **The pattern shifts too.** The thinner-lump build's strain correlates at 0.77 with the
+  study's, and the sign agrees in 75 % of the cells. The wall bending is the same in kind,
+  but where the tension and compression fall moves with the lump boundaries.
+* **For a paper.** Quote the §7.2 strains as a lower bound, or extrapolate in lump size.
+
+**What this means for a paper.**
+* **Robust.**
+  * The down-facing contrast: a 2.3–2.8× slower front and 1.4–2.0× coarser cells.
+  * Wall thickness and heat accumulation barely matter.
+  * Wall bending as the residual-strain mechanism, and stress near yield.
+* **To quote as ranges.**
+  * Cell spacing: report the stable band, plus the value reached from a planar front.
+  * Residual strain magnitude: about +20 % for thinner lumps.
+* **Needs an experiment.**
+  * Absorptivity, from single-track widths and depths. It is the input that moves the
+    validation most.
+  * Multicomponent segregation.
+* **Ruled out.** Point-by-point exposure as the cause of the validation offset.

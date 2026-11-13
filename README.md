@@ -105,7 +105,13 @@ four independent groups and compares them:
   preheat rising ~7 °C per mm of height with no thin/thick difference; 10 mm of height leaves the cells unchanged,
   a 500 °C part coarsens them by 50 %. First, middle and final layers have the same cells and segregation; a
   thermo-mechanical build gives wall-bending residual strains of about ±2500 microstrain and a median von Mises
-  stress of 584 MPa ([docs/process_models.md](docs/process_models.md) §7–§7.2).
+  stress of 584 MPa ([docs/process_models.md](docs/process_models.md) §7–§7.2). Checks before publication
+  (§7.3):
+  * Point-by-point exposure does not explain the validation offset. Absorptivity 0.6, or a doubled liquid
+    diffusivity, does close it.
+  * The measured spacing lies inside the phase field's stable band (0.40–0.75 µm).
+  * The down-facing contrast holds at 1.4–2.0× across absorptivity, window size and seeding.
+  * The residual strains are converged in voxel size but rise about 20 % with half-height lumps.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
