@@ -21,5 +21,28 @@
   "energy_balance": -0.007231226396987116,
   "steps": 4675,
   "seconds": 940.215635257
+ },
+ "B|A=0.320|dsdT=+1.0e-04|10um": {
+  "case": "B",
+  "A": 0.32,
+  "dsigma_dT": 0.0001,
+  "cell_um": 10.0,
+  "width_um": 150.66360146463202,
+  "depth_um": 35.31335735267885,
+  "measured_width": [
+   123.5,
+   6.5
+  ],
+  "measured_depth": [
+   36.0,
+   1.9
+  ],
+  "T_peak_max": 6000.0,
+  "u_max_m_s": 1.721087435983093,
+  "recoil_clipped": 10,
+  "mass_error": -4.944013198837638e-13,
+  "energy_balance": -0.0518182791423814,
+  "steps": 4675,
+  "seconds": 902.1201681979992
  }
 }
