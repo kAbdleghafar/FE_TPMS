@@ -1,0 +1,25 @@
+{
+ "plate": {
+  "case": "plate",
+  "cells": 257176,
+  "particles": 0,
+  "packing": null,
+  "width_in_plate_um": 158.25,
+  "depth_in_plate_um": 43.0,
+  "track_height_um": {
+   "mean": 0.30496359152987973,
+   "sd": 3.455286260496005,
+   "min": -4.979862616074228,
+   "max": 6.1221118002397
+  },
+  "T_peak_max": 3024.8052636128714,
+  "u_max_m_s": 6.704598507343112,
+  "mass_error": -5.698236944024555e-13,
+  "energy_balance": -0.001190623411886286,
+  "energy_residual": 0.0011906234115834566,
+  "limited": 16,
+  "steps": 5600,
+  "seconds": 3624.391569326999,
+  "mlups": 0.3973592732607043
+ }
+}
