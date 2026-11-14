@@ -164,6 +164,39 @@ With the mass-carried transport, the energy error equals the booked residual to 
 of running away. The booked residual is 0.7 %, and 2.6 % for a near-keyhole 200 W, 80 µm
 spot.
 
+**Single tracks, powder vs plate** (`tools/lbm/freesurface_powder_track.py`, 5 µm, 0.1 µs,
+IN625):
+* **Laser.** The AM-Bench case-B laser: 179.2 W, 0.8 m/s, 85 µm radius, absorptivity 0.40.
+* **Powder.** A 40 µm layer, packing 0.44.
+
+| | melt into the plate (width × depth) | track height | booked energy residual | speed limiter (cells) |
+|---|---|---|---|---|
+| bare plate | 158 × 43 µm | flat (0.3 µm) | 0.1 % | 16 |
+| on 40 µm powder | 113 × 23 µm | 28 µm above the plate | 5.4 % | 578 |
+
+* **The powder absorbs and shields.** On powder the track melts less deeply into the plate and
+  builds up 28 µm above it.
+* **The plate run is clean; the powder run is approximate.** On powder, the many nearly empty
+  surface cells of melting particles book a 5 % residual, and the limiter acts more often. The
+  powder numbers are therefore qualitative for now.
+* **An earlier pair was unusable.** At 150 W into a 50 µm spot radius (1.5e10 W/m² peak), both
+  tracks were in the keyhole regime. The limiter acted in 770–1,850 cells and the surface
+  sprayed into about 1,100 one-to-three-cell fragments. Those runs are archived in
+  `tools/lbm/archive_keyhole/`; a keyhole needs finer steps than a CPU affords.
+
+**Animation** (`tools/lbm/freesurface_animation.py`). A short track (70 W, 100 µm spot,
+0.8 m/s) over a 40 µm powder layer at 5 µm. It shows:
+* the metal surface as a smoothed, shaded isosurface coloured by temperature (display
+  smoothing only);
+* the unsmoothed section through the track centre.
+
+That run books a 7 % energy residual, so it is qualitative.
+
+**Surface noise.** Isolated interface cells holding less than half a cell of metal are
+dissolved (`min_fragment`; mass conserved, heat booked). That removes few cells: most of the
+specks above the pool are attached to the melt through thin, partly filled cells, which points
+to the curvature estimate. Height-function curvature with consistency checks is the fix.
+
 **Calibration on AM-Bench case B** (10 µm cells, absorption depth 5 µm instead of the
 conduction model's fitted 15.3 µm). Measured: width 123.5 ± 6.5 µm, depth 36.0 ± 1.9 µm.
 
