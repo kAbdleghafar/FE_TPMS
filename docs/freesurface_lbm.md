@@ -119,7 +119,7 @@ Width and depth are interpolated at the solidus in the cross-section at 75 % of 
 | microstructure | LBM-CA grains, CET | our CA grains and phase field, from the same thermal history |
 | code | not released | Apache-2.0, in this repository |
 
-## 6. Powder beds and calibration (in progress)
+## 6. Powder beds, conservative heat and calibration
 
 **Powder generator** (`process/powder.py`, tested). It produces:
 * log-normal particle sizes (median 30 µm, 15–45 µm);
@@ -165,31 +165,51 @@ of running away. The booked residual is 0.7 %, and 2.6 % for a near-keyhole 200 
 spot.
 
 **Calibration on AM-Bench case B** (10 µm cells, absorption depth 5 µm instead of the
-conduction model's fitted 15.3 µm):
+conduction model's fitted 15.3 µm). Measured: width 123.5 ± 6.5 µm, depth 36.0 ± 1.9 µm.
 
-| dσ/dT [N/(m K)] | absorptivity | width | depth | peak T |
+| Marangoni model | absorptivity | width | depth | speed limiter (cells) |
 |---|---|---|---|---|
-| −1.1e-4 (outward flow) | 0.32 | 136 µm | 30.5 µm | 2870 °C |
-| +1.0e-4 (inward flow) | 0.32 | 151 µm | 35.3 µm | 6000 °C (table limit) |
-| measured | | 123.5 ± 6.5 µm | 36.0 ± 1.9 µm | |
+| none | 0.28 | 129 µm | 31.2 µm | 0 |
+| none | 0.36 | 143 µm | 39.0 µm | 0 |
+| constant −1.1e-4 N/(m K), outward | 0.32 | 136 µm | 30.5 µm | – |
+| constant +1.0e-4, inward | 0.32 | 151 µm | 35.3 µm | (peak T hits the table limit) |
+| Sahoo, sulfur activity 0.005 | 0.32 | 133 µm | 38.1 µm | 31 |
+| Sahoo, 0.01 | 0.32 | 132 µm | 35.4 µm | 23 |
+| Sahoo, 0.02 | 0.32 | 134 µm | 35.6 µm | 33 |
+| Sahoo, 0.01 | 0.30 | 133 µm | 35.5 µm | 50 |
+| Sahoo, 0.01 | 0.28 | 132 µm | 35.6 µm | 40 |
 
-* **Outward flow gives a pool too wide and too shallow.** A higher absorptivity would widen it
-  further.
-* **Inward flow fixes the depth** but focuses the heat, until recoil spreads the surface.
-* **What is missing.** A single constant dσ/dT cannot give the measured shape. IN625 contains
-  sulfur and oxygen, which make dσ/dT positive at lower temperatures and negative at higher
-  ones (Sahoo et al. 1988). That temperature-dependent surface tension is the next physics to
-  add. The conduction model hides the gap with its fitted 15 µm absorption depth.
-* **Not finished.** The runs at absorptivity 0.40 were lost to a container restart and were
-  not repeated.
+The first four rows predate the conservative heat step; the Sahoo and no-Marangoni rows use
+`energy_transport="lbm"`.
+
+* **No constant dσ/dT gives the measured shape.**
+  * Outward flow makes the pool too shallow.
+  * Inward flow overheats the centre until recoil spreads the surface.
+* **Sahoo surface tension** (`SahooSurfaceTension`: Fe–S adsorption constants of Sahoo et al.
+  1988 with the slope of pure nickel; dσ/dT changes sign at 1,500–1,800 °C for sulfur
+  activities 0.003–0.02):
+  * puts the depth on the measurement for any sulfur activity from 0.005 to 0.02;
+  * leaves the width 1.3–1.6 standard deviations above it.
+* **The 10 µm results are not usable for calibration yet.**
+  * Without Marangoni, the pool grows with absorptivity as it should.
+  * With Sahoo Marangoni, it stays at 132–133 × 35.5 µm for absorptivity 0.28–0.32, while
+    the lattice speed limiter acts in 23–50 cells.
+  * The Marangoni shear layer under the surface is under-resolved at 10 µm, so the limiter,
+    not the physics, sets the pool size.
+* **Next.** Repeat at 5 µm, which needs the faster kernels below and, for routine use, a GPU.
+
+**Speed.** `freesurface_kernels.py` fuses the lattice step into one numba pass per cell. This
+is the loop structure a CUDA kernel needs, and it is chosen automatically on the CPU. It gives
+the same flags and fields as the array version to round-off (tested). The lattice step is
+about 3× faster. The rest of the time step (curvature, surface terms, heat, interface
+bookkeeping) is still whole-array NumPy and is now the bottleneck; moving it into kernels is
+the GPU port.
 
 ## 7. Next steps
 
-1. **Heat that moves with the melt, conservatively.** Fix the `"lbm"` energy transport, add
-   implicit evaporation and handle nearly empty cells. Then single tracks on powder: balling,
-   width and roughness.
-2. **Temperature-dependent surface tension (Sahoo, sulfur-bearing alloys).** Then calibrate
-   the absorptivity on AM-Bench cases A–C at 5 µm.
+1. **Single tracks on powder vs plate** (running): balling, width and roughness.
+2. **Case B at 5 µm with Sahoo surface tension**, then the absorptivity on AM-Bench cases A–C
+   (predict A and C from B).
 3. **Moving fine window and coarse thermal background.** Fused CUDA kernels.
 4. **Height-function curvature with consistency checks.** A better curvature for powder and
    keyholes.
