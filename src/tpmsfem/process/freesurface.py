@@ -102,6 +102,8 @@ class FreeSurfaceLBM:
         # fused numba kernels on the CPU (float64); the array version otherwise (NumPy or CuPy)
         self.kernel = "numba" if (xp is np and _k.available() and np.dtype(dtype) == np.float64) else "array"
         self.limited = 0               # most cells limited in one step
+        self.min_fragment = 0.5        # isolated interface cells with less metal are dissolved (0: off)
+        self.fragments_removed = 0
         self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
         self.steps = 0
@@ -468,8 +470,20 @@ class FreeSurfaceLBM:
 
     def _close_layer(self):
         """Keep the interface closed: liquid cells next to gas become (full) interface
-        cells; interface cells without gas neighbours become liquid."""
+        cells; interface cells without gas neighbours become liquid. Isolated interface cells
+        (no liquid or interface neighbour) holding less than ``min_fragment`` of a cell are
+        dissolved: debris below the grid resolution, not resolvable spatter. Their mass goes to
+        the interface (mass is conserved) and their heat is booked in ``h_residual``."""
         xp = self.xp
+        if self.min_fragment > 0.0:
+            fl = (self.flag == LIQUID) | (self.flag == INTERFACE)
+            lonely = (self.flag == INTERFACE) & ~self._any_nb(fl) & (self.mass < self.min_fragment)
+            if bool(lonely.any()):
+                excess = self.mass.copy()
+                self.flag = xp.where(lonely, GAS, self.flag).astype(np.int8)
+                self.mass = xp.where(lonely, 0.0, self.mass)
+                self.fragments_removed += int(xp.sum(lonely))
+                self._distribute(excess, lonely, self.flag == INTERFACE)
         gas = self.flag == GAS
         liq_gas = (self.flag == LIQUID) & self._any_nb(gas)
         if bool(liq_gas.any()):
