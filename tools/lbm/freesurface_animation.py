@@ -66,15 +66,15 @@ def movie(npz, out, fps=20):
     import tempfile
 
     import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from matplotlib.colors import Normalize
+    from matplotlib.colors import LightSource, Normalize
 
     d = np.load(npz)
     t, T, F = d["t"], d["T"], d["fill"].astype(np.float32)
     h = float(d["h"])
     pt = float(d["plate_top"])
     norm = Normalize(25, 2800)
-    cmap = plt.get_cmap("inferno")
+    cmap = plt.get_cmap("RdYlBu_r")              # cold metal blue, melt orange to red
+    light = LightSource(azdeg=315, altdeg=40)
     tmp = tempfile.mkdtemp()
     x = (np.arange(T.shape[1] - 2) + 0.5) * h * 1e6
     y = (np.arange(T.shape[2] - 2) + 0.5) * h * 1e6
@@ -88,8 +88,8 @@ def movie(npz, out, fps=20):
         Ts = Ts[1:-1, 1:-1]
         fig = plt.figure(figsize=(13, 5.2))
         ax = fig.add_subplot(1, 2, 1, projection="3d")
-        ax.plot_surface(X, Y, Z, facecolors=cmap(norm(Ts)), rstride=1, cstride=1, linewidth=0, antialiased=False,
-                        shade=False)
+        rgb = light.shade_rgb(cmap(norm(Ts))[..., :3], Z, blend_mode="soft", vert_exag=0.4)
+        ax.plot_surface(X, Y, Z, facecolors=rgb, rstride=1, cstride=1, linewidth=0, antialiased=False, shade=False)
         ax.set_zlim(-40, 80)
         ax.set_box_aspect((x[-1], y[-1], 120 * 1.6))
         ax.view_init(elev=38, azim=-62)
@@ -107,24 +107,25 @@ def movie(npz, out, fps=20):
         sec_T = np.where(sec_f > 0.5, Tn[1:-1, j, 1:-1].T, np.nan)
         zz = (np.arange(fill.shape[2] - 2) + 0.5) * h * 1e6 - (pt * 1e6 - h * 1e6)
         im = ax2.pcolormesh(x, zz, sec_T, cmap=cmap, norm=norm, shading="nearest")
-        ax2.contour(x, zz, sec_f, [0.5], colors=["#9ecae1"], linewidths=0.8)
+        ax2.contour(x, zz, sec_f, [0.5], colors=["#333333"], linewidths=0.6)
         melt = np.where(sec_f > 0.5, Tn[1:-1, j, 1:-1].T, 0.0)
-        ax2.contour(x, zz, melt, [1290.0], colors=["#ffffff"], linewidths=1.0, linestyles="--")
+        ax2.contour(x, zz, melt, [1290.0], colors=["#000000"], linewidths=1.0, linestyles="--")
         ax2.axhline(0.0, color="#888888", lw=0.6, ls=":")
         if on:
-            ax2.axvline(xl, color="#2a78d6", lw=1.0)
+            ax2.axvline(xl, color="#1baf7a", lw=1.2)
         ax2.set_ylim(-45, 85)
         ax2.set_aspect("equal")
         ax2.set_xlabel("x along the track [um]", fontsize=8.5)
         ax2.set_ylabel("z above the plate [um]", fontsize=8.5)
-        ax2.set_title("section through the track centre\nwhite dashed: melt (solidus), blue line: laser",
+        ax2.set_title("section through the track centre\nblack dashed: melt boundary (solidus), green: laser",
                       fontsize=9.5)
         ax2.tick_params(labelsize=8)
         cb = fig.colorbar(im, ax=ax2, fraction=0.03, pad=0.02)
         cb.set_label("temperature [C]", fontsize=8)
         fig.suptitle(f"One LPBF track over a 40 um powder layer (IN625, {float(d['P']):.0f} W, "
                      f"{float(d['v']):.1f} m/s): free-surface lattice Boltzmann, 5 um cells    t = {t[n] * 1e6:5.1f} us",
-                     fontsize=10.5, x=0.02, ha="left")
+                     fontsize=10.5, x=0.02, y=0.99, ha="left")
+        fig.subplots_adjust(top=0.84)
         fig.savefig(os.path.join(tmp, f"f{n:04d}.png"), dpi=110)
         plt.close(fig)
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-i", os.path.join(tmp, "f%04d.png"),
