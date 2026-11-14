@@ -97,7 +97,7 @@ class FreeSurfaceLBM:
         self.u_limit = 0.25            # lattice speed limit (Mach ~0.43); 0 or None: off
         self.h = None                  # optional scalar carried with the mass (e.g. enthalpy per mass):
                                        # moved along every link with the mass flux, upwind
-        self.h_residual = 0.0          # carried quantity left in (nearly) empty cells
+        self.h_residual = 0.0          # carried quantity (x mass) the bounded update could not place
         self.limited = 0               # most cells limited in one step
         self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
@@ -217,7 +217,9 @@ class FreeSurfaceLBM:
         if carry:
             liq = flag == LIQUID
             m_old = xp.where(itf, self.mass, xp.where(liq, self.rho, 0.0))
-            dE = xp.zeros(self.shape, dtype=self.dtype)
+            E_in = xp.zeros(self.shape, dtype=self.dtype)
+            M_in = xp.zeros(self.shape, dtype=self.dtype)
+            M_out = xp.zeros(self.shape, dtype=self.dtype)
         for i in range(Q):
             c = C[i]
             fi = _roll(xp, f[i], c)
@@ -245,7 +247,10 @@ class FreeSurfaceLBM:
             if carry:
                 # mass through this link: weighted for interface cells, full for liquid cells
                 J = xp.where(itf, wgt * ex, xp.where(liq & ((src == LIQUID) | (src == INTERFACE)), ex, 0.0))
-                dE += J * xp.where(J > 0, _roll(xp, self.h, c), self.h)
+                Jp = xp.maximum(J, 0.0)
+                M_in += Jp
+                E_in += Jp * _roll(xp, self.h, c)
+                M_out -= xp.minimum(J, 0.0)
         self.mass = xp.where(itf, self.mass + dm, self.mass)
         # macroscopic fields
         rho = fs.sum(axis=0)
@@ -288,11 +293,7 @@ class FreeSurfaceLBM:
         self.rho, self.u = rho, u
         self.mass = xp.where(flag == LIQUID, rho, self.mass)
         if carry:
-            m_new = xp.where(fluid, self.mass, 0.0)
-            E = m_old * self.h + dE
-            ok = m_new > 1e-3
-            self.h_residual += float(xp.sum(xp.where(fluid & ~ok, E - m_new * self.h, 0.0)))
-            self.h = xp.where(fluid & ok, E / xp.maximum(m_new, 1e-3), self.h)
+            self._mix(fluid, m_old, M_in, E_in, M_out)
         self._convert()
         self.steps += 1
 
@@ -303,6 +304,24 @@ class FreeSurfaceLBM:
         for i in range(1, Q):
             out |= _nb(xp, mask, C[i])
         return out
+
+    def _mix(self, mask, m_before, m_in, E_in, m_out, extra_true=None):
+        """Update the carried value h of the cells in ``mask``: mass ``m_in`` arrives carrying
+        ``E_in`` (= mass x its h), mass ``m_out`` leaves at the cell's own h. The new h is the
+        mass-weighted mean of what stays and what arrives, so it never leaves the range of the
+        values involved, and it is exact (conservative) unless a cell sends out more than it
+        held; that difference is added to ``h_residual``."""
+        xp = self.xp
+        h = self.h
+        base = xp.maximum(m_before - m_out, 0.0)
+        denom = base + m_in
+        h_new = xp.where(denom > 1e-12, (base * h + E_in) / xp.maximum(denom, 1e-12), h)
+        m_after = m_before + m_in - m_out
+        exact = m_before * h + E_in - m_out * h
+        if extra_true is not None:
+            exact = exact + extra_true
+        self.h_residual += float(xp.sum(xp.where(mask, exact - m_after * h_new, 0.0)))
+        self.h = xp.where(mask, h_new, h)
 
     def _distribute(self, excess, src_mask, recv_mask):
         """Spread ``excess`` of the cells in ``src_mask`` equally over their neighbours in
@@ -318,21 +337,32 @@ class FreeSurfaceLBM:
         for i in range(1, Q):
             got += _nb(xp, share, C[i])
         if self.h is not None:
-            share_h = share * self.h
-            got_h = xp.zeros(self.shape, dtype=self.dtype)
+            # positive excess brings the donor's h; a deficit is taken at the receiver's own h
+            # (bounded), and the difference to the donor's value is booked in h_residual
+            sp, sn = xp.maximum(share, 0.0), xp.minimum(share, 0.0)
+            got_p = xp.zeros(self.shape, dtype=self.dtype)
+            got_hp = xp.zeros(self.shape, dtype=self.dtype)
+            got_n = xp.zeros(self.shape, dtype=self.dtype)
+            got_hn = xp.zeros(self.shape, dtype=self.dtype)
             for i in range(1, Q):
-                got_h += _nb(xp, share_h, C[i])
-            m_before = self.mass
-            m_after = self.mass + xp.where(recv_mask, got, 0.0)
-            E = m_before * self.h + xp.where(recv_mask, got_h, 0.0)
-            ok = recv_mask & (m_after > 1e-3)
-            self.h_residual += float(xp.sum(xp.where(recv_mask & ~ok, E - m_after * self.h, 0.0)))
-            self.h = xp.where(ok, E / xp.maximum(m_after, 1e-3), self.h)
+                c = C[i]
+                got_p += _nb(xp, sp, c)
+                got_hp += _nb(xp, sp * self.h, c)
+                got_n += _nb(xp, sn, c)
+                got_hn += _nb(xp, sn * self.h, c)
+            r = recv_mask
+            self._mix(r, self.mass, xp.where(r, got_p, 0.0), xp.where(r, got_hp, 0.0), xp.where(r, -got_n, 0.0),
+                      extra_true=xp.where(r, got_hn - got_n * self.h, 0.0))
         self.mass = self.mass + xp.where(recv_mask, got, 0.0)
-        orphan = float(xp.sum(xp.where(n > 0, 0.0, ex)))
+        orphan_mask = src_mask & (n <= 0)
+        orphan = float(xp.sum(xp.where(orphan_mask, ex, 0.0)))
         if orphan != 0.0:
             n_itf = int(xp.sum(recv_mask))
             if n_itf:
+                if self.h is not None:                # spread at the receivers' own h; book the difference
+                    orphan_E = float(xp.sum(xp.where(orphan_mask, ex * self.h, 0.0)))
+                    applied = float(xp.sum(xp.where(recv_mask, self.h, 0.0))) * orphan / n_itf
+                    self.h_residual += orphan_E - applied
                 self.mass = self.mass + xp.where(recv_mask, orphan / n_itf, 0.0)
             else:
                 self.lost_mass += orphan
@@ -408,6 +438,50 @@ class FreeSurfaceLBM:
 
 # ====================================================================== LPBF coupling
 @dataclass
+class SahooSurfaceTension:
+    """Surface tension of a melt with a surface-active solute (Sahoo, DebRoy & McNallan,
+    Metall. Trans. B 19 (1988) 483):
+
+        sigma(T) = sigma_m - A (T - T_m) - R T Gamma_s ln(1 + K a_s),
+        K = k1 exp(-dH0 / (R T)),
+
+    so dsigma/dT = -A - R Gamma_s ln(1 + K a_s) - K a_s / (1 + K a_s) * Gamma_s dH0 / T.
+    With a surface-active solute (sulfur, oxygen) dsigma/dT is positive at lower temperatures
+    (inward Marangoni flow) and negative at higher ones. Defaults: the Fe-S constants of
+    Sahoo et al.; ``a_s`` is the solute activity (~ wt%). T in degC."""
+    a_s: float = 0.005
+    A: float = 4.3e-4               # N/(m K), slope of the pure solvent
+    gamma_s: float = 1.3e-8         # kmol/m^2, surface excess at saturation
+    dH0: float = -1.66e8            # J/kmol, standard heat of adsorption
+    k1: float = 3.18e-3             # entropy factor
+    sigma_m: float = 1.8            # N/m at T_m
+    T_m: float = 1350.0             # degC
+    R: float = 8314.462618          # J/(kmol K)
+
+    def _K(self, T, xp=np):
+        Tk = xp.maximum(T + 273.15, 300.0)
+        return self.k1 * xp.exp(xp.minimum(-self.dH0 / (self.R * Tk), 60.0)), Tk
+
+    def sigma(self, T, xp=np):
+        K, Tk = self._K(T, xp)
+        return (self.sigma_m - self.A * (T - self.T_m)
+                - self.R * Tk * self.gamma_s * xp.log1p(K * self.a_s))
+
+    def dsigma_dT(self, T, xp=np):
+        K, Tk = self._K(T, xp)
+        Ka = K * self.a_s
+        return -self.A - self.R * self.gamma_s * xp.log1p(Ka) - Ka / (1.0 + Ka) * self.gamma_s * self.dH0 / Tk
+
+    def zero_crossing(self, lo=1000.0, hi=4000.0):
+        """Temperature [degC] where dsigma/dT changes sign (inward below, outward above)."""
+        T = np.linspace(lo, hi, 30001)
+        d = self.dsigma_dT(T)
+        k = np.nonzero(np.diff(np.sign(d)))[0]
+        return float(T[k[0]]) if len(k) else float("nan")
+
+
+
+@dataclass
 class LBMResult:
     dx: float
     dt: float
@@ -423,6 +497,7 @@ class LBMResult:
     steps: int
     seconds: float
     mlups: float
+    energy_residual: float = 0.0   # part of the energy error booked by the bounded transport (relative)
 
 
 class FreeSurfaceMeltPool:
@@ -501,7 +576,8 @@ class FreeSurfaceMeltPool:
         self.t = 0.0
         self.H_ref = float(np.interp(T0, tt, HH * 1e6))
         # surface physics (stage 2): Marangoni stress, recoil pressure, evaporation and radiation
-        self.dsigma_dT = float(dsigma_dT)
+        # a number [N/(m K)] or a model with dsigma_dT(T, xp), e.g. SahooSurfaceTension
+        self.dsigma_dT = dsigma_dT if hasattr(dsigma_dT, "dsigma_dT") else float(dsigma_dT)
         self.evaporation = evaporation
         self.recoil_factor = float(recoil_factor)
         self.emissivity = float(emissivity)
@@ -571,14 +647,20 @@ class FreeSurfaceMeltPool:
         return self.lbm.fill if self.heat_weight == "fill" else self.lbm.mass
 
     def _heat_step(self, q, loss=None):
-        """Advance the enthalpy one step. The heat capacity of a cell is its metal mass
-        (floored at ``eps_min`` so that nearly empty interface cells stay stable). Returns the
-        energy [J] that the source ``q`` and the surface ``loss`` [W/m^3] put in and took out."""
+        """Advance the enthalpy one step, conservatively. A cell's heat capacity is its metal
+        mass m. Each face's conductance is scaled by min(1, m_a / eps_min, m_b / eps_min), so a
+        nearly empty or overdrawn surface cell exchanges heat only in proportion to what it
+        holds, and every cell changes by exactly the flux it exchanges divided by its mass:
+        conduction (and the finite-volume advection) conserve energy exactly and stay stable.
+        Sources and surface losses go in with a capacity floored at ``eps_min``. Returns the
+        energy [J] that ``q`` and ``loss`` [W/m^3] put in and took out."""
         xp, dx, dt = self.xp, self.dx, self.dt
         T, H = self.T, self.H
         m = self.metal()
         k = xp.interp(T.ravel(), self._tt, self._kT).reshape(T.shape)
         u = self.lbm.u * (dx / dt)                                            # m/s
+        mass = xp.maximum(xp.where(m, self._weight(), 0.0), 0.0)
+        s_cell = xp.clip(mass / self.eps_min, 0.0, 1.0)
         div = xp.zeros(self.shape, dtype=self.dtype)
         for ax in range(3):
             a_ = [slice(None)] * 3
@@ -588,20 +670,23 @@ class FreeSurfaceMeltPool:
             both = m[a_] & m[b_]
             ka, kb = k[a_], k[b_]
             kf = 2.0 * ka * kb / (ka + kb)
-            flux = xp.where(both, kf * (T[b_] - T[a_]) / dx, 0.0)              # W/m^2, + in +axis... (into a)
+            flux = xp.where(both, kf * (T[b_] - T[a_]) / dx, 0.0)              # W/m^2 into a
             if self.energy_transport != "lbm":
                 # advection (upwind), face velocity = mean of the two cells
                 uf = 0.5 * (u[ax][a_] + u[ax][b_])
                 adv = xp.where(both, uf * xp.where(uf > 0, H[a_], H[b_]), 0.0)
                 flux = flux - adv
+            flux = flux * xp.minimum(s_cell[a_], s_cell[b_])
             div[a_] += flux / dx
             div[b_] -= flux / dx
-        mass = xp.where(m, self._weight(), 0.0)
         cap = xp.maximum(mass, self.eps_min)
-        rate = div + q - (loss if loss is not None else 0.0)
-        self.H = xp.where(m, H + dt * rate / cap, H)
+        live = m & (mass > 1e-9)
+        dH = dt * div / xp.maximum(mass, 1e-9)
+        src = q - (loss if loss is not None else 0.0)
+        dH = dH + dt * src / cap
+        self.H = xp.where(live, H + dH, H)
         self.T = xp.where(m, self._T_of_H(self.H), self.T)
-        frac = mass / cap
+        frac = xp.where(live, mass / cap, 0.0)
         e_in = float(xp.sum(frac * q)) * dx ** 3 * dt if not np.isscalar(q) else 0.0
         e_out = float(xp.sum(frac * loss)) * dx ** 3 * dt if loss is not None else 0.0
         return e_in, e_out
@@ -634,7 +719,7 @@ class FreeSurfaceMeltPool:
             if self.evaporation is not None:
                 q += self.evaporation.flux(T, xp) * 1e3                                  # mW/mm^2 -> W/m^2
             loss = xp.where(m, q * delta / dx, 0.0)
-        if self.dsigma_dT != 0.0:
+        if hasattr(self.dsigma_dT, "dsigma_dT") or self.dsigma_dT != 0.0:
             gT = []
             for ax in range(3):
                 up = xp.roll(m, -1, ax)
@@ -644,7 +729,8 @@ class FreeSurfaceMeltPool:
                 w = xp.where(up & dn, 0.5, 1.0)
                 gT.append(w * (Tu - Td) / dx)                                             # K/m
             nT = n[0] * gT[0] + n[1] * gT[1] + n[2] * gT[2]
-            Fm = [self.dsigma_dT * (gT[a] - n[a] * nT) * delta / dx for a in range(3)]    # N/m^3
+            ds = self.dsigma_dT.dsigma_dT(T, xp) if hasattr(self.dsigma_dT, "dsigma_dT") else self.dsigma_dT
+            Fm = [ds * (gT[a] - n[a] * nT) * delta / dx for a in range(3)]                # N/m^3
             scale = dt * dt / (self.rho0 * dx)
             hot = m & (T > self.Ts)
             self.lbm.force = xp.stack([xp.where(hot, Fm[a] * scale, 0.0) for a in range(3)])
@@ -748,11 +834,12 @@ class FreeSurfaceMeltPool:
                       f"mass err {(self.lbm.total_mass() - m0) / m0:.1e}  ({time.perf_counter() - t_start:.0f} s)",
                       flush=True)
         secs = time.perf_counter() - t_start
-        E1 = self.energy() + self.lbm.h_residual * dx ** 3      # heat left behind in emptied cells
+        E1 = self.energy()
         um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
         res = LBMResult(dx, dt, asnumpy(self.T), asnumpy(T_peak), asnumpy(self.lbm.flag), asnumpy(self.lbm.fill),
                         asnumpy(self.surface_height()), um, (self.lbm.total_mass() - m0) / m0,
                         ((E1 - E0) - absorbed + self.lost) / max(absorbed, 1e-30), absorbed, n, secs,
-                        n * np.prod(self.shape) / secs / 1e6)
+                        n * np.prod(self.shape) / secs / 1e6,
+                        self.lbm.h_residual * dx ** 3 / max(absorbed, 1e-30))
         res.snapshots = snaps
         return res
