@@ -120,3 +120,32 @@ def test_marangoni_force_and_quiescent_plate():
         md2.lbm.step()
     assert float(np.abs(np.asarray(md2.lbm.u)).max()) < 1e-12
     assert abs(md2.lbm.total_mass() - m0) / m0 < 1e-12
+
+
+def test_sahoo_surface_tension():
+    from tpmsfem.process.freesurface import SahooSurfaceTension
+
+    clean = SahooSurfaceTension(a_s=0.0)
+    assert clean.dsigma_dT(np.array([1500.0, 2500.0])) == pytest.approx([-4.3e-4, -4.3e-4])
+    m = SahooSurfaceTension(a_s=0.01)
+    T = np.linspace(1400.0, 3000.0, 9)
+    num = (m.sigma(T + 0.01) - m.sigma(T - 0.01)) / 0.02
+    np.testing.assert_allclose(m.dsigma_dT(T), num, rtol=1e-5, atol=1e-9)
+    Tc = m.zero_crossing()
+    assert 1500.0 < Tc < 2000.0
+    assert m.dsigma_dT(np.array(Tc - 100.0)) > 0.0 > m.dsigma_dT(np.array(Tc + 100.0))
+
+
+def test_energy_conserved_with_flow_and_mass_carried_heat():
+    """Marangoni flow with the enthalpy carried by the lattice mass flux: the energy error is
+    exactly the residual booked by the bounded transport, and that residual is small."""
+    h = 10e-6
+    metal = np.zeros((24, 14, 12), bool)
+    metal[1:-1, 1:-1, 1:7] = True
+    md = FreeSurfaceMeltPool(_const_material(), h, metal, dt=2e-7, T0=25.0, T_max=8000.0, dsigma_dT=-1.1e-4,
+                             energy_transport="lbm")
+    y = h + 6 * h
+    res = md.run(Laser(100.0, 0.35, 60e-6, depth=5e-6), [ScanVector(h + 40e-6, y, h + 180e-6, y, 0.8)])
+    assert abs(res.mass_error) < 1e-12
+    assert abs(res.energy_balance + res.energy_residual) < 1e-10
+    assert abs(res.energy_residual) < 1e-2
