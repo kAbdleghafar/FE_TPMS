@@ -211,6 +211,7 @@ conduction model's fitted 15.3 µm). Measured: width 123.5 ± 6.5 µm, depth 36.
 | Sahoo, 0.02 | 0.32 | 134 µm | 35.6 µm | 33 |
 | Sahoo, 0.01 | 0.30 | 133 µm | 35.5 µm | 50 |
 | Sahoo, 0.01 | 0.28 | 132 µm | 35.6 µm | 40 |
+| Sahoo, 0.01, **5 µm cells** | 0.32 | 145 µm | 33.2 µm | 742 (energy residual 5.4 %) |
 
 The first four rows predate the conservative heat step; the Sahoo and no-Marangoni rows use
 `energy_transport="lbm"`.
@@ -229,7 +230,17 @@ The first four rows predate the conservative heat step; the Sahoo and no-Marango
     the lattice speed limiter acts in 23–50 cells.
   * The Marangoni shear layer under the surface is under-resolved at 10 µm, so the limiter,
     not the physics, sets the pool size.
-* **Next.** Repeat at 5 µm, which needs the faster kernels below and, for routine use, a GPU.
+* **5 µm does not converge it.** At 5 µm (4.7 h on this CPU) the pool is 145 × 33 µm against
+  132 × 35 µm at 10 µm. The limiter acts in 742 cells and the booked energy residual is 5.4 %.
+  The Sahoo Marangoni flow (dσ/dT up to +4.5e-4 N/(m K)) is still clipped at 12.5 m/s, well
+  above the ~3 m/s expected from a boundary-layer estimate. So local spikes at the noisy
+  surface, not the bulk flow, are what hit the limiter.
+* **What a credible calibration needs.**
+  * A cleaner interface: fewer spurious currents.
+  * A shorter time step, so the limiter stays idle; at 5 µm that is about 10 h per run here,
+    minutes on a GPU.
+* **Until then, use the conduction model's calibration** (absorptivity 0.32, absorption depth
+  15 µm) for the process studies.
 
 **Speed.** `freesurface_kernels.py` fuses the lattice step into one numba pass per cell. This
 is the loop structure a CUDA kernel needs, and it is chosen automatically on the CPU. It gives
