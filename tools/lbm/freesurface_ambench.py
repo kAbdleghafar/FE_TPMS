@@ -51,9 +51,10 @@ def pool_size(Tp, nz, h, Ts, x_sec):
     return float(yr - yl) * 1e6, float(depth) * 1e6
 
 
-def run(case, A, cell_um=10.0, dt=2e-7, dsdT=-1.1e-4):
+def run(case, A, cell_um=10.0, dt=None, dsdT=-1.1e-4):
     c = CASES[case]
     h = cell_um * 1e-6
+    dt = dt or 2e-7 * cell_um / 10.0          # the lattice Mach number stays the same as at 10 um
     nx, ny, nz, ng = int(round(LX / h)), int(round(LY / h)), int(round(LZ / h)), int(round(GAS / h))
     metal = np.zeros((nx + 2, ny + 2, nz + ng + 2), bool)
     metal[1:-1, 1:-1, 1:nz + 1] = True
@@ -64,7 +65,7 @@ def run(case, A, cell_um=10.0, dt=2e-7, dsdT=-1.1e-4):
     y = h + 0.5 * LY
     res = md.run(Laser(c["P"], A, W_BEAM, depth=DELTA), [ScanVector(h + X0, y, h + X1, y, c["v"])], t_extra=60e-6)
     w, d = pool_size(res.T_peak, nz, h, md.Ts, X0 + 0.75 * (X1 - X0))
-    out = dict(case=case, A=A, dsigma_dT=dsdT, cell_um=cell_um, width_um=w, depth_um=d, measured_width=c["width"],
+    out = dict(case=case, A=A, dsigma_dT=dsdT, cell_um=cell_um, dt=dt, kernel=md.lbm.kernel, width_um=w, depth_um=d, measured_width=c["width"],
                measured_depth=c["depth"], T_peak_max=float(res.T_peak.max()), u_max_m_s=res.u_max,
                recoil_clipped=md.recoil_clipped, limited=md.lbm.limited, mass_error=res.mass_error,
                energy_balance=res.energy_balance, energy_residual=res.energy_residual, transport="lbm",
