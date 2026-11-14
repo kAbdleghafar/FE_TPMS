@@ -96,5 +96,31 @@
   "transport": "lbm",
   "steps": 4675,
   "seconds": 1469.474584272
+ },
+ "B|A=0.320|dsdT=S0.02|10um|lbm": {
+  "case": "B",
+  "A": 0.32,
+  "dsigma_dT": "S0.02",
+  "cell_um": 10.0,
+  "width_um": 133.71751461742625,
+  "depth_um": 35.5674145358105,
+  "measured_width": [
+   123.5,
+   6.5
+  ],
+  "measured_depth": [
+   36.0,
+   1.9
+  ],
+  "T_peak_max": 3149.4958007486866,
+  "u_max_m_s": 12.500000000000002,
+  "recoil_clipped": 0,
+  "limited": 33,
+  "mass_error": -4.91369670877854e-13,
+  "energy_balance": -0.021809162759498606,
+  "energy_residual": 0.021809162759274494,
+  "transport": "lbm",
+  "steps": 4675,
+  "seconds": 1431.6340249290006
  }
 }
