@@ -2,9 +2,11 @@
 Boltzmann melt pool (IN625 properties, Marangoni, recoil, evaporation, radiation, gravity).
 
 Powder: log-normal sizes (d50 30 um, 15-45 um), rained and rolled onto the plate, recoater at
-40 um (tpmsfem.process.powder). Laser 150 W, 0.8 m/s, 1/e^2 radius 50 um, absorptivity 0.40
-(Beer-Lambert along the metal), absorption depth 5 um. 5 um cells, 0.05 us steps (recoil-driven
-flow reaches ~10 m/s). Heat is carried with the lattice mass flux (energy_transport="lbm").
+40 um (tpmsfem.process.powder). Laser 179.2 W, 0.8 m/s, 1/e^2 radius 85 um (AM-Bench case B,
+conduction mode), absorptivity 0.40
+(Beer-Lambert along the metal), absorption depth 5 um. 5 um cells, 0.1 us steps.
+(At 150 W into a 50 um spot radius the track is in the keyhole regime: the speed limiter acts in
+~1,800 cells and the surface sprays; that needs finer steps than a CPU affords.) Heat is carried with the lattice mass flux (energy_transport="lbm").
 
     python tools/lbm/freesurface_powder_track.py powder|plate
 """
@@ -24,8 +26,8 @@ from tpmsfem.process.powder import rain_powder, voxelise  # noqa: E402
 
 OUT = "tools/lbm/powder_track.json"
 H = 5e-6
-LX, LY, PLATE, LAYER, GAS = 0.6e-3, 0.25e-3, 80e-6, 40e-6, 40e-6
-P, V, RADIUS, A, DELTA = 150.0, 0.8, 50e-6, 0.40, 5e-6
+LX, LY, PLATE, LAYER, GAS = 0.6e-3, 0.30e-3, 80e-6, 40e-6, 40e-6
+P, V, RADIUS, A, DELTA = 179.2, 0.8, 85e-6, 0.40, 5e-6
 X0, X1 = 0.1e-3, 0.5e-3
 
 
@@ -46,7 +48,7 @@ def geometry(case, seed=3):
 def run(case):
     fill, bed, npl = geometry(case)
     mat = tf.Material("IN625", 208_000.0, 0.278, thermal=IM.thermal_properties())
-    md = FreeSurfaceMeltPool(mat, H, fill, dt=5e-8, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=8000.0,
+    md = FreeSurfaceMeltPool(mat, H, fill, dt=1e-7, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=8000.0,
                              dsigma_dT=-1.1e-4, evaporation=Evaporation(), emissivity=0.4, energy_transport="lbm")
     s0 = np.asarray(md.surface_height()).copy()
     y = H + 0.5 * LY
