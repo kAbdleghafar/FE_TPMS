@@ -98,6 +98,9 @@ class FreeSurfaceLBM:
         self.h = None                  # optional scalar carried with the mass (e.g. enthalpy per mass):
                                        # moved along every link with the mass flux, upwind
         self.h_residual = 0.0          # carried quantity (x mass) the bounded update could not place
+        from . import freesurface_kernels as _k
+        # fused numba kernels on the CPU (float64); the array version otherwise (NumPy or CuPy)
+        self.kernel = "numba" if (xp is np and _k.available() and np.dtype(dtype) == np.float64) else "array"
         self.limited = 0               # most cells limited in one step
         self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
@@ -208,6 +211,9 @@ class FreeSurfaceLBM:
             rho_g = xp.full(self.shape, self.rho_gas, dtype=self.dtype)
         if self.gas_pressure is not None:
             rho_g = rho_g + self.gas_pressure
+        if self.kernel == "numba" and not self.rebuild_normal:
+            self._step_numba(flag, fluid, itf, rho_g)
+            return
         u = self.u
         eps = self.fill
         # streaming (pull), wall bounce-back, gas reconstruction, mass exchange
@@ -297,13 +303,71 @@ class FreeSurfaceLBM:
         self._convert()
         self.steps += 1
 
+    def _step_numba(self, flag, fluid, itf, rho_g):
+        """The same step as the array version, fused into one numba pass per cell."""
+        from .freesurface_kernels import stream_collide
+        sh = self.shape
+        carry = self.h is not None
+        if carry:
+            m_old = np.where(itf, self.mass, np.where(flag == LIQUID, self.rho, 0.0))
+        f_out = np.empty_like(self.f)
+        rho, u, mass = np.empty(sh), np.empty((3,) + sh), np.empty(sh)
+        E_in, M_in, M_out = (np.empty(sh), np.empty(sh), np.empty(sh)) if carry else (np.empty((1, 1, 1)),) * 3
+        solid = self.solid if self.solid is not None else np.zeros(sh, bool)
+        force = self.force if self.force is not None else np.zeros((3,) + sh)
+        damp = self.damping if isinstance(self.damping, np.ndarray) else np.full(sh, float(self.damping or 0.0))
+        h = self.h if carry else np.zeros((1, 1, 1))
+        n_lim = stream_collide(self.f, np.ascontiguousarray(flag), self.mass, np.ascontiguousarray(self.fill),
+                               np.ascontiguousarray(rho_g), self.u, h, np.ascontiguousarray(solid),
+                               np.ascontiguousarray(force), np.ascontiguousarray(damp), self.g.astype(np.float64),
+                               self.w_plus, self.w_minus, float(self.u_limit or 0.0), carry, C, W, OPP,
+                               f_out, rho, u, mass, E_in, M_in, M_out)
+        self.limited = max(self.limited, int(n_lim))
+        self.f, self.rho, self.u, self.mass = f_out, rho, u, mass
+        if carry:
+            self._mix(fluid, m_old, M_in, E_in, M_out)
+        self._convert()
+        self.steps += 1
+
     # ------------------------------------------------------------------ interface motion
     def _any_nb(self, mask):
         xp = self.xp
+        if self.kernel == "numba":
+            from .freesurface_kernels import nb_any
+            return nb_any(np.ascontiguousarray(mask, dtype=np.bool_), C)
         out = xp.zeros(self.shape, dtype=bool)
         for i in range(1, Q):
             out |= _nb(xp, mask, C[i])
         return out
+
+    def _nb_sum(self, a):
+        """Sum of ``a`` over the 18 neighbours."""
+        xp = self.xp
+        if self.kernel == "numba":
+            from .freesurface_kernels import nb_sum
+            return nb_sum(np.ascontiguousarray(a, dtype=np.float64), C)
+        out = xp.zeros(self.shape, dtype=self.dtype)
+        for i in range(1, Q):
+            out += _nb(xp, a, C[i])
+        return out
+
+    def _nb_sums(self, *arrays):
+        """Neighbour sums of several fields (one pass with the numba kernel)."""
+        if self.kernel == "numba":
+            from .freesurface_kernels import nb_sum_stack
+            return list(nb_sum_stack(np.ascontiguousarray(np.stack(arrays), dtype=np.float64), C))
+        return [self._nb_sum(a) for a in arrays]
+
+    def _feq_cells(self, mask, rho, u):
+        """Equilibrium populations written into ``self.f`` only at the cells in ``mask``."""
+        xp = self.xp
+        idx = xp.nonzero(mask)
+        r = rho[idx]
+        uu = [u[a][idx] for a in range(3)]
+        usq = uu[0] ** 2 + uu[1] ** 2 + uu[2] ** 2
+        for i in range(Q):
+            cu = C[i, 0] * uu[0] + C[i, 1] * uu[1] + C[i, 2] * uu[2]
+            self.f[i][idx] = W[i] * r * (1.0 + 3.0 * cu + 4.5 * cu * cu - 1.5 * usq)
 
     def _mix(self, mask, m_before, m_in, E_in, m_out, extra_true=None):
         """Update the carried value h of the cells in ``mask``: mass ``m_in`` arrives carrying
@@ -327,29 +391,19 @@ class FreeSurfaceLBM:
         """Spread ``excess`` of the cells in ``src_mask`` equally over their neighbours in
         ``recv_mask``; what has no receiver is spread over all interface cells."""
         xp = self.xp
+        if not bool(xp.any(src_mask)):
+            return
         ex = xp.where(src_mask, excess, 0.0)
-        n = xp.zeros(self.shape, dtype=self.dtype)
-        rcv = recv_mask.astype(self.dtype)
-        for i in range(1, Q):
-            n += _nb(xp, rcv, C[i])
+        n = self._nb_sum(recv_mask.astype(self.dtype))
         share = xp.where(n > 0, ex / xp.maximum(n, 1.0), 0.0)
-        got = xp.zeros(self.shape, dtype=self.dtype)
-        for i in range(1, Q):
-            got += _nb(xp, share, C[i])
-        if self.h is not None:
+        if self.h is None:
+            got = self._nb_sum(share)
+        else:
             # positive excess brings the donor's h; a deficit is taken at the receiver's own h
             # (bounded), and the difference to the donor's value is booked in h_residual
             sp, sn = xp.maximum(share, 0.0), xp.minimum(share, 0.0)
-            got_p = xp.zeros(self.shape, dtype=self.dtype)
-            got_hp = xp.zeros(self.shape, dtype=self.dtype)
-            got_n = xp.zeros(self.shape, dtype=self.dtype)
-            got_hn = xp.zeros(self.shape, dtype=self.dtype)
-            for i in range(1, Q):
-                c = C[i]
-                got_p += _nb(xp, sp, c)
-                got_hp += _nb(xp, sp * self.h, c)
-                got_n += _nb(xp, sn, c)
-                got_hn += _nb(xp, sn * self.h, c)
+            got_p, got_hp, got_n, got_hn = self._nb_sums(sp, sp * self.h, sn, sn * self.h)
+            got = got_p + got_n
             r = recv_mask
             self._mix(r, self.mass, xp.where(r, got_p, 0.0), xp.where(r, got_hp, 0.0), xp.where(r, -got_n, 0.0),
                       extra_true=xp.where(r, got_hn - got_n * self.h, 0.0))
@@ -382,26 +436,19 @@ class FreeSurfaceLBM:
         new_itf = (flag == GAS) & self._any_nb(fill)
         if bool(new_itf.any()):
             fluid = (flag == LIQUID) | (flag == INTERFACE)
-            s_rho = xp.zeros(self.shape, dtype=self.dtype)
-            s_u = xp.zeros((3,) + self.shape, dtype=self.dtype)
-            cnt = xp.zeros(self.shape, dtype=self.dtype)
             fl = fluid.astype(self.dtype)
-            for i in range(1, Q):
-                c = C[i]
-                w = _nb(xp, fl, c)
-                cnt += w
-                s_rho += w * _nb(xp, rho, c)
-                for a in range(3):
-                    s_u[a] += w * _nb(xp, self.u[a], c)
+            fields = [fl, fl * rho, fl * self.u[0], fl * self.u[1], fl * self.u[2]]
+            if self.h is not None:
+                fields.append(fl * self.h)
+            sums = self._nb_sums(*fields)
+            cnt, s_rho = sums[0], sums[1]
+            s_u = xp.stack(sums[2:5])
             r0 = xp.where(cnt > 0, s_rho / xp.maximum(cnt, 1.0), 1.0)
             u0 = s_u / xp.maximum(cnt, 1.0)
             if self.h is not None:                     # new cells hold no mass yet: neighbours' value
-                s_h = xp.zeros(self.shape, dtype=self.dtype)
-                for i in range(1, Q):
-                    s_h += _nb(xp, fl, C[i]) * _nb(xp, self.h, C[i])
+                s_h = sums[5]
                 self.h = xp.where(new_itf & (cnt > 0), s_h / xp.maximum(cnt, 1.0), self.h)
-            feq = self._feq(r0, u0)
-            self.f = xp.where(new_itf[None], feq, self.f)
+            self._feq_cells(new_itf, r0, u0)
             self.rho = xp.where(new_itf, r0, self.rho)
             self.u = xp.where(new_itf[None], u0, self.u)
             self.mass = xp.where(new_itf, 0.0, self.mass)

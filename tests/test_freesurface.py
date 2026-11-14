@@ -149,3 +149,25 @@ def test_energy_conserved_with_flow_and_mass_carried_heat():
     assert abs(res.mass_error) < 1e-12
     assert abs(res.energy_balance + res.energy_residual) < 1e-10
     assert abs(res.energy_residual) < 1e-2
+
+
+def test_numba_kernel_matches_array_version():
+    """The fused numba step gives the array version's result (to round-off)."""
+    from tpmsfem.process import freesurface_kernels as K
+
+    if not K.available():
+        pytest.skip("numba not installed")
+    flag, fill = _droplet(n=20, r=5.0)
+    out = {}
+    for kern in ("array", "numba"):
+        s = FreeSurfaceLBM(flag, fill, tau=0.7, sigma=0.01, gravity=(0.0, 0.0, -1e-5))
+        s.kernel = kern
+        s.h = np.where(fill > 0, 1.0 + np.arange(fill.size).reshape(fill.shape) % 7, 0.0)
+        for _ in range(60):
+            s.step()
+        out[kern] = s
+    a, b = out["array"], out["numba"]
+    assert (np.asarray(a.flag) == np.asarray(b.flag)).all()
+    np.testing.assert_allclose(b.mass, a.mass, atol=1e-10)
+    np.testing.assert_allclose(b.u, a.u, atol=1e-12)
+    np.testing.assert_allclose(b.h, a.h, atol=1e-9)
