@@ -119,12 +119,63 @@ Width and depth are interpolated at the solidus in the cross-section at 75 % of 
 | microstructure | LBM-CA grains, CET | our CA grains and phase field, from the same thermal history |
 | code | not released | Apache-2.0, in this repository |
 
-## 6. Next steps
+## 6. Powder beds and calibration (in progress)
 
-1. **Powder bed.** Random sphere packing (rain-and-settle), with the laser hitting the first
-   surface. Single tracks on powder: balling, width and roughness.
-2. **Calibration.** Calibrate the absorptivity in the flow model on AM-Bench cases A–C, at
-   5 µm.
+**Powder generator** (`process/powder.py`, tested). It produces:
+* log-normal particle sizes (median 30 µm, 15–45 µm);
+* rain-and-roll packing, where each particle rolls downhill until it is held;
+* a recoater cut.
+
+Measured: packing 0.43 for a 40 µm layer and 0.50–0.52 for deep beds; no overlaps; voxelised
+volume within 0.1 %.
+
+**Solver changes for powder.**
+* **Laser.** Absorbed by Beer–Lambert along the metal in each column, so light passes
+  through gaps and a thin sliver of a particle takes only its share.
+* **Cold powder.** Touching solid surface cells exchange no mass.
+* **Stability.** A lattice speed limiter (0.25), a recoil cap (both counted), and gravity.
+* **Mass.** Conserved to 1e-13 on plate and powder.
+
+**Powder tracks are not reliable yet.** When the powder melts and the surface churns, the
+heat balance goes wrong:
+* The finite-volume enthalpy advection disagrees with the free-surface mass exchange, giving
+  energy errors of 5–16 % and particles running away to 6,000–10,000 °C.
+* Carrying the enthalpy with the lattice mass flux (`energy_transport="lbm"`, the idea behind
+  HF-LBM's thermal distribution) cuts the powder energy error to 3 %. On the plate, however, it
+  runs hotter than the finite-volume version, which should not happen.
+
+So the next work is:
+* find that error in the `"lbm"` transport;
+* a conservative treatment of nearly empty cells;
+* implicit evaporation cooling;
+* smaller time steps for recoil-driven flow (a GPU job).
+
+**Calibration on AM-Bench case B** (10 µm cells, absorption depth 5 µm instead of the
+conduction model's fitted 15.3 µm):
+
+| dσ/dT [N/(m K)] | absorptivity | width | depth | peak T |
+|---|---|---|---|---|
+| −1.1e-4 (outward flow) | 0.32 | 136 µm | 30.5 µm | 2870 °C |
+| +1.0e-4 (inward flow) | 0.32 | 151 µm | 35.3 µm | 6000 °C (table limit) |
+| measured | | 123.5 ± 6.5 µm | 36.0 ± 1.9 µm | |
+
+* **Outward flow gives a pool too wide and too shallow.** A higher absorptivity would widen it
+  further.
+* **Inward flow fixes the depth** but focuses the heat, until recoil spreads the surface.
+* **What is missing.** A single constant dσ/dT cannot give the measured shape. IN625 contains
+  sulfur and oxygen, which make dσ/dT positive at lower temperatures and negative at higher
+  ones (Sahoo et al. 1988). That temperature-dependent surface tension is the next physics to
+  add. The conduction model hides the gap with its fitted 15 µm absorption depth.
+* **Not finished.** The runs at absorptivity 0.40 were lost to a container restart and were
+  not repeated.
+
+## 7. Next steps
+
+1. **Heat that moves with the melt, conservatively.** Fix the `"lbm"` energy transport, add
+   implicit evaporation and handle nearly empty cells. Then single tracks on powder: balling,
+   width and roughness.
+2. **Temperature-dependent surface tension (Sahoo, sulfur-bearing alloys).** Then calibrate
+   the absorptivity on AM-Bench cases A–C at 5 µm.
 3. **Moving fine window and coarse thermal background.** Fused CUDA kernels.
 4. **Height-function curvature with consistency checks.** A better curvature for powder and
    keyholes.
