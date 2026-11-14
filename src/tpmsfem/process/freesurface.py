@@ -89,11 +89,13 @@ class FreeSurfaceLBM:
         self.force = None              # extra body force (3, nx, ny, nz), lattice units, set by a coupler
         self.damping = None            # Darcy coefficient K (lattice units, per step), set by a coupler
         self.gas_pressure = None       # extra gas density (pressure * 3) on interface cells (recoil)
-        self.solid = None              # bool mask of solid (unmelted) cells, set by a coupler: they
-                                       # exchange no mass
+        self.solid = None              # bool mask of solid (unmelted) cells, set by a coupler: two
+                                       # touching solid cells exchange no mass
         self.lost_mass = 0.0
         self.kappa = xp.zeros(self.shape, dtype=dtype)
         self.smooth = 1                # smoothing passes for the normal and curvature
+        self.u_limit = 0.25            # lattice speed limit (Mach ~0.43); 0 or None: off
+        self.limited = 0               # most cells limited in one step
         self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
         self.steps = 0
@@ -229,8 +231,8 @@ class FreeSurfaceLBM:
             # mass exchange of interface cells with liquid / interface neighbours
             src_eps = _roll(xp, eps, c)
             wgt = xp.where(src == LIQUID, 1.0, xp.where(src == INTERFACE, 0.5 * (eps + src_eps), 0.0))
-            if self.solid is not None:
-                wgt = xp.where(self.solid | _roll(xp, self.solid, c), 0.0, wgt)
+            if self.solid is not None:                 # touching solid interface cells (cold powder): nothing
+                wgt = xp.where(self.solid & _roll(xp, self.solid, c) & (src == INTERFACE), 0.0, wgt)
             dm += xp.where(itf, wgt * ex, 0.0)
         self.mass = xp.where(itf, self.mass + dm, self.mass)
         # macroscopic fields
@@ -245,6 +247,14 @@ class FreeSurfaceLBM:
             F = F + self.force
         K = self.damping if self.damping is not None else 0.0
         u = (j + 0.5 * F) / rho / (1.0 + 0.5 * K)
+        if self.u_limit:
+            # speed limiter (lattice Mach number): keeps violent recoil-driven spots stable;
+            # counts how many cells it touched
+            sp = xp.sqrt(u[0] ** 2 + u[1] ** 2 + u[2] ** 2)
+            over = sp > self.u_limit
+            if bool(over.any()):
+                self.limited = max(self.limited, int(xp.sum(over & fluid)))
+                u = u * xp.where(over, self.u_limit / xp.maximum(sp, 1e-30), 1.0)
         F = F - K * rho * u
         u = xp.where(fluid, u, 0.0)
         F = xp.where(fluid, F, 0.0)
@@ -463,6 +473,7 @@ class FreeSurfaceMeltPool:
         self.emissivity = float(emissivity)
         self.T_amb = float(T_ambient)
         self.lost = 0.0                       # J, through the surface
+        self.heat_weight = "mass"           # lattice mass (conserves heat through mass exchange) or "fill"
         self.recoil_cap = 0.1                 # largest recoil density jump on the lattice (3 p dt^2 / rho dx^2)
         self.recoil_clipped = 0               # most interface cells clipped in one step
         # heat-capacity floor of nearly empty interface cells: low enough to hold their heat,
@@ -514,7 +525,13 @@ class FreeSurfaceMeltPool:
         """Thermal energy of the metal [J] above the initial state: each cell weighted by its
         metal mass (lattice mass, 1 for a full cell at the reference density)."""
         xp = self.xp
-        return float(xp.sum(xp.where(self.metal(), self.lbm.mass * (self.H - self.H_ref), 0.0))) * self.dx ** 3
+        return float(xp.sum(xp.where(self.metal(), self._weight() * (self.H - self.H_ref), 0.0))) * self.dx ** 3
+
+    def _weight(self):
+        """Metal content of a cell for the heat balance: its fill level (volume fraction,
+        ``heat_weight='fill'``) or its lattice mass (``'mass'``, which also counts the small
+        lattice compressions)."""
+        return self.lbm.fill if self.heat_weight == "fill" else self.lbm.mass
 
     def _heat_step(self, q, loss=None):
         """Advance the enthalpy one step. The heat capacity of a cell is its metal mass
@@ -541,7 +558,7 @@ class FreeSurfaceMeltPool:
             flux = flux - adv
             div[a_] += flux / dx
             div[b_] -= flux / dx
-        mass = xp.where(m, self.lbm.mass, 0.0)
+        mass = xp.where(m, self._weight(), 0.0)
         cap = xp.maximum(mass, self.eps_min)
         rate = div + q - (loss if loss is not None else 0.0)
         self.H = xp.where(m, H + dt * rate / cap, H)

@@ -5,7 +5,7 @@ The flow model carries Marangoni convection, recoil and evaporation itself, so t
 depth is kept physical and small (5 um) instead of being a fitting knob as in the conduction
 model (15.3 um there).
 
-    python tools/lbm/freesurface_ambench.py <case> <absorptivity> [cell_um]
+    python tools/lbm/freesurface_ambench.py <case> <absorptivity> [cell_um] [dsigma_dT]
 """
 import json
 import os
@@ -46,7 +46,7 @@ def pool_size(Tp, nz, h, Ts, x_sec):
     return float(yr - yl) * 1e6, float(depth) * 1e6
 
 
-def run(case, A, cell_um=10.0, dt=2e-7):
+def run(case, A, cell_um=10.0, dt=2e-7, dsdT=-1.1e-4):
     c = CASES[case]
     h = cell_um * 1e-6
     nx, ny, nz, ng = int(round(LX / h)), int(round(LY / h)), int(round(LZ / h)), int(round(GAS / h))
@@ -54,20 +54,21 @@ def run(case, A, cell_um=10.0, dt=2e-7):
     metal[1:-1, 1:-1, 1:nz + 1] = True
     mat = tf.Material("IN625", 208_000.0, 0.278, thermal=IM.thermal_properties())
     md = FreeSurfaceMeltPool(mat, h, metal, dt=dt, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=6000.0,
-                             dsigma_dT=-1.1e-4, evaporation=Evaporation(), emissivity=0.4)
+                             dsigma_dT=dsdT, evaporation=Evaporation(), emissivity=0.4)
     y = h + 0.5 * LY
     res = md.run(Laser(c["P"], A, W_BEAM, depth=DELTA), [ScanVector(h + X0, y, h + X1, y, c["v"])], t_extra=60e-6)
     w, d = pool_size(res.T_peak, nz, h, md.Ts, X0 + 0.75 * (X1 - X0))
-    out = dict(case=case, A=A, cell_um=cell_um, width_um=w, depth_um=d, measured_width=c["width"],
+    out = dict(case=case, A=A, dsigma_dT=dsdT, cell_um=cell_um, width_um=w, depth_um=d, measured_width=c["width"],
                measured_depth=c["depth"], T_peak_max=float(res.T_peak.max()), u_max_m_s=res.u_max,
                recoil_clipped=md.recoil_clipped, mass_error=res.mass_error, energy_balance=res.energy_balance,
                steps=res.steps, seconds=res.seconds)
     print(json.dumps(out), flush=True)
     store = json.load(open(OUT)) if os.path.exists(OUT) else {}
-    store[f"{case}|A={A:.3f}|{cell_um:g}um"] = out
+    store[f"{case}|A={A:.3f}|dsdT={dsdT:+.1e}|{cell_um:g}um"] = out
     json.dump(store, open(OUT, "w"), indent=1)
     return out
 
 
 if __name__ == "__main__":
-    run(sys.argv[1], float(sys.argv[2]), float(sys.argv[3]) if len(sys.argv) > 3 else 10.0)
+    run(sys.argv[1], float(sys.argv[2]), float(sys.argv[3]) if len(sys.argv) > 3 else 10.0,
+        dsdT=float(sys.argv[4]) if len(sys.argv) > 4 else -1.1e-4)
