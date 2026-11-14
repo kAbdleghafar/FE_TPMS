@@ -54,11 +54,17 @@ def run(case):
                  verbose=True)
     plate_top = (npl + 1) * H
     surf = res.surface
+    # save the fields first: the metrics below must never cost a long run
+    np.savez_compressed(OUT.replace(".json", f"_{case}.npz"), surface0=s0.astype(np.float32),
+                        surface=surf.astype(np.float32), fill=res.fill.astype(np.float16),
+                        T_peak=res.T_peak.astype(np.float32), plate_top=plate_top, h=H,
+                        centres=np.zeros((0, 3)) if bed is None else bed.centres,
+                        radii=np.zeros(0) if bed is None else bed.radii)
     # melted region of the plate (peak T >= solidus below the plate top)
     Tp = res.T_peak
     sec = slice(int(round((X0 + 0.25 * (X1 - X0)) / H)) + 1, int(round((X0 + 0.75 * (X1 - X0)) / H)) + 1)
     melted = Tp[sec, 1:-1, 1:npl + 1] >= md.Ts
-    width = float(np.mean([(np.nonzero(m.any(axis=1))[0].ptp() + 1) * H * 1e6 if m.any() else 0.0
+    width = float(np.mean([(np.ptp(np.nonzero(m.any(axis=1))[0]) + 1) * H * 1e6 if m.any() else 0.0
                            for m in melted]))
     depth = float(np.mean([(npl - np.nonzero(m.any(axis=0))[0].min()) * H * 1e6 if m.any() else 0.0 for m in melted]))
     cl = (surf[sec, 1 + int(round(0.5 * LY / H))] - plate_top) * 1e6
@@ -72,11 +78,6 @@ def run(case):
     store = json.load(open(OUT)) if os.path.exists(OUT) else {}
     store[case] = out
     json.dump(store, open(OUT, "w"), indent=1)
-    np.savez_compressed(OUT.replace(".json", f"_{case}.npz"), surface0=s0.astype(np.float32),
-                        surface=surf.astype(np.float32), fill=res.fill.astype(np.float16),
-                        T_peak=Tp.astype(np.float32), plate_top=plate_top, h=H,
-                        centres=np.zeros((0, 3)) if bed is None else bed.centres,
-                        radii=np.zeros(0) if bed is None else bed.radii)
     return out
 
 
