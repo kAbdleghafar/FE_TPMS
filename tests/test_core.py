@@ -127,7 +127,7 @@ def test_cross_code_calculix_lattice(tmp_path):
     md.add_surface_load(top, ft, total_force=(20.0, 0.0, -100.0))
     md.set_eigenstrain(np.arange(m.n_cells), (-1e-3, -1e-3, -5e-4, 0, 0, 0))
     md.solve(solver="direct")
-    r = run_ccx(write_inp(md, str(tmp_path / "lat.inp"), dialect="calculix"))
+    r = run_ccx(write_inp(md, str(tmp_path / "lat.inp"), dialect="calculix"), threads=1)   # deterministic SPOOLES
     U = frd_field(read_frd(r["frd"]), "DISP", m.n_points)
     S = read_dat_stress(r["dat"], m.n_cells, 8)
     assert rel_l2(md.displacement(), U) < 1e-5
@@ -149,7 +149,7 @@ def test_cross_code_calculix_am_process(tmp_path):
     am.remove_from_plate(verbose=False)
     deck = write_inp(tf.SolidModel(m, TI), str(tmp_path / "am.inp"), dialect="calculix",
                      am=AMProcess(tf.SolidModel(m, TI), 0.5, eps, mode="nodal"))
-    r = run_ccx(deck)
+    r = run_ccx(deck, threads=1)                                   # deterministic SPOOLES
     U = frd_field(read_frd(r["frd"]), "DISP", m.n_points)
     S = read_dat_stress(r["dat"], m.n_cells, 8)
     assert rel_l2(md.displacement(), U) < 1e-5
