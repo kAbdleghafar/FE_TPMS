@@ -136,3 +136,19 @@ def test_boundaries_counted_next_to_strongly_enriched_droplets():
     r = PF.PFResult(phi, c, np.zeros((0, nx)), 1.0, 0.0, 0, 0.0, params=dict(W0_m=1.0, lT_m=100.0))
     assert r.boundaries() == 12
     assert r.spacing()[0] == pytest.approx(10.0)
+
+
+def test_solute_trapping_parameters():
+    """Continuous growth model: k(V) from k_e towards 1; m(V) = m_e at V = 0; dT0 shrinks."""
+    from tpmsfem.process.phasefield import IN625_NB
+
+    a0 = IN625_NB.at_velocity(0.0, 1.0)
+    assert a0.k == pytest.approx(IN625_NB.k) and a0.freezing_range == pytest.approx(IN625_NB.freezing_range)
+    a1 = IN625_NB.at_velocity(1.0, 1.0)                       # V = V_D: k = (k_e + 1)/2
+    assert a1.k == pytest.approx((0.48 + 1.0) / 2.0)
+    ks = [IN625_NB.at_velocity(V, 1.0).k for V in (0.01, 0.1, 1.0, 10.0)]
+    assert all(b > a for a, b in zip(ks, ks[1:])) and ks[-1] < 1.0
+    dT = [IN625_NB.at_velocity(V, 1.0).freezing_range for V in (0.01, 0.1, 1.0, 10.0)]
+    assert all(b < a for a, b in zip(dT, dT[1:]))
+    # without solute drag the kinetic liquidus is steeper than the equilibrium one
+    assert abs(IN625_NB.at_velocity(1.0, 1.0).m) > abs(IN625_NB.m)

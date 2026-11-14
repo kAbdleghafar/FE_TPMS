@@ -29,7 +29,8 @@ microstructure (``c / c_inf``). NumPy/CuPy backend.
 
 Validity. The model needs ``W0`` well below the diffusion length ``D/V`` and the tip radius.
 At LPBF speeds (``D/V`` ~ 10-100 nm) this is marginal, so check convergence in ``W0``.
-Non-equilibrium solute trapping and kinetic undercooling at very high V are not included.
+Solute trapping: :meth:`DiluteAlloy.at_velocity` (continuous growth model, effective
+parameters). Kinetic undercooling at very high V is not included.
 The run is 2-D: 2-D spacings are larger than 3-D ones.
 """
 from __future__ import annotations
@@ -75,6 +76,29 @@ class DiluteAlloy:
     def m(self):
         """Liquidus slope [K/wt%]."""
         return -self.freezing_range * self.k / (self.c_inf * (1.0 - self.k))
+
+    def at_velocity(self, V: float, V_D: float) -> "DiluteAlloy":
+        """The alloy seen by an interface moving at ``V`` [m/s], with solute trapping after
+        the continuous growth model of Aziz & Kaplan (Acta Metall. 36 (1988) 2335), without
+        solute drag:
+
+            k(V) = (k_e + V/V_D) / (1 + V/V_D),
+            m(V) = m_e [1 - k(V) (1 - ln(k(V)/k_e))] / (1 - k_e),
+
+        with ``V_D`` the diffusive speed of the interface. The freezing range follows as
+        |m(V)| c_inf (1 - k(V)) / k(V). This is the usual effective-parameter treatment: the
+        phase field is run with the velocity-corrected k and m (fixed during a run), not with
+        a model of trapping inside the diffuse interface. Trapping matters when V/V_D is not
+        small: at a fusion line (V ~ 0.01-0.05 m/s, V_D ~ 1 m/s) it changes k by a few
+        percent; near the top of a melt pool, where V approaches the scan speed, it does not
+        leave k near k_e."""
+        ke = self.k
+        r = V / V_D
+        kv = (ke + r) / (1.0 + r)
+        mv = self.m * (1.0 - kv * (1.0 - np.log(kv / ke))) / (1.0 - ke)
+        dT0 = abs(mv) * self.c_inf * (1.0 - kv) / kv
+        return DiluteAlloy(c_inf=self.c_inf, k=kv, freezing_range=dT0, D=self.D,
+                           gibbs_thomson=self.gibbs_thomson, eps4=self.eps4)
 
 
 #: IN625 (Ghosh et al. 2018) and the IN718-like Ni-5Nb alloy of Ghosh et al. (2017).
