@@ -28,6 +28,8 @@ def panel(ax, name, radius_um, layer, hatch, title, valid=None):
             ax.scatter([q[1] / 1000 for q in pts], [q[0] for q in pts], marker=mk, s=46, facecolor=col,
                        edgecolor="white", linewidth=0.8, zorder=5, label=lab)
         ax.legend(fontsize=6.5, loc="upper right", frameon=True, framealpha=0.9, edgecolor="none")
+    ax.set_xlim(0.33, 2.57)
+    ax.set_ylim(92, 308)
     ax.set_xlabel("scan speed [m/s]", fontsize=8.5)
     ax.set_ylabel("laser power [W]", fontsize=8.5)
     ax.set_title(title, fontsize=9, loc="left")
@@ -47,8 +49,12 @@ def figure():
                   "(a) IN625, spot radius 30 um\n30 um layer, 50 um hatch, plate 80 C", valid=L)
     panel(axs[1], "IN625", 40, L["layer"], L["hatch"],
           "(b) IN625, spot radius 40 um\nsame layer and hatch", valid=L)
-    panel(axs[2], "Cantor", 35, 0.030, 0.090,
-          "(c) CoCrFeMnNi, spot radius 35 um\n30 um layer, 90 um hatch (prediction, not validated)")
+    _, mc = panel(axs[2], "Cantor", 35, 0.030, 0.085,
+                  "(c) CoCrFeMnNi, spot radius 35 um\n30 um layer, 85 um hatch (prediction, not validated)")
+    i, j = M.POWERS.index(200), M.SPEEDS.index(750)
+    axs[2].scatter([0.75], [200], marker="*", s=180, facecolor="#f2c94c", edgecolor=INK, linewidth=0.8, zorder=6,
+                   label=f"gyroid study (criterion {mc['crit'][i, j]:.2f})")
+    axs[2].legend(fontsize=6.5, loc="upper right", frameon=True, framealpha=0.9, edgecolor="none")
     cax = fig.add_axes([0.945, 0.15, 0.012, 0.6])
     cb = fig.colorbar(im, cax=cax)
     cb.set_label("lack-of-fusion porosity [%] (geometric)", fontsize=8)

@@ -88,7 +88,7 @@ def run(name, radius_um, layer=0.030, T0=80.0, h=0.005, workers=4):
     jobs = []
     for P in POWERS:
         for v in SPEEDS:
-            k = f"{name}|r={radius_um:.0f}|L={layer * 1e3:.0f}|T0={T0:.0f}|P={P}|v={v:.0f}"
+            k = f"{name}|r={radius_um:.0f}|L={layer * 1e3:.0f}|T0={T0:.0f}|P={float(P)}|v={v:.0f}"
             if k not in store:
                 jobs.append((name, float(P), float(v), radius_um * 1e-3, layer, T0, h))
     print(f"{len(jobs)} tracks to run", flush=True)
@@ -122,7 +122,7 @@ def maps(name, radius_um, layer, hatch, T0=80.0):
     W, D, crit, por, Ke = (np.full(shape, np.nan) for _ in range(5))
     for i, P in enumerate(POWERS):
         for j, v in enumerate(SPEEDS):
-            r = store.get(f"{name}|r={radius_um:.0f}|L={layer * 1e3:.0f}|T0={T0:.0f}|P={P}|v={v:.0f}")
+            r = store.get(f"{name}|r={radius_um:.0f}|L={layer * 1e3:.0f}|T0={T0:.0f}|P={float(P)}|v={v:.0f}")
             if not r:
                 continue
             W[i, j], D[i, j] = r["width_um"], r["depth_um"]
