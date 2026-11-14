@@ -136,19 +136,33 @@ volume within 0.1 %.
 * **Stability.** A lattice speed limiter (0.25), a recoil cap (both counted), and gravity.
 * **Mass.** Conserved to 1e-13 on plate and powder.
 
-**Powder tracks are not reliable yet.** When the powder melts and the surface churns, the
-heat balance goes wrong:
-* The finite-volume enthalpy advection disagrees with the free-surface mass exchange, giving
-  energy errors of 5–16 % and particles running away to 6,000–10,000 °C.
-* Carrying the enthalpy with the lattice mass flux (`energy_transport="lbm"`, the idea behind
-  HF-LBM's thermal distribution) cuts the powder energy error to 3 %. On the plate, however, it
-  runs hotter than the finite-volume version, which should not happen.
+**Heat with a moving surface** (fixed). The first powder runs created energy, 5–16 %, and
+particles ran away to 6,000–10,000 °C. Two causes, both fixed:
 
-So the next work is:
-* find that error in the `"lbm"` transport;
-* a conservative treatment of nearly empty cells;
-* implicit evaporation cooling;
-* smaller time steps for recoil-driven flow (a GPU job).
+1. *Heat did not move with the mass.* The finite-volume advection uses cell velocities, while
+   the free surface moves mass by its own exchange rules. With `energy_transport="lbm"` the
+   enthalpy is carried with the mass itself:
+   * along every lattice link, with the mass that crosses it (upwind);
+   * when interface cells fill, empty or close, with the excess mass they pass on.
+
+   A cell's new value is the mass-weighted mean of what stays and what arrives, so it never
+   leaves the range of its neighbours. Only a cell that sends out more than it held cannot be
+   updated exactly; that energy is booked as a residual and reported.
+2. *Conduction into nearly empty cells.* With a capacity floor, a nearly empty or overdrawn
+   surface cell took a different share of a face flux from its neighbour. Each face's
+   conductance is now scaled by the fill of the emptier cell, and every cell changes by
+   exactly the flux it exchanges over its own mass. That is conservative and stable.
+
+| small plate, IN625, 10 µm (energy error) | finite volume | carried with the mass |
+|---|---|---|
+| flow, no surface driving | −2e-5 | −1e-5 |
+| with Marangoni | −1.5e-3 | −1.4e-4 |
+| with Marangoni and evaporation | −3.3e-3 | −7.3e-4 |
+
+With the mass-carried transport, the energy error equals the booked residual to 1e-10
+(tested). On powder at 5 µm the particles now peak near 3,500 °C (150 W, 100 µm spot) instead
+of running away. The booked residual is 0.7 %, and 2.6 % for a near-keyhole 200 W, 80 µm
+spot.
 
 **Calibration on AM-Bench case B** (10 µm cells, absorption depth 5 µm instead of the
 conduction model's fitted 15.3 µm):
