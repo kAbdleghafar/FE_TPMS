@@ -104,7 +104,12 @@ class FreeSurfaceLBM:
         self.limited = 0               # most cells limited in one step
         self.min_fragment = 0.5        # isolated interface cells with less metal are dissolved (0: off)
         self.fragments_removed = 0
-        self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
+        # "gradient" (smoothed fill gradient, default) or "height" (height function with
+        # consistency checks). The height function is 2-3x more accurate on a frozen surface
+        # with exact volume fractions, but in a running simulation it gives larger spurious
+        # currents (fill-level noise, switching to the fallback): experimental.
+        self.curvature_method = "gradient"
+        self.hf_smooth = False             # average the height-function curvature over neighbouring interface cells (experimental)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
         self.steps = 0
 
@@ -172,29 +177,60 @@ class FreeSurfaceLBM:
     def curvature(self):
         return self.normal_curvature()[1]
 
-    def height_function_curvature(self, normal=None, half: int = 3):
-        """Mean curvature by the height-function method (Cummins, Francois & Kothe 2005): the
-        fill levels are summed along the axis closest to the interface normal over a
-        (2 half + 1)-cell column, giving local surface heights on a 3 x 3 stencil, and
-        kappa = -div(grad h / sqrt(1 + |grad h|^2)). Second-order accurate, unlike the
-        smoothed-gradient estimate."""
+    def height_function_curvature(self, normal=None, half: int = 3, fallback=None, return_valid=False):
+        """Mean curvature by the height-function method (Cummins, Francois & Kothe 2005), with
+        the usual consistency checks.
+
+        The fill levels are summed along the axis closest to the interface normal over a
+        (2 half + 1)-cell column, giving the local surface height on a 3 x 3 stencil of
+        columns, and kappa = -div(grad h / sqrt(1 + |grad h|^2)) (the same expression whichever
+        side the liquid is on). The heights are trusted only where all nine columns cross the
+        surface cleanly: full liquid (fill > 0.99) at the liquid end of the column and empty
+        (fill < 0.01) at the other end. Elsewhere ``fallback`` (default: the smoothed-gradient
+        curvature) is used."""
         xp = self.xp
         e = self.fill
-        if normal is None:
-            normal = self.normal_curvature(1)[0]
-        kap = xp.zeros(self.shape, dtype=self.dtype)
+        if normal is None or fallback is None:
+            n_, k_ = self.normal_curvature(1)
+            normal = n_ if normal is None else normal
+            fallback = k_ if fallback is None else fallback
+        kap = fallback.copy()
+        valid = xp.zeros(self.shape, dtype=bool)
         best = xp.argmax(xp.abs(normal), axis=0)
         for a in range(3):
             S = sum(xp.roll(e, k, a) for k in range(-half, half + 1))
             b, c = [ax for ax in range(3) if ax != a]
+            # the column ends: +half and -half cells along a
+            e_hi, e_lo = xp.roll(e, -half, a), xp.roll(e, half, a)
+            na = normal[a]                                   # > 0: liquid towards +a
+            ok = xp.where(na > 0, (e_hi > 0.99) & (e_lo < 0.01), (e_lo > 0.99) & (e_hi < 0.01))
+            for db in (-1, 0, 1):                            # all nine columns of the stencil
+                for dc in (-1, 0, 1):
+                    if db or dc:
+                        okn = xp.where(na > 0, (xp.roll(xp.roll(e_hi, -db, b), -dc, c) > 0.99)
+                                       & (xp.roll(xp.roll(e_lo, -db, b), -dc, c) < 0.01),
+                                       (xp.roll(xp.roll(e_lo, -db, b), -dc, c) > 0.99)
+                                       & (xp.roll(xp.roll(e_hi, -db, b), -dc, c) < 0.01))
+                        ok = ok & okn
             Sp_b, Sm_b = xp.roll(S, -1, b), xp.roll(S, 1, b)
             Sp_c, Sm_c = xp.roll(S, -1, c), xp.roll(S, 1, c)
             hb, hc = 0.5 * (Sp_b - Sm_b), 0.5 * (Sp_c - Sm_c)
             hbb, hcc = Sp_b - 2.0 * S + Sm_b, Sp_c - 2.0 * S + Sm_c
             hbc = 0.25 * (xp.roll(Sp_b, -1, c) - xp.roll(Sp_b, 1, c) - xp.roll(Sm_b, -1, c) + xp.roll(Sm_b, 1, c))
             k_a = -(hbb * (1.0 + hc * hc) + hcc * (1.0 + hb * hb) - 2.0 * hb * hc * hbc) / (1.0 + hb * hb + hc * hc) ** 1.5
-            kap = xp.where(best == a, k_a, kap)
-        return kap
+            use = (best == a) & ok
+            kap = xp.where(use, k_a, kap)
+            valid = valid | use
+        if self.hf_smooth:
+            # average over the interface cells of the 3 x 3 x 3 neighbourhood (curvature
+            # extension): removes the switching noise between valid and fallback cells
+            itf = (self.flag == INTERFACE).astype(self.dtype)
+            num, den = kap * itf, itf.copy()
+            for i in range(1, Q):
+                num = num + _nb(xp, kap * itf, C[i])
+                den = den + _nb(xp, itf, C[i])
+            kap = xp.where(den > 0, num / xp.maximum(den, 1.0), kap)
+        return (kap, valid) if return_valid else kap
 
     # ------------------------------------------------------------------ one step
     def step(self):
@@ -205,7 +241,7 @@ class FreeSurfaceLBM:
         # gas density at the interface: Laplace pressure (+ recoil, set by a coupler)
         nrm, kap = self.normal_curvature(self.smooth)
         if self.sigma != 0.0 and self.curvature_method == "height":
-            kap = self.height_function_curvature(nrm)
+            kap = self.height_function_curvature(nrm, fallback=kap)
         if self.sigma != 0.0:
             self.kappa = xp.clip(kap, -0.5, 0.5)
             rho_g = self.rho_gas + 3.0 * self.sigma * self.kappa
