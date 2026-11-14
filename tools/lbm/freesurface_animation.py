@@ -3,7 +3,7 @@ melt pool: (left) the metal surface in 3-D, coloured by temperature; (right) the
 section through the track centre (metal and temperature).
 
     python tools/lbm/freesurface_animation.py run  <out.npz>     # simulate, ~10-15 min on a CPU
-    python tools/lbm/freesurface_animation.py movie <out.npz> <out.mp4>
+    python tools/lbm/freesurface_animation.py movie <out.npz> <out.mp4> [smooth|raw]
 """
 import os
 import sys
@@ -59,7 +59,21 @@ def surface(fill, h):
     return np.where(any_, (k + f) * h, 0.0), k
 
 
-def movie(npz, out, fps=20):
+def iso_mesh(fill, T, h_um, z0_um, sigma=0.8):
+    """Smoothed isosurface of the metal (fill level 0.5 after a Gaussian filter of ``sigma``
+    cells): triangle vertices [um] and the temperature at each triangle. Display only: the
+    smoothing does not touch the simulated fields."""
+    from scipy.ndimage import gaussian_filter, map_coordinates
+    from skimage.measure import marching_cubes
+
+    verts, faces, _, _ = marching_cubes(gaussian_filter(fill, sigma), 0.5)
+    Tf = map_coordinates(T, verts.T, order=1)[faces].mean(axis=1)
+    P = verts * h_um
+    P[:, 2] -= z0_um
+    return P[faces], Tf
+
+
+def movie(npz, out, fps=20, style="smooth"):
     import matplotlib
     matplotlib.use("Agg")
     import subprocess
@@ -75,6 +89,8 @@ def movie(npz, out, fps=20):
     norm = Normalize(25, 2800)
     cmap = plt.get_cmap("RdYlBu_r")              # cold metal blue, melt orange to red
     light = LightSource(azdeg=315, altdeg=40)
+    sun = np.array([-0.4, -0.5, 0.75])
+    sun /= np.linalg.norm(sun)
     tmp = tempfile.mkdtemp()
     x = (np.arange(T.shape[1] - 2) + 0.5) * h * 1e6
     y = (np.arange(T.shape[2] - 2) + 0.5) * h * 1e6
@@ -86,23 +102,47 @@ def movie(npz, out, fps=20):
         Ts = np.take_along_axis(Tn, k[:, :, None], axis=2)[:, :, 0]
         Z = (zs[1:-1, 1:-1] - pt) * 1e6
         Ts = Ts[1:-1, 1:-1]
-        fig = plt.figure(figsize=(13, 5.2))
-        ax = fig.add_subplot(1, 2, 1, projection="3d")
-        rgb = light.shade_rgb(cmap(norm(Ts))[..., :3], Z, blend_mode="soft", vert_exag=0.4)
-        ax.plot_surface(X, Y, Z, facecolors=rgb, rstride=1, cstride=1, linewidth=0, antialiased=False, shade=False)
-        ax.set_zlim(-40, 80)
-        ax.set_box_aspect((x[-1], y[-1], 120 * 1.6))
-        ax.view_init(elev=38, azim=-62)
-        ax.set_xlabel("x [um]", fontsize=8)
-        ax.set_ylabel("y [um]", fontsize=8)
-        ax.set_zlabel("height [um]", fontsize=8)
-        ax.tick_params(labelsize=7)
+        fig = plt.figure(figsize=(14, 5.6))
+        gs = fig.add_gridspec(1, 2, width_ratios=[1.45, 1.0], wspace=0.05, left=0.0, right=0.95)
+        ax = fig.add_subplot(gs[0], projection="3d")
         xl = (float(d["x0"]) + float(d["v"]) * min(t[n], float(d["t_scan"]))) * 1e6
         on = t[n] <= float(d["t_scan"])
-        ax.set_title(f"metal surface, coloured by temperature\nlaser {'at x = %.0f um' % xl if on else 'off'}",
+        if style == "smooth":
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+            # interior cells only (the wall layer is dropped), cell (0, 0, 0) at the origin
+            tri, Tf = iso_mesh(fill[1:-1, 1:-1, 1:-1], Tn[1:-1, 1:-1, 1:-1], h * 1e6, pt * 1e6 - h * 1e6)
+            nrm = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+            nrm /= np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-12
+            shade = 0.45 + 0.55 * np.clip(-(nrm @ sun), 0.0, 1.0)
+            col = cmap(norm(Tf))[:, :3] * shade[:, None]
+            ax.add_collection3d(Poly3DCollection(tri, facecolors=col, edgecolors=col, linewidths=0.2))
+            if on:                                  # the beam, drawn last and on top
+                ax.plot([xl, xl], [y[-1] / 2, y[-1] / 2], [40, 75], color="#1baf7a", lw=4, zorder=100,
+                        solid_capstyle="round")
+                ax.scatter([xl], [y[-1] / 2], [40], color="#1baf7a", s=40, zorder=101, depthshade=False)
+            ax.set_xlim(0, x[-1])
+            ax.set_ylim(0, y[-1])
+            ax.set_zlim(-60, 75)
+            ax.set_box_aspect((x[-1], y[-1], 135), zoom=0.92)
+            ax.view_init(elev=32, azim=-60)
+            ax.set_axis_off()
+        else:
+            rgb = light.shade_rgb(cmap(norm(Ts))[..., :3], Z, blend_mode="soft", vert_exag=0.4)
+            ax.plot_surface(X, Y, Z, facecolors=rgb, rstride=1, cstride=1, linewidth=0, antialiased=False,
+                            shade=False)
+            ax.set_zlim(-40, 80)
+            ax.set_box_aspect((x[-1], y[-1], 120 * 1.6))
+            ax.view_init(elev=38, azim=-62)
+            ax.set_xlabel("x [um]", fontsize=8)
+            ax.set_ylabel("y [um]", fontsize=8)
+            ax.set_zlabel("height [um]", fontsize=8)
+            ax.tick_params(labelsize=7)
+        what = "smoothed metal surface (display only), true scale" if style == "smooth" else "metal surface"
+        ax.set_title(f"{what}, coloured by temperature\nlaser {'at x = %.0f um' % xl if on else 'off'}",
                      fontsize=9.5)
         # longitudinal section
-        ax2 = fig.add_subplot(1, 2, 2)
+        ax2 = fig.add_subplot(gs[1])
         sec_f = fill[1:-1, j, 1:-1].T
         sec_T = np.where(sec_f > 0.5, Tn[1:-1, j, 1:-1].T, np.nan)
         zz = (np.arange(fill.shape[2] - 2) + 0.5) * h * 1e6 - (pt * 1e6 - h * 1e6)
@@ -125,7 +165,6 @@ def movie(npz, out, fps=20):
         fig.suptitle(f"One LPBF track over a 40 um powder layer (IN625, {float(d['P']):.0f} W, "
                      f"{float(d['v']):.1f} m/s): free-surface lattice Boltzmann, 5 um cells    t = {t[n] * 1e6:5.1f} us",
                      fontsize=10.5, x=0.02, y=0.99, ha="left")
-        fig.subplots_adjust(top=0.84)
         fig.savefig(os.path.join(tmp, f"f{n:04d}.png"), dpi=110)
         plt.close(fig)
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-i", os.path.join(tmp, "f%04d.png"),
@@ -138,4 +177,4 @@ if __name__ == "__main__":
     if sys.argv[1] == "run":
         simulate(sys.argv[2])
     else:
-        movie(sys.argv[2], sys.argv[3])
+        movie(sys.argv[2], sys.argv[3], style=sys.argv[4] if len(sys.argv) > 4 else "smooth")
