@@ -95,6 +95,9 @@ class FreeSurfaceLBM:
         self.kappa = xp.zeros(self.shape, dtype=dtype)
         self.smooth = 1                # smoothing passes for the normal and curvature
         self.u_limit = 0.25            # lattice speed limit (Mach ~0.43); 0 or None: off
+        self.h = None                  # optional scalar carried with the mass (e.g. enthalpy per mass):
+                                       # moved along every link with the mass flux, upwind
+        self.h_residual = 0.0          # carried quantity left in (nearly) empty cells
         self.limited = 0               # most cells limited in one step
         self.curvature_method = "gradient"  # or "height": height function (plain, no consistency checks yet: noisier here)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
@@ -210,6 +213,11 @@ class FreeSurfaceLBM:
         # streaming (pull), wall bounce-back, gas reconstruction, mass exchange
         fs = xp.empty_like(f)
         dm = xp.zeros(self.shape, dtype=self.dtype)
+        carry = self.h is not None
+        if carry:
+            liq = flag == LIQUID
+            m_old = xp.where(itf, self.mass, xp.where(liq, self.rho, 0.0))
+            dE = xp.zeros(self.shape, dtype=self.dtype)
         for i in range(Q):
             c = C[i]
             fi = _roll(xp, f[i], c)
@@ -234,6 +242,10 @@ class FreeSurfaceLBM:
             if self.solid is not None:                 # touching solid interface cells (cold powder): nothing
                 wgt = xp.where(self.solid & _roll(xp, self.solid, c) & (src == INTERFACE), 0.0, wgt)
             dm += xp.where(itf, wgt * ex, 0.0)
+            if carry:
+                # mass through this link: weighted for interface cells, full for liquid cells
+                J = xp.where(itf, wgt * ex, xp.where(liq & ((src == LIQUID) | (src == INTERFACE)), ex, 0.0))
+                dE += J * xp.where(J > 0, _roll(xp, self.h, c), self.h)
         self.mass = xp.where(itf, self.mass + dm, self.mass)
         # macroscopic fields
         rho = fs.sum(axis=0)
@@ -275,6 +287,12 @@ class FreeSurfaceLBM:
         self.f = xp.where(fluid[None], out, fs)
         self.rho, self.u = rho, u
         self.mass = xp.where(flag == LIQUID, rho, self.mass)
+        if carry:
+            m_new = xp.where(fluid, self.mass, 0.0)
+            E = m_old * self.h + dE
+            ok = m_new > 1e-3
+            self.h_residual += float(xp.sum(xp.where(fluid & ~ok, E - m_new * self.h, 0.0)))
+            self.h = xp.where(fluid & ok, E / xp.maximum(m_new, 1e-3), self.h)
         self._convert()
         self.steps += 1
 
@@ -299,6 +317,17 @@ class FreeSurfaceLBM:
         got = xp.zeros(self.shape, dtype=self.dtype)
         for i in range(1, Q):
             got += _nb(xp, share, C[i])
+        if self.h is not None:
+            share_h = share * self.h
+            got_h = xp.zeros(self.shape, dtype=self.dtype)
+            for i in range(1, Q):
+                got_h += _nb(xp, share_h, C[i])
+            m_before = self.mass
+            m_after = self.mass + xp.where(recv_mask, got, 0.0)
+            E = m_before * self.h + xp.where(recv_mask, got_h, 0.0)
+            ok = recv_mask & (m_after > 1e-3)
+            self.h_residual += float(xp.sum(xp.where(recv_mask & ~ok, E - m_after * self.h, 0.0)))
+            self.h = xp.where(ok, E / xp.maximum(m_after, 1e-3), self.h)
         self.mass = self.mass + xp.where(recv_mask, got, 0.0)
         orphan = float(xp.sum(xp.where(n > 0, 0.0, ex)))
         if orphan != 0.0:
@@ -336,6 +365,11 @@ class FreeSurfaceLBM:
                     s_u[a] += w * _nb(xp, self.u[a], c)
             r0 = xp.where(cnt > 0, s_rho / xp.maximum(cnt, 1.0), 1.0)
             u0 = s_u / xp.maximum(cnt, 1.0)
+            if self.h is not None:                     # new cells hold no mass yet: neighbours' value
+                s_h = xp.zeros(self.shape, dtype=self.dtype)
+                for i in range(1, Q):
+                    s_h += _nb(xp, fl, C[i]) * _nb(xp, self.h, C[i])
+                self.h = xp.where(new_itf & (cnt > 0), s_h / xp.maximum(cnt, 1.0), self.h)
             feq = self._feq(r0, u0)
             self.f = xp.where(new_itf[None], feq, self.f)
             self.rho = xp.where(new_itf, r0, self.rho)
@@ -406,7 +440,7 @@ class FreeSurfaceMeltPool:
                  sigma: float = 1.8, mushy_C: float = 1e9, T0: float = 25.0, T_max: float = 6000.0,
                  dtype=np.float64, magic: float = 3.0 / 16.0, smooth_surface_tension: bool = True,
                  dsigma_dT: float = 0.0, evaporation=None, recoil_factor: float = 0.54, emissivity: float = 0.0,
-                 T_ambient: float = 25.0, gravity=(0.0, 0.0, -9.81)):
+                 T_ambient: float = 25.0, gravity=(0.0, 0.0, -9.81), energy_transport: str = "fv"):
         th = material.thermal
         self.xp = xp = get_xp()
         self.dtype = dtype
@@ -473,6 +507,9 @@ class FreeSurfaceMeltPool:
         self.emissivity = float(emissivity)
         self.T_amb = float(T_ambient)
         self.lost = 0.0                       # J, through the surface
+        # "fv": enthalpy advected by finite volumes with the cell velocity; "lbm": enthalpy
+        # carried with the lattice mass flux itself (conserved through filling and emptying)
+        self.energy_transport = energy_transport
         self.heat_weight = "mass"           # lattice mass (conserves heat through mass exchange) or "fill"
         self.recoil_cap = 0.1                 # largest recoil density jump on the lattice (3 p dt^2 / rho dx^2)
         self.recoil_clipped = 0               # most interface cells clipped in one step
@@ -552,10 +589,11 @@ class FreeSurfaceMeltPool:
             ka, kb = k[a_], k[b_]
             kf = 2.0 * ka * kb / (ka + kb)
             flux = xp.where(both, kf * (T[b_] - T[a_]) / dx, 0.0)              # W/m^2, + in +axis... (into a)
-            # advection (upwind), face velocity = mean of the two cells
-            uf = 0.5 * (u[ax][a_] + u[ax][b_])
-            adv = xp.where(both, uf * xp.where(uf > 0, H[a_], H[b_]), 0.0)
-            flux = flux - adv
+            if self.energy_transport != "lbm":
+                # advection (upwind), face velocity = mean of the two cells
+                uf = 0.5 * (u[ax][a_] + u[ax][b_])
+                adv = xp.where(both, uf * xp.where(uf > 0, H[a_], H[b_]), 0.0)
+                flux = flux - adv
             div[a_] += flux / dx
             div[b_] -= flux / dx
         mass = xp.where(m, self._weight(), 0.0)
@@ -666,6 +704,7 @@ class FreeSurfaceMeltPool:
         t_end = tc + t_extra
         m0 = self.lbm.total_mass()
         self.lost = 0.0
+        self.lbm.h_residual = 0.0
         E0 = self.energy()
         absorbed = 0.0
         T_peak = self.T.copy()
@@ -687,8 +726,14 @@ class FreeSurfaceMeltPool:
             if not frozen_flow:
                 self._couple()
                 before = self.metal()
-                self.lbm.step()
-                self._new_metal_cells(before)
+                if self.energy_transport == "lbm":
+                    self.lbm.h = self.H
+                    self.lbm.step()
+                    self.H = self.lbm.h
+                    self.T = xp.where(self.metal(), self._T_of_H(self.H), self.T)
+                else:
+                    self.lbm.step()
+                    self._new_metal_cells(before)
             e_in, e_out = self._heat_step(q if q is not None else 0.0, loss)
             absorbed += e_in
             self.lost += e_out
@@ -703,7 +748,7 @@ class FreeSurfaceMeltPool:
                       f"mass err {(self.lbm.total_mass() - m0) / m0:.1e}  ({time.perf_counter() - t_start:.0f} s)",
                       flush=True)
         secs = time.perf_counter() - t_start
-        E1 = self.energy()
+        E1 = self.energy() + self.lbm.h_residual * dx ** 3      # heat left behind in emptied cells
         um = float(xp.sqrt((self.lbm.u ** 2).sum(axis=0)).max()) * dx / dt
         res = LBMResult(dx, dt, asnumpy(self.T), asnumpy(T_peak), asnumpy(self.lbm.flag), asnumpy(self.lbm.fill),
                         asnumpy(self.surface_height()), um, (self.lbm.total_mass() - m0) / m0,
