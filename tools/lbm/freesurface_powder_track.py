@@ -2,9 +2,9 @@
 Boltzmann melt pool (IN625 properties, Marangoni, recoil, evaporation, radiation, gravity).
 
 Powder: log-normal sizes (d50 30 um, 15-45 um), rained and rolled onto the plate, recoater at
-40 um (tpmsfem.process.powder). Laser 200 W, 0.8 m/s, 1/e^2 radius 40 um, absorptivity 0.40
+40 um (tpmsfem.process.powder). Laser 150 W, 0.8 m/s, 1/e^2 radius 50 um, absorptivity 0.40
 (Beer-Lambert along the metal), absorption depth 5 um. 5 um cells, 0.05 us steps (recoil-driven
-flow reaches ~10 m/s).
+flow reaches ~10 m/s). Heat is carried with the lattice mass flux (energy_transport="lbm").
 
     python tools/lbm/freesurface_powder_track.py powder|plate
 """
@@ -25,7 +25,7 @@ from tpmsfem.process.powder import rain_powder, voxelise  # noqa: E402
 OUT = "tools/lbm/powder_track.json"
 H = 5e-6
 LX, LY, PLATE, LAYER, GAS = 0.6e-3, 0.25e-3, 80e-6, 40e-6, 40e-6
-P, V, RADIUS, A, DELTA = 200.0, 0.8, 40e-6, 0.40, 5e-6
+P, V, RADIUS, A, DELTA = 150.0, 0.8, 50e-6, 0.40, 5e-6
 X0, X1 = 0.1e-3, 0.5e-3
 
 
@@ -46,8 +46,8 @@ def geometry(case, seed=3):
 def run(case):
     fill, bed, npl = geometry(case)
     mat = tf.Material("IN625", 208_000.0, 0.278, thermal=IM.thermal_properties())
-    md = FreeSurfaceMeltPool(mat, H, fill, dt=5e-8, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=6000.0,
-                             dsigma_dT=-1.1e-4, evaporation=Evaporation(), emissivity=0.4)
+    md = FreeSurfaceMeltPool(mat, H, fill, dt=5e-8, viscosity=5e-3, sigma=1.8, mushy_C=1e9, T0=25.0, T_max=8000.0,
+                             dsigma_dT=-1.1e-4, evaporation=Evaporation(), emissivity=0.4, energy_transport="lbm")
     s0 = np.asarray(md.surface_height()).copy()
     y = H + 0.5 * LY
     res = md.run(Laser(P, A, RADIUS, depth=DELTA), [ScanVector(H + X0, y, H + X1, y, V)], t_extra=60e-6,
@@ -66,7 +66,8 @@ def run(case):
                packing=None if bed is None else bed.packing_density, width_in_plate_um=width, depth_in_plate_um=depth,
                track_height_um=dict(mean=float(cl.mean()), sd=float(cl.std()), min=float(cl.min()), max=float(cl.max())),
                T_peak_max=float(Tp.max()), u_max_m_s=res.u_max, mass_error=res.mass_error,
-               energy_balance=res.energy_balance, steps=res.steps, seconds=res.seconds, mlups=res.mlups)
+               energy_balance=res.energy_balance, energy_residual=res.energy_residual, limited=md.lbm.limited,
+               steps=res.steps, seconds=res.seconds, mlups=res.mlups)
     print(json.dumps(out, indent=1), flush=True)
     store = json.load(open(OUT)) if os.path.exists(OUT) else {}
     store[case] = out
