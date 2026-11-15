@@ -18,6 +18,13 @@ def _style(ax):
     ax.tick_params(colors=MUTED, labelsize=8)
 
 
+def _sp(r):
+    """Primary spacing from the counted cell boundaries (as in 5.3); active tips if no
+    boundaries are resolved (weakly segregated cells near absolute stability)."""
+    v = r["spacing_um"]
+    return v if np.isfinite(v) and v < 0.9 * r["width_um"] else r["spacing_tips_um"]
+
+
 def figure():
     import matplotlib
     matplotlib.use("Agg")
@@ -61,21 +68,21 @@ def figure():
     ax = fig.add_subplot(gs[0, 1])
     ax.axhspan(*M.MEASURED["spacing_um"], color="#d6d5d0", lw=0)
     ax.axhspan(*M.MEASURED["pf_spacing_um"], facecolor="none", edgecolor="#8f8e89", hatch="///", lw=0)
-    sp = np.array([r["spacing_tips_um"] for _, r in main])
-    lo = np.array([min(r["spacing_um_range"]) if np.isfinite(r["spacing_um"]) else np.nan for _, r in main])
-    ax.plot(h, sp, "o-", color=BLUE, lw=1.6, ms=5, label="trapping, D/V = 5 W0 (active tips)")
+    sp = np.array([_sp(r) for _, r in main])
+    ax.plot(h, sp, "o-", color=BLUE, lw=1.6, ms=5, label="trapping, D/V = 5 W0")
     oz = [(p["z_um"] - z0, old["pf|z=%.1f" % p["z_um"]]) for p in pts if ("pf|z=%.1f" % p["z_um"]) in old]
     ax.plot([a for a, _ in oz], [r["spacing_um"] for _, r in oz], "o--", color=MUTED, ms=4, lw=1,
             label="no trapping, W0 = 10 nm (5.3)")
     conv = sorted([(store[t]["W0_nm"], store[t]) for t in store if t.startswith("z=-22.5|trap")])
-    for W, r in conv:
-        ax.plot(r["z_um"] - z0 + 0.6, r["spacing_tips_um"], "D", color=ORANGE, ms=4 + W / 3, mfc="none")
-        ax.text(r["z_um"] - z0 + 1.3, r["spacing_tips_um"], f"{W:.1f} nm", fontsize=6.5, color=ORANGE, va="center")
+    for i, (W, r) in enumerate(conv):
+        ax.plot(r["z_um"] - z0 + 0.8, _sp(r), "D", color=ORANGE, ms=5, mfc="none")
+        ax.annotate(f"W0 {W:.1f} nm", (r["z_um"] - z0 + 0.8, _sp(r)), xytext=(10.5, 0.62 + 0.09 * i), fontsize=6.5,
+                    color=ORANGE, arrowprops=dict(arrowstyle="-", color=ORANGE, lw=0.5))
     ax.plot(h, [r["hunt_um"] for _, r in main], ":", color=AQUA, lw=1.4, label="Hunt (with k(V))")
     ax.set_ylim(0, 1.6)
     ax.set_xlabel("height above the fusion boundary [um]", fontsize=8.5)
     ax.set_ylabel("primary cell spacing [um]", fontsize=8.5)
-    ax.set_title("(b) cell spacing; diamonds: W0 convergence at 10 um", fontsize=9, loc="left")
+    ax.set_title("(b) cell spacing (diamonds: W0 convergence)", fontsize=9, loc="left")
     hnd, lab = ax.get_legend_handles_labels()
     hnd += [Patch(color="#d6d5d0"), Patch(facecolor="none", edgecolor="#8f8e89", hatch="///")]
     lab += ["measured (SEM, Ghosh et al. 2018)", "Ghosh et al. 2018 phase field"]
@@ -95,7 +102,8 @@ def figure():
         r = store[t]
         ax.plot([r["z_um"] - z0], [r["cs_tip_wt"]], "o", mfc="white", mec=INK, ms=6)
         ax.plot([r["z_um"] - z0], [r["cl_tip_wt"]], "s", mfc="white", mec=INK, ms=6)
-        ax.text(r["z_um"] - z0 + 0.8, r["cs_tip_wt"], "same W0,\nno trapping", fontsize=6.5, va="center")
+        ax.annotate("same W0,\nno trapping", (r["z_um"] - z0, r["cs_tip_wt"]), xytext=(r["z_um"] - z0 - 6.5, 3.05),
+                    fontsize=6.5, arrowprops=dict(arrowstyle="-", color=INK, lw=0.5))
     ax.axhline(M.MEASURED["pf_cs_wt"], color=INK, lw=0.8, ls=":")
     ax.text(0, M.MEASURED["pf_cs_wt"] + 0.05, "Ghosh 2018 cores, 3.7 wt%", fontsize=7, color=INK)
     ax.set_xlabel("height above the fusion boundary [um]", fontsize=8.5)
@@ -117,8 +125,8 @@ def figure():
         im = ax.imshow(c, origin="lower", cmap="magma", vmin=2.5, vmax=7.0, extent=[0, c.shape[1] * dx, 0, c.shape[0] * dx],
                        aspect="equal")
         r = store[t]
-        ax.set_title(f"({'d' if i == 0 else 'e'}) Nb near the tips, {r['z_um'] - z0:.0f} um above the fusion boundary: "
-                     f"R = {r['R']:.3f} m/s,\nk(V) = {r['k']:.2f}, W0 = {r['W0_nm']:.1f} nm", fontsize=9, loc="left")
+        ax.set_title(f"({'d' if i == 0 else 'e'}) Nb near the tips, {r['z_um'] - z0:.0f} um up: R = {r['R']:.3f} m/s,\n"
+                     f"k(V) = {r['k']:.2f}, W0 = {r['W0_nm']:.1f} nm", fontsize=9, loc="left")
         ax.set_xlabel("um", fontsize=8)
         ax.tick_params(labelsize=7.5, colors=MUTED)
         cb = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.01)
