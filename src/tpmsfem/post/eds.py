@@ -5,16 +5,23 @@ an SEM or a (S)TEM would record on a section, so that simulations can be compare
 measured maps at the measured resolution:
 
 * **SEM** (bulk sample, polished section): X-rays come from a generation volume below the
-  surface whose size depends on the beam energy and the line (Anderson-Hasler range,
-  ``R = 0.064 (E0^1.68 - Ec^1.68) / rho`` um with keV and g/cm^3). The volume is modelled as a
-  Gaussian, lateral sigma ``R / 4``, depth weight centred at ``0.3 R`` with sigma ``R / 4``
-  (lateral FWHM about 0.6 R). At 15 kV in a Ni alloy this is ~0.4 um for Nb L and Mo L: as wide as
-  LPBF cells. At 5 kV it is below 0.1 um. The line is the K line if the overvoltage
-  ``E0/Ec >= 1.5``, else the L line.
+  surface whose size is set by the beam energy and the line: the Anderson-Hasler range
+  ``R = 0.064 (E0^1.68 - Ec^1.68) / rho`` um (keV, g/cm^3). Model of the volume: depth weight
+  ``exp(-((d - 0.25 R) / 0.3 R)^2)`` for ``0 <= d <= R`` (a phi(rho z)-like profile), and at depth
+  ``d`` a lateral Gaussian of ``sigma(d) = 0.92 R (d/R)^1.5`` (the beam spreads as depth^1.5, as in
+  single-scattering broadening). The constant puts 90 % of the signal within a diameter ``R``
+  (the usual statement of SEM-EDS resolution); half of it comes from within a diameter 0.28 R,
+  so the point-spread function is cusped. The contrast kept for features finer than ``R``
+  depends on this shape: a Gaussian with the same 90 % diameter keeps far less. Treat the maps
+  as estimates and calibrate on a measured line scan where one exists. At 15 kV in a Ni
+  alloy ``R`` is ~0.7 um for Nb L and Mo L (twice the LPBF cell spacing); at 5 kV it is below
+  0.1 um. The line is the K line if the overvoltage ``E0/Ec >= 1.5``, else the L line.
 * **STEM** (thin foil): the signal is the average through the foil thickness at the beam
   position, widened by beam broadening (single scattering, Goldstein et al.:
   ``b = 6.25e5 (Z/E0) (rho/A)^0.5 t^1.5`` cm, E0 in eV, t in cm; half of the exit value is used as
   the FWHM) and the probe size.
+
+``EDSMap.resolution_m``: the diameter that contains 90 % of the signal of a point.
 
 Counting statistics (optional): counts = Poisson(N c/100 + background), with ``N`` the counts
 per pixel for a pure element and a background ``background * N * mean(c)/100`` (continuum
@@ -79,7 +86,7 @@ class EDSMap:
     """Element maps of one section: ``maps[element]`` (2-D, counts or wt%-equivalent)."""
     maps: dict
     lines: dict
-    resolution_m: dict                 # lateral FWHM of the signal per element [m]
+    resolution_m: dict                 # diameter containing 90 % of a point's signal, per element [m]
     pixel_m: float
     mode: str
     E0_keV: float
@@ -131,52 +138,70 @@ def _move(f, axis):
     return np.moveaxis(f, [axis] + rest, [0, 1, 2]), (per[rest[0]], per[rest[1]]), per[axis]
 
 
+#: depth-resolved generation volume (fractions of the X-ray range R): see the module docstring
+SEM_DEPTH_CENTRE, SEM_DEPTH_WIDTH, SEM_SPREAD = 0.25, 0.3, 0.92
+
+
+def sem_psf_transfer(wavelength_m: float, R_m: float, n: int = 4001) -> float:
+    """Fraction of the amplitude of a sinusoidal composition (uniform in depth) of wavelength
+    ``wavelength_m`` that the SEM generation volume of range ``R_m`` keeps."""
+    d = np.linspace(0.0, 1.0, n)
+    w = np.exp(-((d - SEM_DEPTH_CENTRE) / SEM_DEPTH_WIDTH) ** 2)
+    sig = SEM_SPREAD * R_m * d ** 1.5
+    return float(np.sum(w * np.exp(-0.5 * (2.0 * np.pi * sig / wavelength_m) ** 2)) / w.sum())
+
+
 def sem_eds(fields: dict, dx_m: float, index: int, axis: int = 0, beam_kV: float = 15.0, density: float = 8.44,
             into: int = -1, total_counts: Optional[float] = None, background: float = 0.2,
-            pixel_m: Optional[float] = None, seed: int = 0, elements: Optional[Sequence[str]] = None) -> EDSMap:
+            pixel_m: Optional[float] = None, seed: int = 0, elements: Optional[Sequence[str]] = None,
+            probe_m: float = 5e-9, n_bins: int = 24) -> EDSMap:
     """SEM-EDS maps of the section ``index`` normal to ``axis`` (0: z, a transverse section; 1: y;
     2: x) of the composition ``fields`` (element -> (z, y, x) wt%). ``into`` (+1 or -1): side of
     the section where the bulk lies (the beam goes that way). ``total_counts``: counts per pixel
-    for 100 wt% (None: no counting noise)."""
+    for 100 wt% (None: no counting noise). Depth layers are grouped into ``n_bins`` groups of
+    similar lateral spread, each blurred once."""
     from scipy import ndimage
 
     elements = list(fields) if elements is None else list(elements)
     rng = np.random.default_rng(seed)
     maps, lines, res = {}, {}, {}
+    notes = {}
     for e in elements:
         line = select_line(e, beam_kV)
         R = generation_range_um(beam_kV, line[2], density) * 1e-6
-        s_lat, d_c, s_d = 0.25 * R / dx_m, 0.3 * R / dx_m, 0.25 * R / dx_m
         f, per2, per_n = _move(np.asarray(fields[e], dtype=float), axis)
         n = f.shape[0]
-        nd = int(np.ceil(d_c + 3.0 * s_d)) + 1
-        acc = np.zeros(f.shape[1:])
-        wsum = 0.0
-        short = False
-        for d in range(nd):
-            w = np.exp(-0.5 * ((d - d_c) / max(s_d, 1e-9)) ** 2)
-            i = index + into * d
-            if per_n:
-                i %= n
-            elif not 0 <= i < n:
-                short = True
-                break
-            acc += w * f[i]
-            wsum += w
-        layer = acc / wsum
+        nd = max(int(np.ceil(R / dx_m)), 1)
+        d = (np.arange(nd) + 0.5) * dx_m / R                       # layer depth / R
+        w = np.exp(-((d - SEM_DEPTH_CENTRE) / SEM_DEPTH_WIDTH) ** 2)
+        sig = np.sqrt(probe_m ** 2 + (SEM_SPREAD * R * d ** 1.5) ** 2) / dx_m
+        idx = index + into * np.arange(nd)
+        if per_n:
+            idx %= n
+        else:
+            ok = (idx >= 0) & (idx < n)
+            if not ok.all():
+                notes[e] = f"generation volume truncated at {ok.sum() / nd:.0%} of its depth by the end of the block"
+            idx, w, sig = idx[ok], w[ok], sig[ok]
         modes = ["wrap" if p else "nearest" for p in per2]
-        maps[e] = ndimage.gaussian_filter(layer, s_lat, mode=modes)
+        acc = np.zeros(f.shape[1:])
+        groups = np.array_split(np.arange(len(idx)), min(n_bins, len(idx)))
+        for g in groups:
+            if len(g) == 0:
+                continue
+            layer = np.tensordot(w[g], f[idx[g]], axes=1)
+            sg = float(np.sqrt(np.sum(w[g] * sig[g] ** 2) / np.sum(w[g])))
+            acc += ndimage.gaussian_filter(layer, sg, mode=modes) if sg > 0.05 else layer
+        maps[e] = acc / w.sum()
         lines[e] = line
-        res[e] = 2.355 * 0.25 * R
-        if short:
-            res[e + "_note"] = "generation volume truncated by the end of the block"
+        res[e] = R                                                  # 90 % of the signal within this diameter
     f = 1 if pixel_m is None else max(int(round(pixel_m / dx_m)), 1)
     maps = {e: _bin(a, f) for e, a in maps.items()}
     if total_counts is not None:
         maps = _noise(maps, total_counts, background, rng)
     axes = {0: ("y", "x"), 1: ("z", "x"), 2: ("z", "y")}[axis]
     return EDSMap(maps, lines, res, dx_m * f, "SEM", beam_kV, axes,
-                  dict(density=density, total_counts=total_counts, background=background))
+                  dict(density=density, total_counts=total_counts, background=background, notes=notes))
 
 
 def stem_eds(fields: dict, dx_m: float, index: int, axis: int = 0, foil_m: float = 100e-9, beam_kV: float = 200.0,
@@ -209,7 +234,7 @@ def stem_eds(fields: dict, dx_m: float, index: int, axis: int = 0, foil_m: float
         modes = ["wrap" if p else "nearest" for p in per2]
         maps[e] = ndimage.gaussian_filter(layer, sig, mode=modes) if sig > 0.05 else layer
         lines[e] = select_line(e, beam_kV)
-        res[e] = fwhm
+        res[e] = 1.822 * fwhm                                     # d90 of a 2-D Gaussian
     f = 1 if pixel_m is None else max(int(round(pixel_m / dx_m)), 1)
     maps = {e: _bin(a, f) for e, a in maps.items()}
     if total_counts is not None:

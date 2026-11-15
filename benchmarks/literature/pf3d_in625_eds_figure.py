@@ -49,14 +49,16 @@ def figure():
 def fig_eds(d, store):
     import matplotlib.pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.ticker import MaxNLocator
+    from scipy.ndimage import uniform_filter
 
     from tpmsfem.post.eds import COLOURS
 
     r3, r2 = store["3d_W10"], store.get("2d_W10", {})
     dx = float(d["dx"]) * 1e6
-    fig = plt.figure(figsize=(15, 15.2))
+    fig = plt.figure(figsize=(15, 15.6))
     gs = fig.add_gridspec(5, 6, height_ratios=[1, 1, 1, 1, 1.25], hspace=0.32, wspace=0.12, left=0.03, right=0.985,
-                          top=0.93, bottom=0.04)
+                          top=0.915, bottom=0.04)
     overlay = ("Nb", "Cr", "Ni")
     ov_col = {"Nb": (1.0, 0.2, 0.15), "Cr": (0.2, 0.45, 1.0), "Ni": (0.2, 0.85, 0.3)}
     # row 0: the simulated composition of the section
@@ -69,6 +71,8 @@ def fig_eds(d, store):
         im = _img(ax, a, [0, L, 0, L], cmap=cm, vmin=np.percentile(a, 1), vmax=np.percentile(a, 99))
         cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
         cb.ax.tick_params(labelsize=6.5)
+        cb.locator = MaxNLocator(4)
+        cb.update_ticks()
         ax.set_title(f"{e} [wt%]", fontsize=9, loc="left")
         if c == 0:
             ax.set_ylabel("simulated composition", fontsize=9)
@@ -88,13 +92,14 @@ def fig_eds(d, store):
             _img(ax, _rgb(a, COLOURS[e]), [0, Lm, 0, Lm], rgb=True)
             ln = LINE.get(info[mode]["lines"][e], info[mode]["lines"][e])
             res = info[mode]["resolution_nm"][e]
-            ax.set_title(f"{e} {ln}  (FWHM {res:.0f} nm)", fontsize=8.5, loc="left")
+            ax.set_title(f"{e} {ln}  (90 % within {res:.0f} nm)", fontsize=8.5, loc="left")
             if c == 0:
                 ax.set_ylabel(MODE_TITLE[mode], fontsize=9)
         ax = fig.add_subplot(gs[rr, 5])
-        maps = {e: d[f"eds_{mode}_xy_{e}"].astype(float) for e in overlay}
+        maps = {e: uniform_filter(d[f"eds_{mode}_xy_{e}"].astype(float), 3, mode="wrap") for e in overlay}
         _img(ax, sum(_rgb(maps[e], ov_col[e]) for e in overlay).clip(0, 1), [0, Lm, 0, Lm], rgb=True)
-        ax.set_title(f"overlay; Nb contrast kept {100 * r3['eds_contrast'][mode]:.0f} %", fontsize=8.5, loc="left")
+        ax.set_title(f"overlay (3x3 px smoothed); Nb contrast\nkept: {100 * r3['eds_contrast'][mode]:.0f} % (no noise)",
+                     fontsize=8.5, loc="left")
     # row 4: Nb and Mo profiles across the section, longitudinal maps
     sub = gs[4, :].subgridspec(1, 5, width_ratios=[1.35, 1.35, 0.75, 0.75, 0.75], wspace=0.28)
     for c, e in enumerate(("Nb", "Mo")):
@@ -112,8 +117,10 @@ def fig_eds(d, store):
         ax.set_title(f"({'a' if c == 0 else 'b'}) {e} across the cells", fontsize=9, loc="left")
         ax.set_xlim(0, t.shape[1] * dx)
         _style(ax)
+        lo_, hi_ = ax.get_ylim()
+        ax.set_ylim(lo_, hi_ + 0.45 * (hi_ - lo_))                 # room for the legend
         if c == 0:
-            ax.legend(fontsize=7, frameon=False, loc="upper right", ncol=2)
+            ax.legend(fontsize=7, frameon=False, loc="upper left", ncol=2)
     lo = int(d["xz_lo"])
     xz = d["xz_Nb"].astype(float)[lo:int(d["tip"]) + 1]
     phi = d["xz_phi"].astype(float)[lo:int(d["tip"]) + 1]
@@ -136,7 +143,8 @@ def fig_eds(d, store):
     fig.suptitle(
         "IN625 cells in 3-D (multicomponent phase field) at the AM-Bench case-B mid-pool point (G = 6.6e6 K/m, "
         "R = 0.092 m/s) and what EDS would record\n"
-        f"Transverse section {r3['section_depth_um']:.1f} um below the tips, 1.6 x 1.6 um. 3-D cell spacing "
+        f"Transverse section {r3['section_depth_um']:.1f} um below the tips, {r3['size_um'][0]:.1f} x {r3['size_um'][1]:.1f} um; "
+        f"EDS maps with counting noise, contrast stretched per map.\n3-D cell spacing "
         f"sqrt(A/N) = {sp_txt} um at 0.6-3 um below the tips (2-D, same model: {r2.get('spacing_2d_um', float('nan')):.2f} um). "
         f"Nb 5-95 %: {seg['Nb']['p05']:.1f}-{seg['Nb']['p95']:.1f} wt%, Mo {seg['Mo']['p05']:.1f}-{seg['Mo']['p95']:.1f} wt%",
         fontsize=10, x=0.02, ha="left")
@@ -203,24 +211,26 @@ def fig_3d(d, store):
                     cstride=1, linewidth=0, antialiased=False)
     ax.set_box_aspect((nx, ny, nz))
     ax.view_init(elev=28, azim=-60)
-    ax.set_title("(b) Nb on three faces of the solidified block\n(1.6 x 1.6 um; build direction up)", fontsize=9.5,
-                 loc="left")
+    ax.set_title(f"(b) Nb on three faces of the solidified block\n({nx * dx:.1f} x {ny * dx:.1f} um; build direction up)",
+                 fontsize=9.5, loc="left")
     _ax3(ax)
     sm = cm.ScalarMappable(norm=nn, cmap=cmap)
-    cb = fig.colorbar(sm, ax=ax, fraction=0.03, pad=0.0, shrink=0.7)
+    sm.set_array([])
+    cax = fig.add_axes([0.62, 0.2, 0.008, 0.45])
+    cb = fig.colorbar(sm, cax=cax)
     cb.set_label("Nb [wt%]", fontsize=8)
     cb.ax.tick_params(labelsize=7)
     # (c) the Nb-rich intercellular walls as an iso-surface
     ax = fig.add_subplot(1, 3, 3, projection="3d")
-    sub = nb[-int(round(1.0 / dx)):]
-    lvl = float(np.percentile(sub, 75))
+    sub = nb[-int(round(0.6 / dx)):]
+    lvl = 0.5 * (float(np.percentile(sub, 10)) + float(np.percentile(sub, 97)))
     mesh(ax, sub, lvl, lambda c: np.tile(np.array([[0.85, 0.25, 0.2, 1.0]]), (len(c), 1)))
     ax.set_xlim(0, nx * dx)
     ax.set_ylim(0, ny * dx)
     ax.set_zlim(0, sub.shape[0] * dx)
     ax.set_box_aspect((nx, ny, sub.shape[0]))
-    ax.view_init(elev=35, azim=-60)
-    ax.set_title(f"(c) Nb-rich intercellular walls: surface Nb = {lvl:.1f} wt%\n(the top 1 um of the block in (b))",
+    ax.view_init(elev=50, azim=-60)
+    ax.set_title(f"(c) Nb-rich columns along the cell edges: surface Nb = {lvl:.1f} wt%\n(the top 0.6 um of the block in (b))",
                  fontsize=9.5, loc="left")
     _ax3(ax)
     fig.suptitle("3-D cells of IN625 from the multicomponent phase field (AM-Bench case B, mid-pool: G = 6.6e6 K/m, "
@@ -231,7 +241,11 @@ def fig_3d(d, store):
 
 
 def _ax3(ax):
+    from matplotlib.ticker import MaxNLocator
     ax.tick_params(labelsize=6.5, colors=MUTED, pad=0)
+    ax.set_facecolor((1, 1, 1, 0))                     # do not hide the neighbouring panel's labels
+    for a in (ax.xaxis, ax.yaxis, ax.zaxis):
+        a.set_major_locator(MaxNLocator(4))
     for a in (ax.xaxis, ax.yaxis, ax.zaxis):
         a.pane.set_facecolor((1, 1, 1, 0))
         a.pane.set_edgecolor("#dddddd")

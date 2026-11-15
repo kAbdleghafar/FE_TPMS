@@ -94,8 +94,8 @@ def summarise(tag, r):
     out["segregation_wt"] = {n: r.segregation(n, rows) for n in names}
     grown = {n: r.grown(n) for n in names}
     ext = dict(dx=dx, tip=tip, nsolid=nsolid, names=np.array(names))
-    for n in names:
-        ext[f"xz_{n}"] = grown[n][:, grown[n].shape[1] // 2, :].astype(np.float32)        # longitudinal section
+    for n in (names if r.params["ny"] > 1 else ("Nb", "Mo")):
+        ext[f"xz_{n}"] = grown[n][:, grown[n].shape[1] // 2, :].astype(np.float16)        # longitudinal section
     ext["xz_phi"] = r.grown_phi()[:, r.phi.shape[1] // 2, :].astype(np.float16)
     if r.params["ny"] == 1:
         from scipy.signal import find_peaks
@@ -147,11 +147,11 @@ def eds_extract(grown, dx, tip, ext):
     zs = tip - int(round(SECTION_DEPTH / dx))
     ext["xy_true_z"] = zs
     for n, g in grown.items():
-        ext[f"xy_true_{n}"] = g[zs].astype(np.float32)
+        ext[f"xy_true_{n}"] = g[zs].astype(np.float16)
     lo = max(tip - int(round(3.0e-6 / dx)), 0)                   # block for the longitudinal maps
     blk = {n: g[lo:tip + 1] for n, g in grown.items()}
     ext["xz_lo"] = lo
-    info = {}
+    info, clean_nb = {}, {}
     for mode, cfg in EDS_MODES.items():
         cfg = dict(cfg)
         kind = cfg.pop("kind")
@@ -159,9 +159,11 @@ def eds_extract(grown, dx, tip, ext):
         for sec, (fields, idx, axis) in {"xy": (grown, zs, 0), "xz": (blk, blk["Nb"].shape[1] // 2, 1)}.items():
             clean = fn(fields, dx, idx, axis=axis, **{k: v for k, v in cfg.items() if k != "total_counts"})
             noisy = fn(fields, dx, idx, axis=axis, seed=1, **cfg)
+            if sec == "xy":
+                clean_nb[mode] = clean.maps["Nb"].astype(float)
             for n in grown:
-                ext[f"eds_{mode}_{sec}_{n}"] = noisy.maps[n].astype(np.float32)
-                ext[f"eds_{mode}_{sec}_clean_{n}"] = clean.maps[n].astype(np.float32)
+                ext[f"eds_{mode}_{sec}_{n}"] = noisy.maps[n].astype(np.float16)
+                ext[f"eds_{mode}_{sec}_clean_{n}"] = clean.maps[n].astype(np.float16)
             ext[f"eds_{mode}_{sec}_pixel"] = clean.pixel_m
             if sec == "xy":
                 info[mode] = dict(lines={n: clean.lines[n][0] for n in grown},
@@ -171,7 +173,7 @@ def eds_extract(grown, dx, tip, ext):
     t_spread = np.percentile(true, 95) - np.percentile(true, 5)
     contrast = {}
     for mode in EDS_MODES:
-        a = ext[f"eds_{mode}_xy_clean_Nb"].astype(float)
+        a = clean_nb[mode]
         contrast[mode] = float((np.percentile(a, 95) - np.percentile(a, 5)) / t_spread)
     return dict(eds=info, eds_contrast=contrast, section_depth_um=SECTION_DEPTH * 1e6,
                 nb_true_section_wt=dict(p05=float(np.percentile(true, 5)), p95=float(np.percentile(true, 95))))
