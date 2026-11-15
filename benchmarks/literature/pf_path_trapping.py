@@ -47,6 +47,7 @@ PATH_STORE = "benchmarks/literature/results/ambench2018_tracks_pf.json"
 STORE = "benchmarks/literature/results/pf_path_trapping.json"
 FIELDS = "benchmarks/literature/results/pf_path_trapping_fields.npz"
 FIG = "docs/img/pf_path_trapping.png"
+CKPT_DIR = os.environ.get("PF_CKPT_DIR", os.path.join(__import__("tempfile").gettempdir(), "pf_path_trapping_ckpt"))
 ALLOY = PF.IN625_NB
 V_D = 1.0                                        # m/s, diffusive speed for trapping
 DV_W0 = 5.0                                      # D/V in units of W0
@@ -99,7 +100,18 @@ def run_job(tag):
     hist = []
     n_chunks = 30
     steps = 0
-    for _ in range(n_chunks):
+    ckpt = os.path.join(CKPT_DIR, _safe(tag) + ".npz")
+    if os.path.exists(ckpt):                     # resume after an interruption
+        d = np.load(ckpt, allow_pickle=False)
+        m.phi, m.U = d["phi"].copy(), d["U"].copy()
+        m.t, m.offset, m.dt = float(d["t"]), float(d["offset"]), float(d["dt"])
+        m.front = [tuple(f) for f in d["front"]]
+        m.solid_rows = [d["solid"]] if d["solid"].size else []
+        hist, steps = json.loads(str(d["hist"])), int(d["steps"])
+        t_start -= float(d["cpu_s"])
+        print(f"  [{tag}] resumed at chunk {len(hist)}/{n_chunks}", flush=True)
+    r = m.run(0.0) if len(hist) >= n_chunks else None
+    for _ in range(len(hist), n_chunks):
         r = m.run(grow / R / n_chunks, record_every=500, adapt_dt=True)
         steps += r.steps
         tips = r.tips()
@@ -112,6 +124,11 @@ def run_job(tag):
         print(f"  [{tag}] grown {hist[-1]['grown_m'] * 1e6:5.2f} um, {nb:4.1f} cells ({len(tips)} tips), "
               f"theta_tip {theta:+.3f}, c_s* {hist[-1]['cs'] * alloy.c_inf:.2f} wt%, dt {m.dt:.4f} "
               f"[{time.perf_counter() - t_start:.0f} s]", flush=True)
+        os.makedirs(CKPT_DIR, exist_ok=True)
+        solid = np.concatenate(m.solid_rows, axis=0) if m.solid_rows else np.zeros((0, m.nx))
+        np.savez(ckpt + ".tmp.npz", phi=m.phi, U=m.U, t=m.t, offset=m.offset, dt=m.dt, front=np.array(m.front),
+                 solid=solid, hist=json.dumps(hist), steps=steps, cpu_s=time.perf_counter() - t_start)
+        os.replace(ckpt + ".tmp.npz", ckpt)
     late = hist[int(0.6 * n_chunks):]
     Lx = m.nx * m.dx * m.W0
     n = float(np.mean([max(h["n_cells"], 1) for h in late]))
