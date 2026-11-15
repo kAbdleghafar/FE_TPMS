@@ -651,6 +651,52 @@ print(r.segregation())
   `absolute_stability_velocity` verify the model and the regime. The path study is in
   [process_models.md](process_models.md) §5.3.
 
+### 3-D cells, several elements and EDS maps
+
+`DirectionalPF3D` (`tpmsfem.process.phasefield3d`) is the same model in 3-D, with several solutes.
+* **Solutes.** Each `Solute` has its own content, partition coefficient `k` and liquidus slope `m`.
+* **Undercooling.** The interface temperature sees the sum of the solute supersaturations,
+  weighted by each solute's share of the freezing range.
+* **Passive solutes.** A solute with `m = 0` partitions but does not change the interface
+  temperature. This suits elements with `k` close to 1, such as Cr and Fe in IN625.
+
+With one solute and `ny = 1` it reproduces the 2-D model to round-off.
+
+`tpmsfem.post.eds` turns the 3-D composition into the maps an SEM or STEM would record:
+* **SEM.** The X-ray generation volume below a polished section sets the resolution. It
+  depends on the beam voltage and the X-ray line.
+* **STEM.** The signal is averaged through a thin foil.
+* **Noise.** Counting noise is optional.
+
+```python
+from tpmsfem.process import phasefield3d as P3
+from tpmsfem.post import eds
+
+alloy = P3.IN625_AMBENCH.at_velocity(0.092, V_D=1.0)       # Nb, Mo, Cr, Fe; trapping for each
+print(alloy.names, f"freezing range {alloy.freezing_range:.1f} K, weights {alloy.weights.round(2)}")
+pf3 = P3.DirectionalPF3D(alloy, G=6.6e6, V=0.092, size_m=(0.5e-6, 0.5e-6), height_m=0.5e-6, W0_m=10e-9, seed=0)
+r3 = pf3.run(1.0e-6 / 0.092, adapt_dt=True)                # 1 um of growth (~1 min on 4 cores)
+tip = r3.tip_row()
+labels, n, lam = r3.cells(tip - 25)                         # transverse section 0.2 um below the tips
+print(f"{n} cells, spacing sqrt(A/N) = {lam * 1e6:.2f} um")
+fields = {e: r3.grown(e) for e in r3.names + [r3.balance]}  # wt%, indexed (z, y, x); Ni = balance
+sem = eds.sem_eds(fields, r3.dx_m, index=tip - 25, beam_kV=5.0)      # bulk below the section
+stem = eds.stem_eds(fields, r3.dx_m, index=tip - 25, foil_m=100e-9)  # 100 nm foil, 200 kV
+print({e: f"{sem.lines[e][0]}, FWHM {sem.resolution_m[e] * 1e9:.0f} nm" for e in fields})
+img = stem.overlay(["Nb", "Cr", "Ni"])                      # RGB image, e.g. for plt.imshow
+```
+
+* **Sections.** `axis=0` is a transverse section (normal to the build direction); `axis=1` and
+  `axis=2` are longitudinal.
+* **Noise and pixels.** `total_counts` adds Poisson counting noise; `pixel_m` bins the map to the
+  detector pixel size.
+* **Other alloys.** Build a `MultiAlloy` from `Solute(name, c_inf, k, m)` entries. One liquid
+  diffusivity is used for all solutes.
+* **Cost.** A 3-D run costs about the 2-D cost times the number of cells across y. A 1.6 × 1.6 µm
+  block grown 5 µm at W0 = 10 nm takes about 2.5 h on 4 cores. Converged interface widths need
+  a GPU (CuPy backend, `kernel="array"`). The study is in
+  [process_models.md](process_models.md) §5.6.
+
 ---
 
 ## 16. Grains and texture: 3-D cellular automaton

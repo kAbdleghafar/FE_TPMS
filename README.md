@@ -27,8 +27,8 @@ are one module among many.
  design             mesh                 mechanics & heat              LPBF process                 microstructure
  TPMS sheet /       voxel hex8 (GPU)     matrix-free FE, CPU | GPU      scan paths for TPMS layers   G, R, cooling rate
  network, graded ─► marching cubes    ─► elastic | J2 plastic        ─► melt pool (conduction)    ─► spacing laws, CET
- walls, implants,   Gmsh / TetGen /      homogenised stiffness          melt flow + powder (LBM)     phase field: cells,
- SDF booleans       fTetWild, meshio     transient heat                 porosity maps                segregation, trapping
+ walls, implants,   Gmsh / TetGen /      homogenised stiffness          melt flow + powder (LBM)     3-D phase field: cells,
+ SDF booleans       fTetWild, meshio     transient heat                 porosity maps                segregation, EDS maps
                                          AM residual stress             surface roughness            3-D grain CA: texture
                                          ─► VTU (ParaView), Abaqus / CalculiX decks, benchmark metrics
 ```
@@ -42,7 +42,7 @@ are one module among many.
 | Homogenisation | Periodic unit cells: full 6 × 6 effective stiffness, Young's and shear moduli, Poisson ratios, Zener anisotropy; in-plane properties of plates |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
 | Process | **Melt pool**: explicit enthalpy finite-volume solver on voxel grids (Gaussian/top-hat laser with absorption depth, any scan path, powder layer, latent heat, evaporation, radiation; NumPy/CuPy); part-aware substrate with powder below overhangs; **scan paths clipped to TPMS layers** (contours + hatching); **free-surface melt flow** (lattice Boltzmann: Marangoni, Sahoo surface tension, recoil, evaporation; powder-bed generator); **porosity process maps** (lack-of-fusion criterion and unfused fraction, keyhole number); **as-built roughness** (staircase, melt-pool rounding, adhered powder) vs build angle, mapped onto TPMS surfaces |
-| Microstructure | G–R maps, cooling rates, spacing laws (Kurz–Fisher, Hunt), Hunt CET; **2-D quantitative phase field** of cells and dendrites with solute segregation and solute trapping (Karma–Echebarria, continuous growth model; numba/CuPy); **3-D grain cellular automaton** (decentred octahedra, KGT kinetics, nucleation, epitaxy, any scan strategy over many tracks and layers, cellular-growth bias): grain size and texture; reduced grain model; **ExaCA** export; EBSD analysis (CTF reader, cubic misorientation, grain segmentation, KAM) |
+| Microstructure | G–R maps, cooling rates, spacing laws (Kurz–Fisher, Hunt), Hunt CET; **quantitative phase field** of cells and dendrites with solute segregation and solute trapping (Karma–Echebarria, continuous growth model; numba/CuPy), in 2-D and in **3-D with several elements** (IN625: Nb, Mo, Cr, Fe); **synthetic EDS maps** (SEM interaction volume vs beam voltage, STEM thin foil, counting noise); **3-D grain cellular automaton** (decentred octahedra, KGT kinetics, nucleation, epitaxy, any scan strategy over many tracks and layers, cellular-growth bias): grain size and texture; reduced grain model; **ExaCA** export; EBSD analysis (CTF reader, cubic misorientation, grain segmentation, KAM) |
 | Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI; re-implemented published benchmarks (lattices, implants, NIST AM-Bench) |
@@ -212,7 +212,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 
 * [docs/manual.md](docs/manual.md): **user manual**, how to perform every calculation, with tested examples
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
-* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping), surface roughness
+* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping, 3-D multicomponent cells and synthetic EDS maps), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/porosity_maps.md](docs/porosity_maps.md): porosity process maps (lack of fusion, keyhole) for IN625 (checked against Locatelli et al. 2026) and CoCrFeMnNi, and the risk through the gyroid
