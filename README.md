@@ -127,6 +127,11 @@ four independent groups and compares them:
   the diffusion length, it gives cells of 0.57 µm at the fusion boundary and 0.28–0.31 µm in the upper pool. They
   lie inside the 0.2–1.0 µm measured by SEM and converge within 8 % from W0 = 10 to 4.1 nm. Nb segregation
   weakens upwards: cores 3.27 → 3.90 wt%, intercellular 95th percentile 8.1 → 5.6–6.0 wt%.
+  In **3-D with Nb, Mo, Cr and Fe** at the mid-pool point, the cells form a columnar network whose
+  edges carry the Nb- and Mo-rich columns; the spacing of the latest material is 0.33 µm and still
+  coarsening, and the segregation matches the 2-D model. **Synthetic EDS maps** show that SEM-EDS at
+  15 kV keeps only ~27 % of the Nb contrast of these cells, 5 kV keeps 85 % and STEM 96 %; Cr and Fe
+  segregation stays below the counting noise ([docs/process_models.md](docs/process_models.md) §5.6).
 * **CoCrFeMnNi (Cantor alloy) gyroid lattice** (new study, validated on Piglione et al. 2018): the phase field gives
   0.46–0.50 µm cells for a single LPBF layer (measured 0.52–0.64 µm). In a graded gyroid sheet, down-facing
   surfaces built over powder solidify 2.5× slower and grow 1.7× coarser cells (0.86 vs 0.50 µm), whatever the

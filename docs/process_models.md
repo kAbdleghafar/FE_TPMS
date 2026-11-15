@@ -634,6 +634,130 @@ The substrate grains are 9 µm wide.
   agrees qualitatively. How its strength depends on the scan rotation differs between published
   builds, and no measured texture of these builds was available to test the numbers.
 
+### 5.6 Cells in 3-D with several elements, and what EDS would record
+
+**Question.** What do the cells of the case-B melt pool look like in 3-D when all the main
+alloying elements segregate, and how much of that segregation can an EDS map show?
+
+**Model** (`process/phasefield3d.py`, `post/eds.py`; manual §15).
+* **Phase field.** The 2-D model of §5.3 in 3-D, with one supersaturation per solute.
+  * The interface temperature sees their sum, each weighted by the solute's share of the
+    freezing range.
+  * Every solute has its own anti-trapping current and solute trapping (continuous growth
+    model, V_D = 1 m/s).
+  * Anisotropy is cubic in any crystal orientation. Here <100> lies along the build direction.
+  * With one solute and a box one cell thick, the model reproduces the 2-D model to 10⁻¹⁵
+    (tested). Splitting a solute into two identical halves changes nothing. The numba and
+    NumPy/CuPy kernels agree, and every solute is conserved to round-off.
+* **Alloy.** IN625 of the AM-Bench 2018 feedstock (ICP analysis, Keller et al. 2017, Table 1).
+
+| solute | content [wt%] | k (equilibrium) | k at 0.092 m/s | liquidus slope [K/wt%] | share of the freezing range |
+|---|---:|---:|---:|---:|---:|
+| Nb | 3.75 | 0.48 | 0.52 | −10.5 (Ni–Nb, as in §5.3) | 90 % |
+| Mo | 8.83 | 0.85 | 0.86 | −2.9 (Ni–Mo liquidus secant, estimate) | 10 % |
+| Cr | 20.7 | 1.02 | 1.02 | partitions only | 0 |
+| Fe | 0.72 | 1.09 | 1.08 | partitions only | 0 |
+
+  * **Sources.** Partition coefficients from Gan et al. (*Integr. Mater. Manuf. Innov.* 8
+    (2019) 178, Table 4, after Hu et al. 2017).
+  * **Freezing range.** 47 K at equilibrium, 40 K with trapping.
+  * **Ni.** Ni is the balance of the four solutes. The ~1 wt% of Ti, Al, Co and Si in the
+    powder is not modelled.
+  * **Cr and Fe.** Their k is close to 1, so their effect on the interface temperature is
+    below 2 % of the freezing range; they are carried without it.
+  * **Diffusivity.** One liquid diffusivity, 3 × 10⁻⁹ m²/s.
+* **EDS.** Maps of a section through the solidified block.
+  * **SEM, X-ray source volume.** Its depth range is the Anderson–Hasler range of each X-ray
+    line. It widens with depth as depth^1.5 and holds 90 % of the signal within that range.
+  * **SEM, lines.** Nb Lα and Mo Lα at 15 kV are generated from about 0.7 µm, twice the cell
+    spacing. At 5 kV the volume is below 0.1 µm, and L lines are used for Cr, Fe and Ni.
+  * **STEM.** A 100 nm foil at 200 kV: the average through the foil plus about 5 nm of beam
+    broadening.
+  * **Counting noise.** Poisson noise with a continuum background. Concentration to counts
+    is linear, without ZAF corrections.
+
+**Run** (`benchmarks/literature/pf3d_in625_eds.py`).
+* **Conditions.** The mid-pool point of §5.3, 22.5 µm below the surface: G = 6.6 × 10⁶ K/m,
+  R = 0.092 m/s.
+* **Box.** A periodic 1.6 × 1.6 µm box with a 1.2 µm window, grown 5 µm.
+* **Resolution.** W0 = 10 nm (dx = 8 nm), 200 × 200 × 150 cells. At this point the 2-D
+  spacing at W0 = 10 nm is within 8 % of the converged value (§5.3).
+* **Cost.** 60,000 steps, 2.2 h on 4 CPU cores (numba).
+* **2-D reference.** The same multicomponent model, one cell thick and 2.4 µm wide.
+
+**Cells and segregation.** Compositions are taken over the material grown after the first third
+of the run.
+
+| | 2-D, same model | 3-D |
+|---|---:|---:|
+| cell spacing, material grown last (0.6–1 µm below the tips) | 0.34 µm | 0.32–0.33 µm |
+| cell spacing, material grown 4 / 5 µm earlier | | 0.27 / 0.24 µm |
+| Nb: 5 % / median / 95 % [wt%] | 3.15 / 3.37 / 5.95 | 2.95 / 3.44 / 5.84 |
+| Mo: 5 % / median / 95 % [wt%] | 8.54 / 8.66 / 9.79 | 8.42 / 8.67 / 9.77 |
+| Cr: 5 % / median / 95 % [wt%] | 20.44 / 20.75 / 20.78 | 20.45 / 20.75 / 20.82 |
+| Fe: 5 % / median / 95 % [wt%] | 0.68 / 0.73 / 0.73 | 0.68 / 0.73 / 0.74 |
+| Ni (balance): 5 % / median / 95 % [wt%] | 63.1 / 66.5 / 66.8 | 63.3 / 66.4 / 67.1 |
+
+* **3-D spacing.** It is measured as sqrt(A / N) on transverse sections, with cells counted by
+  watershed. For hexagonal cells the centre-to-centre distance is 7 % larger.
+* **Measured range.** Case-B cells measured by SEM: 0.2–1.0 µm (Ghosh et al. 2018).
+
+**What EDS records.** Transverse section 0.8 µm below the tips. The share of the true Nb
+contrast (5–95 % spread) kept in a noise-free map:
+
+| technique | Nb, Mo line | 90 % of the signal within | Nb contrast kept |
+|---|---|---:|---:|
+| SEM, 15 kV | Lα | 0.68 µm (Ni Kα: 0.45 µm) | 27 % |
+| SEM, 5 kV | Lα (also Cr, Fe, Ni Lα) | 0.08 µm (Ni Lα: 0.11 µm) | 85 % |
+| STEM, 100 nm foil, 200 kV | Kα | 0.01 µm | 96 % |
+
+![3-D cells](img/pf3d_in625_eds_3d.png)
+
+![EDS maps](img/pf3d_in625_eds.png)
+
+**Reading the results.**
+* **In 3-D the cells form a network of hexagon-like columns.**
+  * The front is a field of rounded cell caps over narrow, deep liquid grooves.
+  * Nb and Mo pile up along the cell walls and most of all along the cell edges, where three
+    cells meet. These triple junctions form Nb-rich columns, up to 7–8 wt% Nb in the solid section.
+  * Cr, Fe and Ni are slightly depleted there. Cr and Fe have k > 1, and Ni is the balance.
+  * Isolated droplets of the last liquid reach 13–21 wt% Nb, the sites where Laves phase or
+    carbides form in the real alloy (not modelled).
+* **The 3-D spacing was still coarsening when the run ended.**
+  * The front first breaks up into fine cells, then cells are eliminated: material grown 5 µm
+    before the end has 0.24 µm, material grown last 0.33 µm.
+  * The tips were still drifting ahead of the T0 isotherm, from 1.2 µm (mid-run) to 1.4 µm.
+  * So 0.33 µm is a lower bound for the steady 3-D spacing at this point. It is close to the
+    2-D value and inside the measured 0.2–1.0 µm.
+  * A steady 3-D spacing needs a longer run, and a converged one W0 below 10 nm. Both are GPU
+    work.
+* **Segregation agrees between 2-D and 3-D.**
+  * The 5–95 % ranges of Nb, Mo, Cr and Fe agree within 0.2 wt%. The 3-D cores are about
+    0.2 wt% leaner in Nb.
+  * Where the 2-D model is cheaper, it gives the right segregation statistics. 3-D is needed
+    for the shape of the network: edges against walls, droplets, sections at any angle.
+* **Only Nb and Mo segregation is measurable by EDS; Cr and Fe are not.**
+  * Cr and Fe vary by under 2 % of their content, below the counting noise of a map in every
+    technique. Their segregation can only be quantified from line scans or point analyses with
+    long counting times.
+  * Ni depletion at the walls (about 5 %) is visible in STEM.
+* **SEM-EDS at 15 kV cannot resolve these cells.**
+  * At 15 kV, 90 % of the Nb and Mo signal comes from a 0.7 µm wide volume, two cells across.
+    The map keeps about a quarter of the Nb contrast and shows the network only faintly.
+  * At 5 kV (L lines for all elements) the volume shrinks below 0.1 µm, and 85 % of the
+    contrast survives.
+  * STEM on a thin foil keeps nearly all of it. The few percent lost come from walls inclined
+    within the 100 nm foil.
+  * Consequence: SEM-EDS at the usual 15–20 kV underestimates intercellular segregation in LPBF
+    alloys several-fold. Quantitative comparison needs STEM-EDS, low-kV SEM, or this blurring
+    applied to the simulation first (`tpmsfem.post.eds`).
+* **Uncertain inputs.**
+  * The SEM numbers depend on the shape assumed for the X-ray source volume. A single
+    Gaussian with the same 90 % diameter would keep under 1 % of the contrast at 15 kV, against
+    27 % here. Calibrate on a measured line scan when one is available.
+  * The Mo liquidus slope is an estimate, and Mo's share of the freezing range is 10 %.
+  * One liquid diffusivity is used for all solutes.
+
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 
 Kasperovich, Becker, Artzt et al., *Materials & Design* 207 (2021) 109858,

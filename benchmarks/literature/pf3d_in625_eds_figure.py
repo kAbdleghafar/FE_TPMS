@@ -79,8 +79,8 @@ def fig_eds(d, store):
     ax = fig.add_subplot(gs[0, 5])
     _img(ax, sum(_rgb(true[e], ov_col[e]) for e in overlay).clip(0, 1), [0, L, 0, L], rgb=True)
     ax.set_title("Nb (red), Cr (blue), Ni (green)", fontsize=8.5, loc="left")
-    ax.plot([0.1 * L, 0.1 * L + 0.5], [0.06 * L] * 2, color="white", lw=2)
-    ax.text(0.1 * L + 0.25, 0.09 * L, "0.5 um", color="white", fontsize=7.5, ha="center")
+    ax.plot([0.1 * L, 0.1 * L + 0.5], [0.06 * L] * 2, color=INK, lw=2)
+    ax.text(0.1 * L + 0.25, 0.09 * L, "0.5 um", color=INK, fontsize=7.5, ha="center")
     # rows 1-3: EDS maps (counts, with counting noise)
     info = r3["eds"]
     for rr, mode in enumerate(("sem15", "sem5", "stem"), start=1):
@@ -137,15 +137,16 @@ def fig_eds(d, store):
         _img(ax, _rgb(a, COLOURS["Nb"]), [0, a.shape[1] * px, 0, a.shape[0] * px], rgb=True)
         ax.set_title(f"({'d' if c == 0 else 'e'}) Nb, {MODE_TITLE[mode].split(',')[0]}"
                      f"{', 15 kV' if mode == 'sem15' else ''}", fontsize=9, loc="left")
-    sp = [s for s in r3.get("spacing_3d", []) if s["depth_um"] >= 0.6]
-    sp_txt = ", ".join(f"{s['spacing_um']:.2f}" for s in sp)
+    sp = {round(s["depth_um"], 1): s["spacing_um"] for s in r3.get("spacing_3d", [])}
+    sp_txt = (f"{sp.get(0.8, float('nan')):.2f} um at 0.8 um below the tips, {sp.get(4.0, float('nan')):.2f} um at 4 um "
+              f"(still coarsening)")
     seg = r3["segregation_wt"]
     fig.suptitle(
         "IN625 cells in 3-D (multicomponent phase field) at the AM-Bench case-B mid-pool point (G = 6.6e6 K/m, "
         "R = 0.092 m/s) and what EDS would record\n"
         f"Transverse section {r3['section_depth_um']:.1f} um below the tips, {r3['size_um'][0]:.1f} x {r3['size_um'][1]:.1f} um; "
         f"EDS maps with counting noise, contrast stretched per map.\n3-D cell spacing "
-        f"sqrt(A/N) = {sp_txt} um at 0.6-3 um below the tips (2-D, same model: {r2.get('spacing_2d_um', float('nan')):.2f} um). "
+        f"sqrt(A/N) = {sp_txt}; 2-D, same model: {r2.get('spacing_2d_um', float('nan')):.2f} um. "
         f"Nb 5-95 %: {seg['Nb']['p05']:.1f}-{seg['Nb']['p95']:.1f} wt%, Mo {seg['Mo']['p05']:.1f}-{seg['Mo']['p95']:.1f} wt%",
         fontsize=10, x=0.02, ha="left")
     fig.savefig(M.FIG, dpi=130)
@@ -216,9 +217,10 @@ def fig_3d(d, store):
     _ax3(ax)
     sm = cm.ScalarMappable(norm=nn, cmap=cmap)
     sm.set_array([])
-    cax = fig.add_axes([0.62, 0.2, 0.008, 0.45])
+    cax = fig.add_axes([0.655, 0.2, 0.008, 0.45])
     cb = fig.colorbar(sm, cax=cax)
     cb.set_label("Nb [wt%]", fontsize=8)
+    cb.ax.yaxis.set_label_position("left")
     cb.ax.tick_params(labelsize=7)
     # (c) the Nb-rich intercellular walls as an iso-surface
     ax = fig.add_subplot(1, 3, 3, projection="3d")

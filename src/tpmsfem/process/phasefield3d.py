@@ -198,29 +198,38 @@ class PF3DResult:
         n = 0 if not self.solid else self.solid[self.names[0]].shape[0]
         return n + (int(rows.max()) if len(rows) else 0)
 
-    def cells(self, row: int, name: Optional[str] = None, min_area_frac: float = 0.15):
-        """Cells in the transverse section ``row`` (grown indexing): the section of the solute
-        with the strongest segregation (``name``; default: smallest k) is split at its Otsu
-        threshold into cell cores (depleted for k < 1) and enriched boundaries; cores are
-        labelled with periodic connectivity. Returns (labels, number of cells, mean spacing
-        sqrt(A / N) [m]). Cores smaller than ``min_area_frac`` of the mean are not counted."""
+    def cells(self, row: int, name: Optional[str] = None, depth_frac: float = 0.1, min_area_frac: float = 0.15):
+        """Cells in the transverse section ``row`` (grown indexing), counted by watershed on the
+        section of the most strongly segregating solute (``name``; default: smallest k): basins
+        grow from the regional minima (maxima for k > 1) deeper than ``depth_frac`` of the
+        section's 5-95 % range and meet at the enriched boundaries, whatever their height (a
+        global threshold merges cells whose walls are weak next to strongly enriched
+        triple junctions). The section is tiled 3 x 3 for periodicity. Returns (labels, number
+        of cells, mean spacing sqrt(A / N) [m]); basins smaller than ``min_area_frac`` of the
+        mean are not counted. Needs scikit-image."""
         from scipy import ndimage
+        from skimage.morphology import h_minima
+        from skimage.segmentation import watershed
 
         if name is None:
             name = min(self.params["solutes"], key=lambda s: s["k"])["name"]
         k = {s["name"]: s["k"] for s in self.params["solutes"]}[name]
         sec = ndimage.gaussian_filter(self.grown(name)[row].astype(float), 1.0, mode="wrap")
-        thr = _otsu(sec)
-        core = sec < thr if k < 1.0 else sec > thr
-        lab, n = ndimage.label(core)
-        lab = _merge_periodic(lab)
-        ids, area = np.unique(lab[lab > 0], return_counts=True)
-        if len(ids) == 0:
-            return lab, 0, np.inf
-        keep = area >= min_area_frac * area.mean()
+        f = sec if k < 1.0 else -sec
+        n0, n1 = f.shape
+        tile = np.tile(f, (3, 3))
+        h = depth_frac * (np.percentile(f, 95) - np.percentile(f, 5))
+        markers, nm = ndimage.label(h_minima(tile, max(h, 1e-12)))
+        lab = watershed(tile, markers)
+        centres = ndimage.center_of_mass(np.ones_like(tile), markers, np.arange(1, nm + 1))
+        central = [i + 1 for i, (cy, cx) in enumerate(centres) if n0 <= cy < 2 * n0 and n1 <= cx < 2 * n1]
+        area = ndimage.sum(np.ones_like(tile), lab, central)
+        if len(central) == 0:
+            return lab[n0:2 * n0, n1:2 * n1], 0, np.inf
+        keep = np.asarray(area) >= min_area_frac * np.mean(area)
         n_cells = int(keep.sum())
-        A = sec.size * self.dx_m ** 2
-        return lab, n_cells, float(np.sqrt(A / max(n_cells, 1)))
+        A = f.size * self.dx_m ** 2
+        return lab[n0:2 * n0, n1:2 * n1], n_cells, float(np.sqrt(A / max(n_cells, 1)))
 
     def segregation(self, name: str, rows: Optional[slice] = None):
         """Statistics [wt%] of one element over solidified rows (default: the stored rows
@@ -232,36 +241,6 @@ class PF3DResult:
         v = np.asarray(v[rows], dtype=float).ravel()
         return dict(min=float(v.min()), p05=float(np.percentile(v, 5)), p50=float(np.median(v)),
                     p95=float(np.percentile(v, 95)), max=float(v.max()), mean=float(v.mean()))
-
-
-def _otsu(img: np.ndarray, bins: int = 256) -> float:
-    h, e = np.histogram(img.ravel(), bins=bins)
-    c = 0.5 * (e[1:] + e[:-1])
-    w0 = np.cumsum(h)
-    w1 = w0[-1] - w0
-    m0 = np.cumsum(h * c) / np.maximum(w0, 1)
-    m1 = (np.sum(h * c) - np.cumsum(h * c)) / np.maximum(w1, 1)
-    return float(c[np.argmax(w0 * w1 * (m0 - m1) ** 2)])
-
-
-def _merge_periodic(lab: np.ndarray) -> np.ndarray:
-    """Merge labels of a 2-D labelling that touch across the periodic edges."""
-    parent = np.arange(lab.max() + 1)
-
-    def find(a):
-        while parent[a] != a:
-            parent[a] = parent[parent[a]]
-            a = parent[a]
-        return a
-
-    for a_edge, b_edge in ((lab[0], lab[-1]), (lab[:, 0], lab[:, -1])):
-        for a, b in zip(a_edge, b_edge):
-            if a and b:
-                ra, rb = find(a), find(b)
-                if ra != rb:
-                    parent[max(ra, rb)] = min(ra, rb)
-    roots = np.array([find(a) for a in range(len(parent))])
-    return roots[lab]
 
 
 # ----------------------------------------------------------------------------------------

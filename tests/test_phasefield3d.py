@@ -117,3 +117,28 @@ def test_cells_counted_with_periodic_cores():
     lab, ncell, spacing = r.cells(1)
     assert ncell == len(centres)
     assert spacing == pytest.approx(lam * 1e-8, rel=1e-9)
+
+
+def test_cells_counted_when_walls_are_weak_next_to_rich_junctions():
+    """Voronoi cells whose walls are barely enriched while the triple junctions are strongly
+    enriched (as in the case-B run): a global threshold merges all cores into one; the
+    watershed finds every cell."""
+    n = 120
+    rng = np.random.default_rng(4)
+    pts = rng.uniform(0, n, size=(30, 2))
+    yy, xx = np.mgrid[0:n, 0:n].astype(float)
+    d = []
+    for py, px in pts:
+        dy = (yy - py + n / 2) % n - n / 2
+        dx_ = (xx - px + n / 2) % n - n / 2
+        d.append(np.hypot(dy, dx_))
+    d = np.sort(np.array(d), axis=0)
+    nb = 3.0 + 0.6 * np.exp(-((d[1] - d[0]) / 1.5) ** 2) + 4.0 * np.exp(-((d[2] - d[0]) / 2.0) ** 2)
+    phi = np.ones((3, n, n))
+    r = P3.PF3DResult(phi, {"Nb": np.repeat(nb[None], 3, axis=0)}, {}, 1e-8, 0.0, 0, 0.0,
+                      params=dict(solutes=[dict(name="Nb", k=0.5)]))
+    thr = 0.5 * (np.percentile(nb, 5) + np.percentile(nb, 99))
+    from scipy import ndimage
+    assert ndimage.label(nb < thr)[1] <= 3                    # the cores percolate under a global threshold
+    _, ncell, _ = r.cells(1)
+    assert abs(ncell - 30) <= 1

@@ -35,8 +35,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, "results")
 STORE = os.path.join(RES, "pf3d_in625_eds.json")
 FIELDS = os.path.join(RES, "pf3d_in625_eds_{job}.npz")
-FIG = os.path.join(RES, "pf3d_in625_eds.png")
-FIG3D = os.path.join(RES, "pf3d_in625_eds_3d.png")
+IMG = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "img"))
+FIG = os.path.join(IMG, "pf3d_in625_eds.png")
+FIG3D = os.path.join(IMG, "pf3d_in625_eds_3d.png")
 CKPT_DIR = os.environ.get("PF3D_CKPT_DIR", os.path.join(tempfile.gettempdir(), "pf3d_in625_ckpt"))
 
 G, R, Z_UM = 6.618e6, 0.09211, -22.5          # case-B centreline point (pf_path_trapping.path_points)
@@ -111,7 +112,7 @@ def summarise(tag, r):
         out["boundaries_2d"] = n_b
     else:
         sp = []
-        for d in (0.4e-6, 0.6e-6, 0.8e-6, 1.0e-6, 1.5e-6, 2.0e-6, 3.0e-6):
+        for d in (0.4e-6, 0.6e-6, 0.8e-6, 1.0e-6, 1.5e-6, 2.0e-6, 3.0e-6, 4.0e-6, 5.0e-6):
             row = tip - int(round(d / dx))
             if row >= 0:
                 _, n_c, lam = r.cells(row)
