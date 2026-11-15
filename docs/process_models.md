@@ -436,6 +436,10 @@ Rolchigo et al. 2022):
 * **Decentring.** A captured cell gets a decentred envelope that keeps its parent's tip, so
   growth follows the crystal axes, not the grid.
 * **Nucleation.** Optional: Gaussian nucleation undercoolings at random sites.
+* **Growth mode.** Optional heat-flow bias α. Each envelope's frame is turned so that the
+  grain's <100> nearest to the growth direction (∇t_l) rotates towards it by α times their
+  angle. α = 0 gives dendrites growing along <100>. α = 1 is the cellular limit, where every
+  grain grows along the heat flow.
 * **Epitaxy.** Unmelted cells at the fusion boundary seed the pool.
 * **Scan strategies.** The steady thermal history of one track (from `MeltPoolModel`) is shifted
   along every scan vector. This includes remelting and regrowth across tracks and layers, but
@@ -476,6 +480,8 @@ Rolchigo et al. 2022):
 | extruded, nucleation 10¹⁵ /m³ at 30 ± 2 K (20 % nucleated) | 24.1 % | 60 | 14.1 µm |
 | hybrid, 2.7 µm stand-in grains (5 runs) | 12–17 % | 144–168 | 8.5–10.9 µm |
 | **hybrid, 7.9 µm stand-in grains (3 runs)** | 12–17 % | **90–99** | **11.2–14.0 µm** |
+| extruded, heat-flow bias α = 0.5 / 1 (cellular growth) | 24.2 % / 23.8 % | 50 / 51 | 14.7 / 13.8 µm |
+| hybrid 7.9 µm, heat-flow bias α = 1 (3 runs) | 12–14 % | 91–100 | 11.1–12.7 µm |
 | *rules, for comparison:* gradient trace (§5.1) / with the hybrid substrate (§5.2) | 27.5 % / 26.7 % | 83 / 236 | 12.3 µm / — |
 
 ![3-D grain CA against the EBSD section](img/ca_ambench_caseB.png)
@@ -487,22 +493,25 @@ Rolchigo et al. 2022):
 * **The extruded substrate gives too few grains: 47.** Two effects can explain this:
   * grains entering the section from substrate outside the plane (§5.2);
   * grain selection in the CA that is too strong (next point).
-* **Point-wise agreement does not improve on the rules.** The extruded substrate gives 25.4 %
-  (21.7 % for the other scan direction), against 25.8–27.5 % for the 2-D rules. The hybrid
-  gives 12–17 %, against 26.7 % for the gradient trace with the same substrate.
-* **Why the CA selects grains too strongly.** Its envelopes grow along <100> (dendrites).
-  LPBF IN625 solidifies as cells (§5.3), and cells follow the heat flow more closely than the
-  crystal axes. The gradient trace follows the heat flow, which is the likely reason it does
-  better point by point.
-  * Selection strength is a model property, not a resolution effect: halving the cell size
-    changes nothing (26.8 %, 47 grains).
-  * Faster tip kinetics strengthen the selection (38 grains).
+* **Point-wise agreement equals that of the rules.** The extruded substrate gives 25.4 %
+  (21.7 % for the other scan direction), against 25.8–27.5 % for the 2-D rules.
+* **It does not depend on the growth model.**
+  * Cell size: halving it changes nothing (26.8 %, 47 grains).
+  * Kinetics: faster tip kinetics give 24.0 % and 38 grains.
+  * Growth mode: the heat-flow bias that turns each grain's growth axis towards the heat flow
+    (cellular growth) gives 24.2 % at α = 0.5 and 23.8 % at α = 1, with 50–51 grains.
+  * So over one 36 µm-deep track the strength of grain selection does not matter: the limit
+    is the unknown 3-D substrate.
+* **The hybrid substrate scores lower (12–17 %) for a reason of construction.** Its measured
+  grains form a slab only 2.8 µm thick along the scan, which neighbouring stand-in grains
+  overgrow in 3-D. The gradient trace (26.7 % with the same substrate) has no lateral growth,
+  so it is not penalised.
 * **Nucleation plays no role here.** At 10¹⁴ /m³ (10 K) it changes nothing. At 10¹⁵ /m³
   (30 K) a fifth of the pool, near the top, becomes new grains. The measured section shows no
   equiaxed band, so heterogeneous nucleation is weak in this track.
 * **Use.** The CA is suited to grain size and texture statistics, and to builds of many tracks
-  and layers (§5.5). For point-wise maps of a single track, the gradient trace is as good. A
-  cell-growth rule that weights the envelope towards the heat flow is the natural next step.
+  and layers (§5.5), where growth distances are long. There, competition and the growth mode
+  (α) decide the texture. For point-wise maps of a single track, the gradient trace is as good.
 
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 

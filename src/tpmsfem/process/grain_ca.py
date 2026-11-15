@@ -28,6 +28,14 @@ al., Comput. Mater. Sci. 214 (2022) 111692):
   undercooling passes its threshold becomes a new grain of random orientation.
 * **Epitaxy.** Unmelted cells next to the melt get envelopes of zero size, so the melt pool
   grows from the substrate grains, and earlier tracks and layers seed later ones.
+* **Heat-flow bias** (optional, ``heat_flow_bias`` = alpha in [0, 1]). The classical model
+  (alpha = 0) treats dendrites, which grow along <100>. Cells, as in LPBF, grow in a direction
+  between the crystal axis and the heat flow (e.g. Deschamps, Georgelin & Pocheau, PRE 78
+  (2008) 011605). Here each envelope's frame is the grain's, rotated so that its <100>
+  nearest to the growth direction (grad t_l) turns towards it by alpha times their angle:
+  * alpha = 0: dendritic;
+  * alpha = 1: every grain grows along the heat flow and orientation selection vanishes.
+  This is a phenomenological interpolation, to be calibrated against measured grain maps.
 
 Thermal input for scan strategies (:func:`track_events`). The steady-state temperature
 history of one track (:class:`TrackSection`, from a MeltPoolModel run) is shifted along every
@@ -146,16 +154,20 @@ class TrackSection:
         tm = np.minimum(tm, tl)
         return cls(y * 1e-3, res.z * 1e-3, Tp, tm, tl, cr, res.T_solidus if level is None else level, speed * 1e-3)
 
-    def sample(self, l, z):
-        """Interpolated (melted, tau_m, tau_l, cr) at points (l, z) [m]."""
+    def sample(self, l, z, gradient: bool = False):
+        """Interpolated (melted, tau_m, tau_l, cr) at points (l, z) [m]; with ``gradient``
+        also d tau_l / dl and d tau_l / dz [s/m]."""
         from scipy.interpolate import RegularGridInterpolator as RGI
 
         pts = np.column_stack([np.clip(np.ravel(l), self.l[0], self.l[-1]), np.clip(np.ravel(z), self.z[0], self.z[-1])])
         inside = (np.ravel(l) >= self.l[0]) & (np.ravel(l) <= self.l[-1]) & (np.ravel(z) >= self.z[0]) \
             & (np.ravel(z) <= self.z[-1] + 0.5 * (self.z[-1] - self.z[-2]))
         Tp = RGI((self.l, self.z), self.T_peak)(pts)
-        f = [RGI((self.l, self.z), a)(pts) for a in (self.tau_m, self.tau_l, self.cooling_rate)]
-        return (Tp >= self.T_melt) & inside, f[0], f[1], f[2]
+        arrays = [self.tau_m, self.tau_l, self.cooling_rate]
+        if gradient:
+            arrays += list(np.gradient(self.tau_l, self.l, self.z))
+        f = [RGI((self.l, self.z), a)(pts) for a in arrays]
+        return ((Tp >= self.T_melt) & inside,) + tuple(f)
 
 
 @dataclass(frozen=True)
@@ -185,11 +197,12 @@ class CAGrid:
 
 
 def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track]):
-    """Melting events (cell, t_m, t_l, cr, track id) of all tracks, sorted by t_m. A track's
-    history at a point is the section's at the point's lateral offset and height, delayed by
-    the time the laser takes to reach the point along the track (steady state)."""
+    """Melting events (cell, t_m, t_l, cr, track id, growth direction) of all tracks, sorted
+    by t_m. A track's history at a point is the section's at the point's lateral offset and
+    height, delayed by the time the laser takes to reach the point along the track (steady
+    state). The growth direction is grad t_l / |grad t_l|."""
     x, y, z = (grid.centres(a) for a in range(3))
-    cells, tms, tls, crs, ids = [], [], [], [], []
+    cells, tms, tls, crs, ids, dirs = [], [], [], [], [], []
     half = 0.5 * (section.l[-1] - section.l[0])
     z_hi = section.z[-1] + 0.5 * (section.z[-1] - section.z[-2])          # top face of the section grid
     for n, tr in enumerate(tracks):
@@ -211,7 +224,7 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track]):
         s = (px - p0[0]) * d[0] + (py - p0[1]) * d[1]
         lat = (px - p0[0]) * nrm[0] + (py - p0[1]) * nrm[1]
         keep = (s >= 0.0) & (s <= length)
-        melted, tm, tl, cr = section.sample(lat[keep], pz[keep] - tr.z_top)
+        melted, tm, tl, cr, dl, dz = section.sample(lat[keep], pz[keep] - tr.z_top, gradient=True)
         sel = np.flatnonzero(keep)[melted]
         if not len(sel):
             continue
@@ -221,12 +234,18 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track]):
         tms.append(t_pass + tm[melted])
         tls.append(t_pass + tl[melted])
         crs.append(cr[melted])
+        # growth direction: the liquidus isotherm passes later along grad t_l
+        g = (np.outer(np.full(int(melted.sum()), 1.0 / v), [d[0], d[1], 0.0])
+             + np.outer(dl[melted], [nrm[0], nrm[1], 0.0]) + np.outer(dz[melted], [0.0, 0.0, 1.0]))
+        dirs.append(g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-30))
         ids.append(np.full(len(sel), n, np.int32))
     if not cells:
-        return dict(cell=np.zeros(0, np.int64), tm=np.zeros(0), tl=np.zeros(0), cr=np.zeros(0), track=np.zeros(0, np.int32))
-    cell, tm, tl, cr, tid = (np.concatenate(a) for a in (cells, tms, tls, crs, ids))
+        return dict(cell=np.zeros(0, np.int64), tm=np.zeros(0), tl=np.zeros(0), cr=np.zeros(0), track=np.zeros(0, np.int32),
+                    dir=np.zeros((0, 3)))
+    cell, tm, tl, cr, tid, gd = (np.concatenate(a) for a in (cells, tms, tls, crs, ids, dirs))
     o = np.argsort(tm, kind="stable")
-    return dict(cell=cell[o].astype(np.int64), tm=tm[o], tl=tl[o], cr=cr[o].astype(np.float64), track=tid[o])
+    return dict(cell=cell[o].astype(np.int64), tm=tm[o], tl=tl[o], cr=cr[o].astype(np.float64), track=tid[o],
+                dir=np.ascontiguousarray(gd[o]))
 
 
 # ---------------------------------------------------------------- substrate
@@ -280,8 +299,10 @@ class GrainCA:
     tracks or layers (later than the earlier ones), which keeps the event lists small."""
 
     def __init__(self, grid: CAGrid, grain: np.ndarray, orientations: np.ndarray, kinetics: TipKinetics,
-                 nucleation: Optional[tuple] = None, seed: int = 0, cfl: float = 0.25, dT_step: float = 0.5):
+                 nucleation: Optional[tuple] = None, seed: int = 0, cfl: float = 0.25, dT_step: float = 0.5,
+                 heat_flow_bias: float = 0.0):
         self.grid, self.kin, self.cfl, self.dT_step = grid, kinetics, cfl, dT_step
+        self.alpha = float(heat_flow_bias)
         self.rng = np.random.default_rng(seed)
         self.nucleation = nucleation
         N = grid.size
@@ -292,6 +313,7 @@ class GrainCA:
         self.n_grains = self.n_sub
         self.tl = np.full(N, np.inf)
         self.cr = np.zeros(N)
+        self.gd = np.zeros((N, 3))
         self.mid = np.full(N, -1, np.int32)
         self.oc = np.zeros((N, 3))
         self.L = np.zeros(N)
@@ -333,9 +355,11 @@ class GrainCA:
         ids = (events["track"].astype(np.int64) + self.track_offset).astype(np.int32)
         self.track_offset += n_tracks
         t0 = time.perf_counter()
+        gdir = events.get("dir")
+        gdir = np.zeros((len(events["cell"]), 3)) if gdir is None else np.ascontiguousarray(gdir, dtype=np.float64)
         out = _kernel()(np.array(g.shape, np.int64), self.state, self.grain, self.tl, self.cr, self.mid, self.oc,
                         self.L, self.ever, self.rot, events["cell"].astype(np.int64), events["tm"].astype(np.float64),
-                        events["tl"].astype(np.float64), events["cr"].astype(np.float64), ids,
+                        events["tl"].astype(np.float64), events["cr"].astype(np.float64), ids, self.gd, gdir, self.alpha,
                         site_cell, site_dT.astype(np.float64), np.ascontiguousarray(self.kin.dT, dtype=np.float64),
                         np.ascontiguousarray(self.kin.v, dtype=np.float64), g.dx, self.cfl, dt_max, t_end,
                         self.n_grains, *self.work, self.n_act, self.n_liq, self.t)
@@ -379,6 +403,37 @@ def _kernel():
         return kin_v[i] * (1.0 - w) + kin_v[i + 1] * w
 
     @numba.njit(cache=True)
+    def frame(R, n0, n1, n2, alpha, F):
+        """Envelope frame: the grain's axes R, rotated so that the <100> nearest to the growth
+        direction n turns towards n by alpha times their angle (Rodrigues)."""
+        for a in range(3):
+            for b in range(3):
+                F[a, b] = R[a, b]
+        nn = np.sqrt(n0 * n0 + n1 * n1 + n2 * n2)
+        if alpha <= 0.0 or nn < 1e-12:
+            return
+        n0, n1, n2 = n0 / nn, n1 / nn, n2 / nn
+        best, amax, sg = 0, -1.0, 1.0
+        for a in range(3):
+            d = R[a, 0] * n0 + R[a, 1] * n1 + R[a, 2] * n2
+            if abs(d) > amax:
+                amax, best, sg = abs(d), a, (1.0 if d >= 0.0 else -1.0)
+        if amax > 1.0 - 1e-9:
+            return
+        a0, a1, a2 = sg * R[best, 0], sg * R[best, 1], sg * R[best, 2]
+        k0, k1, k2 = a1 * n2 - a2 * n1, a2 * n0 - a0 * n2, a0 * n1 - a1 * n0
+        kn = np.sqrt(k0 * k0 + k1 * k1 + k2 * k2)
+        k0, k1, k2 = k0 / kn, k1 / kn, k2 / kn
+        phi = alpha * np.arccos(min(amax, 1.0))
+        cp, sp = np.cos(phi), np.sin(phi)
+        for a in range(3):
+            v0, v1, v2 = R[a, 0], R[a, 1], R[a, 2]
+            kd = k0 * v0 + k1 * v1 + k2 * v2
+            F[a, 0] = v0 * cp + (k1 * v2 - k2 * v1) * sp + k0 * kd * (1.0 - cp)
+            F[a, 1] = v1 * cp + (k2 * v0 - k0 * v2) * sp + k1 * kd * (1.0 - cp)
+            F[a, 2] = v2 * cp + (k0 * v1 - k1 * v0) * sp + k2 * kd * (1.0 - cp)
+
+    @numba.njit(cache=True)
     def decentre(oc, c, Lp, R, x0, x1, x2, ocn, n_out):
         """New envelope for the cell at (x0, x1, x2) captured by the envelope (centre oc[c],
         half-diagonal Lp, axes R): returns its half-diagonal, writes its centre to ocn[n_out]."""
@@ -409,7 +464,7 @@ def _kernel():
         return Lnew
 
     @numba.njit(cache=True)
-    def run(shape, state, grain, tl, cr, mid, oc, L, ever, rot, ev_cell, ev_tm, ev_tl, ev_cr, ev_id,
+    def run(shape, state, grain, tl, cr, mid, oc, L, ever, rot, ev_cell, ev_tm, ev_tl, ev_cr, ev_id, gd, ev_dir, alpha,
             site_cell, site_dT, kin_dT, kin_v, dx, cfl, dt_max, t_end, n_grains,
             act, in_act, capt, best_p, best_src, n_act, n_liq, t):
         nx, ny, nz = shape[0], shape[1], shape[2]
@@ -424,6 +479,8 @@ def _kernel():
                         m += 1
         n_ev = len(ev_cell)
         n_rot = rot.shape[0]
+        F = np.empty((3, 3))
+        fsrc = np.empty(nx * ny * nz, np.int64)    # growth-direction source cell of each active cell
         e = 0
         if n_ev > 0 and n_liq <= 0:
             t = max(t, ev_tm[0])
@@ -442,6 +499,7 @@ def _kernel():
                 tl[c] = ev_tl[e]
                 cr[c] = ev_cr[e]
                 mid[c] = ev_id[e]
+                gd[c, 0], gd[c, 1], gd[c, 2] = ev_dir[e, 0], ev_dir[e, 1], ev_dir[e, 2]
                 ever[c] = True
                 i, j, k = c // (ny * nz), (c // nz) % ny, c % nz
                 for q in range(26):
@@ -503,6 +561,7 @@ def _kernel():
                 has_liq = False
                 own = False
                 dT_nb = 0.0
+                nb_best = c
                 for q in range(26):
                     ii, jj, kk = i + offs[q, 0], j + offs[q, 1], k + offs[q, 2]
                     if ii < 0 or ii >= nx or jj < 0 or jj >= ny or kk < 0 or kk >= nz:
@@ -513,6 +572,7 @@ def _kernel():
                         dTn = cr[nb] * (t - tl[nb])
                         if dTn > dT_nb:
                             dT_nb = dTn
+                            nb_best = nb
                         if mid[nb] == mid[c]:
                             own = True
                 if not has_liq:
@@ -522,6 +582,9 @@ def _kernel():
                 # grow only while some liquid neighbour is below the liquidus (else the envelope
                 # would run ahead of the liquid it can capture), and not beyond L_CAP, where it
                 # already contains all 26 neighbours
+                src = c if own else nb_best
+                frame(rot[grain[c]], gd[src, 0], gd[src, 1], gd[src, 2], alpha, F)
+                fsrc[c] = src
                 if dT > 0.0 and dT_nb > 0.0 and L[c] < L_CAP:
                     v = vtip(dT, kin_dT, kin_v)
                     if v > vmax:
@@ -529,7 +592,6 @@ def _kernel():
                     L[c] = min(L[c] + v * dt / dx, L_CAP)
                 if L[c] <= 0.0:
                     continue
-                g = grain[c]
                 for q in range(26):
                     ii, jj, kk = i + offs[q, 0], j + offs[q, 1], k + offs[q, 2]
                     if ii < 0 or ii >= nx or jj < 0 or jj >= ny or kk < 0 or kk >= nz:
@@ -538,9 +600,9 @@ def _kernel():
                     if state[nb] != 1 or t < tl[nb]:
                         continue
                     d0, d1, d2 = ii - oc[c, 0], jj - oc[c, 1], kk - oc[c, 2]
-                    dist = (abs(rot[g, 0, 0] * d0 + rot[g, 0, 1] * d1 + rot[g, 0, 2] * d2)
-                            + abs(rot[g, 1, 0] * d0 + rot[g, 1, 1] * d1 + rot[g, 1, 2] * d2)
-                            + abs(rot[g, 2, 0] * d0 + rot[g, 2, 1] * d1 + rot[g, 2, 2] * d2))
+                    dist = (abs(F[0, 0] * d0 + F[0, 1] * d1 + F[0, 2] * d2)
+                            + abs(F[1, 0] * d0 + F[1, 1] * d1 + F[1, 2] * d2)
+                            + abs(F[2, 0] * d0 + F[2, 1] * d1 + F[2, 2] * d2))
                     if dist <= L[c]:
                         p = L[c] - dist
                         if best_p[nb] < 0.0:
@@ -559,7 +621,9 @@ def _kernel():
                 state[nb] = 3
                 n_liq -= 1
                 ii, jj, kk = nb // (ny * nz), (nb // nz) % ny, nb % nz
-                L[nb] = decentre(oc, src, L[src], rot[g], float(ii), float(jj), float(kk), oc, nb)
+                s2 = fsrc[src]
+                frame(rot[g], gd[s2, 0], gd[s2, 1], gd[s2, 2], alpha, F)
+                L[nb] = decentre(oc, src, L[src], F, float(ii), float(jj), float(kk), oc, nb)
                 if not in_act[nb]:
                     act[n_act] = nb
                     n_act += 1

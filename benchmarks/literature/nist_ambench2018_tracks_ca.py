@@ -177,6 +177,10 @@ def run():
     d_aw = prev3d["substrate_area_weighted_d_eq_um"]
     cases += [(f"hybrid, {d_aw:.1f} um grains {s}", None, s, 1) for s in range(3)]
     cases += [("extruded, 0.25 um cells", None, 0, 1), ("extruded, fast kinetics (5 K at 0.1 m/s)", None, 0, 1)]
+    # heat-flow bias (cellular growth): calibration of alpha
+    for a in (0.5, 1.0):
+        cases += [(f"extruded, heat-flow bias {a:g}", None, 0, 1), (f"extruded, reversed scan, heat-flow bias {a:g}", None, 0, -1)]
+        cases += [(f"hybrid, {d_aw:.1f} um grains {s}, heat-flow bias {a:g}", None, s, 1) for s in range(3)]
     fast = CA.TipKinetics.power_law(0.1 / 5.0 ** 2, 2.0, dT_max=200.0)
     for name, nuc, seed, direction in cases:
         if name in out:
@@ -186,11 +190,13 @@ def run():
         grid, grain, rot, ev, i_s = build(sec, g_px, valid, step, top, xc, variant, seed, delta, d, direction,
                                           dx=0.25e-6 if "0.25 um" in name else DX)
         t0 = time.perf_counter()
-        res = CA.GrainCA(grid, grain, rot, fast if "fast" in name else kin, nucleation=nuc, seed=seed).run(ev).result()
+        alpha = float(name.split("heat-flow bias ")[1]) if "heat-flow bias" in name else 0.0
+        res = CA.GrainCA(grid, grain, rot, fast if "fast" in name else kin, nucleation=nuc, seed=seed,
+                         heat_flow_bias=alpha).run(ev).result()
         cmp_, pred, ok = compare(res, i_s, grid, g_px, valid, step, top, xc, sec)
         fz3 = res.melted
         gz = res.grain[fz3]
-        cmp_.update(name=name, events=int(len(ev["cell"])), melted_cells=int(fz3.sum()), steps=res.steps,
+        cmp_.update(name=name, heat_flow_bias=alpha, events=int(len(ev["cell"])), melted_cells=int(fz3.sum()), steps=res.steps,
                     seconds=time.perf_counter() - t0, ca_stats=res.stats,
                     nucleated_fraction=float(res.nucleated[gz[gz >= 0]].mean()) if (gz >= 0).any() else 0.0)
         print(f"{name}: {100 * cmp_['frac_lt10']:.1f} % within 10 deg, grains {cmp_['stats']['CA']['grains']} "
@@ -199,7 +205,8 @@ def run():
               f"[{res.steps} steps, {cmp_['seconds']:.0f} s]", flush=True)
         out[name] = cmp_
         json.dump(out, open(OUT, "w"), indent=1)
-        tag = {"extruded": "extruded", "hybrid 0": "hybrid", "extruded, nucleation 1e15/m3 at 30 +- 2 K": "nuc"}.get(name)
+        tag = {"extruded": "extruded", "hybrid 0": "hybrid", "extruded, nucleation 1e15/m3 at 30 +- 2 K": "nuc",
+               "extruded, heat-flow bias 1": "cell", f"hybrid, {d_aw:.1f} um grains 0, heat-flow bias 1": "cell_hybrid"}.get(name)
         if tag:
             ipf = S.ipf_color(np.where(ok[..., None, None], pred, np.eye(3)), axis=(0.0, -1.0, 0.0))
             fields[tag + "_section_ipf"] = np.where(ok[..., None], ipf, 1.0).astype(np.float16)

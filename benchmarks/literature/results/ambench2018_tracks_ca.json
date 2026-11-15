@@ -418,5 +418,315 @@
    "liquid_left": 0
   },
   "nucleated_fraction": 0.0
+ },
+ "extruded, heat-flow bias 0.5": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.24211771218640699,
+  "frac_lt5": 0.24080923982788555,
+  "median_deg": 36.53399505446959,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 50,
+    "area_weighted_d_eq_um": 14.68797691245605,
+    "frac_100_build_15deg": 0.04270149216174731
+   }
+  },
+  "name": "extruded, heat-flow bias 0.5",
+  "heat_flow_bias": 0.5,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3044,
+  "seconds": 33.926184012000704,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, reversed scan, heat-flow bias 0.5": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.21738255202435772,
+  "frac_lt5": 0.21609924259580784,
+  "median_deg": 40.043588625114246,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 45,
+    "area_weighted_d_eq_um": 14.915506740091201,
+    "frac_100_build_15deg": 0.044588711909614755
+   }
+  },
+  "name": "extruded, reversed scan, heat-flow bias 0.5",
+  "heat_flow_bias": 0.5,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3038,
+  "seconds": 29.056458879000274,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 0, heat-flow bias 0.5": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.12860773508467327,
+  "frac_lt5": 0.1250345990287109,
+  "median_deg": 40.17298201640908,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 108,
+    "area_weighted_d_eq_um": 10.388882411039258,
+    "frac_100_build_15deg": 0.09320349261468006
+   }
+  },
+  "name": "hybrid, 7.9 um grains 0, heat-flow bias 0.5",
+  "heat_flow_bias": 0.5,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3014,
+  "seconds": 29.655869834999976,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 1, heat-flow bias 0.5": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.17616567273093278,
+  "frac_lt5": 0.1594826501597846,
+  "median_deg": 38.55189862773383,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 99,
+    "area_weighted_d_eq_um": 11.508887598255393,
+    "frac_100_build_15deg": 0.011348481417176216
+   }
+  },
+  "name": "hybrid, 7.9 um grains 1, heat-flow bias 0.5",
+  "heat_flow_bias": 0.5,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3030,
+  "seconds": 31.676908813999944,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 2, heat-flow bias 0.5": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.14851161269218188,
+  "frac_lt5": 0.1407614302609396,
+  "median_deg": 38.476704965087244,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 97,
+    "area_weighted_d_eq_um": 12.278713214623512,
+    "frac_100_build_15deg": 0.014342870083792557
+   }
+  },
+  "name": "hybrid, 7.9 um grains 2, heat-flow bias 0.5",
+  "heat_flow_bias": 0.5,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3057,
+  "seconds": 30.4200754579997,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, heat-flow bias 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.23796582874109862,
+  "frac_lt5": 0.23673284517249188,
+  "median_deg": 35.85493782057011,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 51,
+    "area_weighted_d_eq_um": 13.790084334484243,
+    "frac_100_build_15deg": 0.03492614680053346
+   }
+  },
+  "name": "extruded, heat-flow bias 1",
+  "heat_flow_bias": 1.0,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3036,
+  "seconds": 31.73549728099988,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, reversed scan, heat-flow bias 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.2401298407186533,
+  "frac_lt5": 0.23882136836013185,
+  "median_deg": 36.56448744676829,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 46,
+    "area_weighted_d_eq_um": 15.520087914774455,
+    "frac_100_build_15deg": 0.08817090662036688
+   }
+  },
+  "name": "extruded, reversed scan, heat-flow bias 1",
+  "heat_flow_bias": 1.0,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3051,
+  "seconds": 33.71293521699954,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 0, heat-flow bias 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.11595078130897561,
+  "frac_lt5": 0.10968521174605571,
+  "median_deg": 40.01170439866504,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 91,
+    "area_weighted_d_eq_um": 11.079529468220125,
+    "frac_100_build_15deg": 0.09010845222817745
+   }
+  },
+  "name": "hybrid, 7.9 um grains 0, heat-flow bias 1",
+  "heat_flow_bias": 1.0,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3039,
+  "seconds": 34.60675687100047,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 1, heat-flow bias 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.1422963689892051,
+  "frac_lt5": 0.13087239878211418,
+  "median_deg": 42.61008884047284,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 100,
+    "area_weighted_d_eq_um": 12.40884604262162,
+    "frac_100_build_15deg": 0.009662565109081301
+   }
+  },
+  "name": "hybrid, 7.9 um grains 1, heat-flow bias 1",
+  "heat_flow_bias": 1.0,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3047,
+  "seconds": 37.196677994999845,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 2, heat-flow bias 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.13119951687174455,
+  "frac_lt5": 0.12609144208751666,
+  "median_deg": 40.11777103576369,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 94,
+    "area_weighted_d_eq_um": 12.731472343121665,
+    "frac_100_build_15deg": 0.004126720515336806
+   }
+  },
+  "name": "hybrid, 7.9 um grains 2, heat-flow bias 1",
+  "heat_flow_bias": 1.0,
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3047,
+  "seconds": 32.24051114299982,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
  }
 }

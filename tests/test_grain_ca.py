@@ -56,17 +56,23 @@ def test_competitive_growth_selects_aligned_grains():
     cells = np.flatnonzero(g0.ravel() < 0).astype(np.int64)
     z = (cells % nz) * dx
     ev = dict(cell=cells, tm=np.zeros(len(cells)), tl=z / V, cr=np.full(len(cells), G * V),
-              track=np.zeros(len(cells), np.int32))
+              track=np.zeros(len(cells), np.int32), dir=np.tile([0.0, 0.0, 1.0], (len(cells), 1)))
     kin = CA.TipKinetics.kgt(4.0, 0.48, -10.5, 3e-9, 3.65e-7)
     r = CA.GrainCA(grid, g0, rot, kin).run(ev).result()
     assert r.stats["liquid_left"] == 0
 
-    def misalign(k):
-        gg = r.grain[:, :, k].ravel()
-        return np.degrees(np.arccos(np.clip(S.alignment(r.orientations[gg], np.array([0, 0, 1.0])), -1, 1))).mean()
+    def misalign(res, k):
+        gg = res.grain[:, :, k].ravel()
+        return np.degrees(np.arccos(np.clip(S.alignment(res.orientations[gg], np.array([0, 0, 1.0])), -1, 1))).mean()
 
-    assert misalign(110) < misalign(3) - 10.0
-    assert len(np.unique(r.grain[:, :, 110])) < len(np.unique(r.grain[:, :, 3])) / 2
+    assert misalign(r, 110) < misalign(r, 3) - 10.0
+    n_top = len(np.unique(r.grain[:, :, 110]))
+    assert n_top < len(np.unique(r.grain[:, :, 3])) / 2
+    # heat-flow bias (cellular limit): the orientation penalty along the growth direction is
+    # removed, so selection is much weaker
+    rc = CA.GrainCA(grid, g0, rot, kin, heat_flow_bias=1.0).run(ev).result()
+    assert len(np.unique(rc.grain[:, :, 110])) > n_top
+    assert misalign(rc, 110) > misalign(r, 110)
 
 
 def test_kgt_kinetics():

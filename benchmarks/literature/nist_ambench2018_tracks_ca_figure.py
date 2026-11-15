@@ -108,6 +108,8 @@ def figure():
              100 * prev3["agreement_3d"]["all"][1], MUTED),
             ("3-D CA, hybrid substrate, 2.7 um grains (5 runs)", 100 * np.mean(hyb), 100 * np.std(hyb), BLUE),
             ("3-D CA, hybrid substrate, 7.9 um grains (3 runs)", 100 * np.mean(hyb8), 100 * np.std(hyb8), BLUE),
+            ("3-D CA, extruded substrate, cellular growth (alpha = 1)", 100 * out["extruded, heat-flow bias 1"]["frac_lt10"],
+             None, ORANGE),
             ("3-D CA, extruded substrate, fast tip kinetics", 100 * out["extruded, fast kinetics (5 K at 0.1 m/s)"]["frac_lt10"],
              None, ORANGE),
             ("3-D CA, extruded substrate, nucleation 1e15 /m3", 100 * nz["frac_lt10"], None, ORANGE),
