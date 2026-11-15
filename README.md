@@ -229,4 +229,9 @@ am.remove_from_plate()   # spring-back, final residual stress
   Use at least 4 voxels across the thinnest wall and check with a GCI study.
 * Geometric multigrid applies to voxel meshes only. Tet meshes use AMG on the CPU, or Jacobi-PCG on the GPU.
 
+## Contributors
+
+* **Khaled Abdelghafar**: project lead
+* **Claude** (Anthropic's AI assistant): co-developer, working with Khaled in Claude Code
+
 License: Apache-2.0

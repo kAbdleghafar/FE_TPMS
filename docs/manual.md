@@ -1,5 +1,7 @@
 # TPMSsuite user manual
 
+Contributors: Khaled Abdelghafar and Claude (Anthropic).
+
 TPMSsuite is a Python package for triply periodic minimal surface (TPMS) structures. It covers
 the whole chain:
 * design of the geometry;
