@@ -210,7 +210,11 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track], r
     not stop, and a cap would remelt cells the pool has already passed. The growth direction is grad t_l / |grad t_l|."""
     x, y, z = (grid.centres(a) for a in range(3))
     cells, tms, tls, crs, ids, dirs = [], [], [], [], [], []
-    half = 0.5 * (section.l[-1] - section.l[0])
+    mel = section.T_peak >= section.T_melt
+    if not mel.any():
+        raise ValueError("the section has no melted cells")
+    # search radius: the widest melted lateral offset of the section, plus one section cell
+    half = float(np.abs(np.broadcast_to(section.l[:, None], mel.shape)[mel]).max() + abs(section.l[1] - section.l[0]))
     z_hi = section.z[-1] + 0.5 * (section.z[-1] - section.z[-2])          # top face of the section grid
     for n, tr in enumerate(tracks):
         v = tr.speed or section.speed
@@ -218,49 +222,62 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track], r
         length = float(np.linalg.norm(p1 - p0))
         d = (p1 - p0) / length
         nrm = np.array([-d[1], d[0]])
-        # candidate box: within the section's half width of the track
+        # candidate box: within the search radius of the track
         lo = np.minimum(p0, p1) - half
         hi = np.maximum(p0, p1) + half
-        ix = np.flatnonzero((x >= lo[0]) & (x <= hi[0]))
+        ix_all = np.flatnonzero((x >= lo[0]) & (x <= hi[0]))
         iy = np.flatnonzero((y >= lo[1]) & (y <= hi[1]))
         iz = np.flatnonzero((z - tr.z_top >= section.z[0]) & (z - tr.z_top <= z_hi))
-        if not (len(ix) and len(iy) and len(iz)):
+        if not (len(ix_all) and len(iy) and len(iz)):
             continue
-        I, J, K = np.meshgrid(ix, iy, iz, indexing="ij")
-        px, py, pz = x[I].ravel(), y[J].ravel(), z[K].ravel()
-        s = (px - p0[0]) * d[0] + (py - p0[1]) * d[1]
-        lat = (px - p0[0]) * nrm[0] + (py - p0[1]) * nrm[1]
-        body = (s >= 0.0) & (s <= length)
-        if round_ends:
-            # rounded ends where the laser switches on or off: beyond the point the pool is that
-            # of the section at the radial distance from it, with the laser standing there
-            ds = np.where(s < 0.0, s, s - length)
-            r = np.where(body, np.abs(lat), np.hypot(ds, lat))
-            keep = body | ((s < 0.0) & tr.cap_start & (r <= half)) | ((s > length) & tr.cap_end & (r <= half))
-        else:
-            r, ds, keep = np.abs(lat), 0.0 * s, body
-        lat_use = np.where(body, lat, r)
-        melted, tm, tl, cr, dl, dz = section.sample(lat_use[keep], pz[keep] - tr.z_top, gradient=True)
-        sel = np.flatnonzero(keep)[melted]
-        if not len(sel):
-            continue
-        t_pass = tr.t0 + np.clip(s[sel], 0.0, length) / v
-        cid = (I.ravel()[sel] * grid.shape[1] + J.ravel()[sel]) * grid.shape[2] + K.ravel()[sel]
-        cells.append(cid)
-        tms.append(t_pass + tm[melted])
-        tls.append(t_pass + tl[melted])
-        crs.append(cr[melted])
-        # growth direction: the liquidus isotherm passes later along grad t_l (along the track
-        # in the body; radially outwards in the end caps)
-        b = body[sel]
-        ux = np.where(b, nrm[0], ds[sel] * d[0] + lat[sel] * nrm[0])       # radial vector in the caps
-        uy = np.where(b, nrm[1], ds[sel] * d[1] + lat[sel] * nrm[1])
-        un = np.maximum(np.hypot(ux, uy), 1e-30)
-        ux, uy = np.where(b, ux, ux / un), np.where(b, uy, uy / un)
-        along = np.where(b, 1.0 / v, 0.0)
-        g = np.column_stack([along * d[0] + dl[melted] * ux, along * d[1] + dl[melted] * uy, dz[melted]])
-        dirs.append(g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-30))
-        ids.append(np.full(len(sel), n, np.int32))
+        step = max(1, int(4_000_000 // (len(iy) * len(iz))))        # chunks along x bound the memory
+        for c0 in range(0, len(ix_all), step):
+            ix = ix_all[c0:c0 + step]
+            I, J = np.meshgrid(ix, iy, indexing="ij")
+            px, py = x[I].ravel(), y[J].ravel()
+            s2 = (px - p0[0]) * d[0] + (py - p0[1]) * d[1]
+            lat2 = (px - p0[0]) * nrm[0] + (py - p0[1]) * nrm[1]
+            near = (np.abs(lat2) <= half) & (s2 >= -half) & (s2 <= length + half)
+            if not near.any():
+                continue
+            # columns near the track, times every height of the section
+            ci, cj = I.ravel()[near], J.ravel()[near]
+            nk = len(iz)
+            Ic, Jc, Kc = np.repeat(ci, nk), np.repeat(cj, nk), np.tile(iz, len(ci))
+            s = np.repeat(s2[near], nk)
+            lat = np.repeat(lat2[near], nk)
+            pz = z[Kc]
+            body = (s >= 0.0) & (s <= length)
+            if round_ends:
+                # rounded ends where the laser switches on or off: beyond the point the pool is
+                # that of the section at the radial distance from it, with the laser standing there
+                ds = np.where(s < 0.0, s, s - length)
+                r = np.where(body, np.abs(lat), np.hypot(ds, lat))
+                keep = body | ((s < 0.0) & tr.cap_start & (r <= half)) | ((s > length) & tr.cap_end & (r <= half))
+            else:
+                r, ds, keep = np.abs(lat), 0.0 * s, body
+            lat_use = np.where(body, lat, r)
+            melted, tm, tl, cr, dl, dz = section.sample(lat_use[keep], pz[keep] - tr.z_top, gradient=True)
+            sel = np.flatnonzero(keep)[melted]
+            if not len(sel):
+                continue
+            t_pass = tr.t0 + np.clip(s[sel], 0.0, length) / v
+            cid = (Ic[sel] * grid.shape[1] + Jc[sel]) * grid.shape[2] + Kc[sel]
+            cells.append(cid)
+            tms.append(t_pass + tm[melted])
+            tls.append(t_pass + tl[melted])
+            crs.append(cr[melted])
+            # growth direction: the liquidus isotherm passes later along grad t_l (along the
+            # track in the body; radially outwards in the end caps)
+            b = body[sel]
+            ux = np.where(b, nrm[0], ds[sel] * d[0] + lat[sel] * nrm[0])       # radial vector in the caps
+            uy = np.where(b, nrm[1], ds[sel] * d[1] + lat[sel] * nrm[1])
+            un = np.maximum(np.hypot(ux, uy), 1e-30)
+            ux, uy = np.where(b, ux, ux / un), np.where(b, uy, uy / un)
+            along = np.where(b, 1.0 / v, 0.0)
+            g = np.column_stack([along * d[0] + dl[melted] * ux, along * d[1] + dl[melted] * uy, dz[melted]])
+            dirs.append(g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-30))
+            ids.append(np.full(len(sel), n, np.int32))
     if not cells:
         return dict(cell=np.zeros(0, np.int64), tm=np.zeros(0), tl=np.zeros(0), cr=np.zeros(0), track=np.zeros(0, np.int32),
                     dir=np.zeros((0, 3)))
