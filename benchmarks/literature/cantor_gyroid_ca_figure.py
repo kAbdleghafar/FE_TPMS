@@ -30,8 +30,8 @@ def figure():
         ax.imshow(np.transpose(img, (1, 0, 2)), origin="lower", extent=[x0, x1, y0, y1], interpolation="nearest")
         ax.contour(np.linspace(x0, x1, part.shape[0]), np.linspace(y0, y1, part.shape[1]), part.T.astype(float), [0.5],
                    colors=[INK], linewidths=0.6)
-        ax.set_title(f"({'a' if col == 0 else 'c'}) {name} walls: plan view of layer {M.N_LAYERS}\n"
-                     f"IPF along the build direction; black: nominal wall", fontsize=9, loc="left")
+        ax.set_title(f"({'a' if col == 0 else 'c'}) {name} walls: plan view, layer {M.N_LAYERS}\n"
+                     f"(IPF along BD; black: nominal wall)", fontsize=9, loc="left")
         ax.set_xlabel("x [mm]", fontsize=8)
         ax.set_ylabel("y [mm]", fontsize=8)
         ax.tick_params(labelsize=7, colors=MUTED)
@@ -43,8 +43,8 @@ def figure():
         ax.imshow(np.transpose(img, (1, 0, 2))[::-1], extent=[x0, x1, zb, zb + xz.shape[1] * dx], interpolation="nearest",
                   aspect="auto")
         ax.axhline(M.Z_START, color="white", lw=0.8, ls="--")
-        ax.set_title(f"({'b' if col == 0 else 'd'}) {name} walls: vertical section (x-z)\nthrough the window centre; dashed: "
-                     f"first simulated layer", fontsize=9, loc="left")
+        ax.set_title(f"({'b' if col == 0 else 'd'}) {name} walls: vertical section\n(x-z, window centre; dashed: layer 1)",
+                     fontsize=9, loc="left")
         ax.set_xlabel("x [mm]", fontsize=8)
         ax.set_ylabel("z [mm]", fontsize=8)
         ax.tick_params(labelsize=7, colors=MUTED)

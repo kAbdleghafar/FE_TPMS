@@ -935,3 +935,55 @@ ways. The statistics are over the lattice between 0.5 and 1.5 mm, after plate re
     validation most.
   * Multicomponent segregation.
 * **Ruled out.** Point-by-point exposure as the cause of the validation offset.
+
+### 7.4 Grains over 20 layers: 3-D grain cellular automaton
+
+**Question.** §7 grew grains for one layer only. The strong <001> build texture reported for
+LPBF CoCrFeMnNi needs many layers of competitive growth. How do grain size and texture
+develop over many layers, in thin and in thick walls?
+
+**Method** (`benchmarks/literature/cantor_gyroid_ca.py`). The 3-D grain CA of §5.4 builds 20
+layers (0.7–1.3 mm build height) of the graded gyroid in two 1 × 1 mm windows: thin walls
+(x = 0.2–1.2 mm) and thick walls (x = 2.6–3.6 mm).
+* **Process.** The settings of §7: 200 W, 0.75 m/s, 30 µm layers, 85 µm hatch, one contour,
+  no rotation, clipped to the part in every layer.
+* **Thermal history.** The steady validation track (powder layer on the plate; melts
+  52 µm below the powder top) is shifted along every scan vector.
+  * The pool ends are rounded where the laser switches on or off.
+  * Not included: the shorter pools of short vectors, preheating, and the deeper pool over
+    powder at down-facing surfaces. Powder that the pool reaches joins the part, with the
+    plate-pool shape.
+* **Grains.** The part below the first layer has random 20 µm grains. KGT kinetics of the
+  CrFeCo–(MnNi) pseudo-binary (40 wt%, k = 0.74, freezing range 60 K). No nucleation.
+  2.5 µm cells (43 M cells per window, about 45–65 min each).
+
+| | layer 1 | layer 5 | layer 10 | layer 20 |
+|---|---:|---:|---:|---:|
+| thin walls: grain width (area-weighted) | 28 µm | 47 µm | 64 µm | 98 µm |
+| thin walls: <100> within 15° of BD | 10 % | 16 % | 18 % | 13 % |
+| thick walls: grain width | 29 µm | 49 µm | 70 µm | 103 µm |
+| thick walls: <100> within 15° of BD | 8 % | 11 % | 11 % | 8 % |
+
+Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
+
+![gyroid grains over 20 layers](img/cantor_gyroid_ca.png)
+
+**Reading the results.**
+* **Grains coarsen steadily, whatever the wall thickness.** Epitaxy across layers makes the
+  grains columnar, crossing many layers. Their width grows from 28 µm to about 100 µm in
+  20 layers (0.6 mm) and has not levelled off. This width is resolution-independent: in the
+  IN625 blocks of §5.5, 1 and 2 µm cells give the same width within 10 %.
+* **The grain pattern follows the scan.** Without rotation, the grains in plan view are
+  elongated along the hatch direction, with boundaries on the 85 µm track spacing.
+* **Down-facing walls carry dross.** On the overhanging side of the inclined walls, each
+  layer's pool reaches into the powder below. This leaves a step of stray grains per layer:
+  the down-skin roughness of such walls.
+* **Texture is weak, and stronger in thin walls than in thick ones.**
+  * In the thin walls, <100> along BD rises to 18 % by layer 10. In the thick walls it stays
+    at the random level.
+  * The reason has not been checked. One candidate: in thin walls a larger share of the
+    melt comes from the contour track, whose pool follows the inclined wall.
+* **These texture numbers are lower bounds.** The IN625 resolution check (§5.5) shows that
+  coarse cells weaken orientation selection: 15 % at 2 µm against 35 % at 1 µm, at the same
+  grain width. The strong <001> fibre reported for LPBF CoCrFeMnNi therefore needs 1 µm cells
+  on the lattice. That is about 700 M cells for these windows, which needs the GPU.
