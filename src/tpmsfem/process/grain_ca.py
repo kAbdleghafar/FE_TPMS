@@ -196,11 +196,14 @@ class CAGrid:
         return int(np.prod(self.shape))
 
 
-def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track]):
+def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track], round_ends: bool = True):
     """Melting events (cell, t_m, t_l, cr, track id, growth direction) of all tracks, sorted
     by t_m. A track's history at a point is the section's at the point's lateral offset and
     height, delayed by the time the laser takes to reach the point along the track (steady
-    state). The growth direction is grad t_l / |grad t_l|."""
+    state). With ``round_ends`` the pool also melts the half-discs beyond the start and end
+    points (the section at the radial distance, laser standing at the point), as the round
+    front of a real pool does; without, it is cut square, which leaves gaps where short scan
+    vectors meet. The growth direction is grad t_l / |grad t_l|."""
     x, y, z = (grid.centres(a) for a in range(3))
     cells, tms, tls, crs, ids, dirs = [], [], [], [], [], []
     half = 0.5 * (section.l[-1] - section.l[0])
@@ -223,20 +226,35 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track]):
         px, py, pz = x[I].ravel(), y[J].ravel(), z[K].ravel()
         s = (px - p0[0]) * d[0] + (py - p0[1]) * d[1]
         lat = (px - p0[0]) * nrm[0] + (py - p0[1]) * nrm[1]
-        keep = (s >= 0.0) & (s <= length)
-        melted, tm, tl, cr, dl, dz = section.sample(lat[keep], pz[keep] - tr.z_top, gradient=True)
+        body = (s >= 0.0) & (s <= length)
+        if round_ends:
+            # rounded ends: beyond the start or end point the pool is that of the section at
+            # the radial distance from the point, with the laser standing there
+            ds = np.where(s < 0.0, s, s - length)
+            r = np.where(body, np.abs(lat), np.hypot(ds, lat))
+            keep = r <= half
+        else:
+            r, ds, keep = np.abs(lat), 0.0 * s, body
+        lat_use = np.where(body, lat, r)
+        melted, tm, tl, cr, dl, dz = section.sample(lat_use[keep], pz[keep] - tr.z_top, gradient=True)
         sel = np.flatnonzero(keep)[melted]
         if not len(sel):
             continue
-        t_pass = tr.t0 + s[sel] / v
+        t_pass = tr.t0 + np.clip(s[sel], 0.0, length) / v
         cid = (I.ravel()[sel] * grid.shape[1] + J.ravel()[sel]) * grid.shape[2] + K.ravel()[sel]
         cells.append(cid)
         tms.append(t_pass + tm[melted])
         tls.append(t_pass + tl[melted])
         crs.append(cr[melted])
-        # growth direction: the liquidus isotherm passes later along grad t_l
-        g = (np.outer(np.full(int(melted.sum()), 1.0 / v), [d[0], d[1], 0.0])
-             + np.outer(dl[melted], [nrm[0], nrm[1], 0.0]) + np.outer(dz[melted], [0.0, 0.0, 1.0]))
+        # growth direction: the liquidus isotherm passes later along grad t_l (along the track
+        # in the body; radially outwards in the end caps)
+        b = body[sel]
+        ux = np.where(b, nrm[0], ds[sel] * d[0] + lat[sel] * nrm[0])       # radial vector in the caps
+        uy = np.where(b, nrm[1], ds[sel] * d[1] + lat[sel] * nrm[1])
+        un = np.maximum(np.hypot(ux, uy), 1e-30)
+        ux, uy = np.where(b, ux, ux / un), np.where(b, uy, uy / un)
+        along = np.where(b, 1.0 / v, 0.0)
+        g = np.column_stack([along * d[0] + dl[melted] * ux, along * d[1] + dl[melted] * uy, dz[melted]])
         dirs.append(g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-30))
         ids.append(np.full(len(sel), n, np.int32))
     if not cells:

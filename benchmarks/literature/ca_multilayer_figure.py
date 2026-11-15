@@ -39,15 +39,16 @@ def figure():
     fig = plt.figure(figsize=(14, 9.4))
     gs = fig.add_gridspec(2, 4, height_ratios=[1.1, 1], hspace=0.38, wspace=0.3, left=0.05, right=0.97, top=0.91,
                           bottom=0.07)
-    dx = M.DX * 1e6
     for col, key in enumerate(rots):
         f = np.load(M.FIELDS.format(key=key))
+        dx = store[key]["dx_um"]
         deg = store[key]["rot_deg"]
         xz = f["xz_bd"].astype(float)                                    # (nx, nz)
         ax = fig.add_subplot(gs[0, 2 * col])
         ax.imshow(np.transpose(xz, (1, 0, 2))[::-1], extent=[0, xz.shape[0] * dx, 0, xz.shape[1] * dx],
                   interpolation="nearest")
         ax.axhline(M.SUB * 1e6, color="white", lw=0.8, ls="--")
+        ax.set_ylim(0, (M.SUB + M.N_LAYERS * M.LAYER) * 1e6)
         ax.set_title(f"({'a' if col == 0 else 'c'}) {deg:.0f} deg rotation: vertical section (x-z)\nIPF along the build "
                      f"direction; dashed: top of the substrate", fontsize=9, loc="left")
         ax.set_xlabel("x [um]", fontsize=8)
