@@ -20,7 +20,7 @@ Outputs per layer (the top 20 um slab of the deposit, below the last melt pool):
   and of the first scan direction;
 * grain width: area-weighted equivalent diameter of the grain sections in planes normal to BD.
 
-    python benchmarks/literature/ca_multilayer.py run ROT [SIDE_um DX_um [ALPHA]]   # e.g. run 67 480 2 1
+    python benchmarks/literature/ca_multilayer.py run ROT [SIDE_um DX_um [ALPHA [SEED]]]   # e.g. run 67 480 2 0 1
     python benchmarks/literature/ca_multilayer.py figure
 """
 import json
@@ -43,8 +43,9 @@ SUB, LAYER, N_LAYERS, HATCH = 40e-6, 20e-6, 10, 100e-6
 MARGIN = 0.6e-3                               # track overrun beyond the block (pool length ~0.3 mm)
 
 
-def key(rot_deg, side, dx, alpha=0.0):
-    return f"rot{rot_deg:.0f}_side{side * 1e6:.0f}_dx{dx * 1e6:g}" + (f"_a{alpha:g}" if alpha else "")
+def key(rot_deg, side, dx, alpha=0.0, seed=0):
+    return (f"rot{rot_deg:.0f}_side{side * 1e6:.0f}_dx{dx * 1e6:g}" + (f"_a{alpha:g}" if alpha else "")
+            + (f"_s{seed}" if seed else ""))
 
 
 def tracks_for_layer(layer, rot_deg, t0, speed, SIDE):
@@ -107,19 +108,19 @@ def _ids(g):
     return g[g >= 0]
 
 
-def run(rot_deg, SIDE=240e-6, DX=1e-6, alpha=0.0):
+def run(rot_deg, SIDE=240e-6, DX=1e-6, alpha=0.0, seed=0):
     sec = CB.section()
     kin = CB.kinetics()
     nz = int(round((SUB + N_LAYERS * LAYER + 10e-6) / DX))
     n = int(round(SIDE / DX))
     grid = CA.CAGrid((0.5 * DX, 0.5 * DX, 0.5 * DX), (n, n, nz), DX)
-    rng = np.random.default_rng(0)
+    rng = np.random.default_rng(seed)
     z = grid.centres(2)
     mask = np.broadcast_to((z <= SUB)[None, None, :], grid.shape)
     grain, rot = CA.voronoi_substrate(grid, max(8e-6, 4 * DX), rng, mask=mask)
     ca = CA.GrainCA(grid, grain, rot, kin, seed=0, heat_flow_bias=alpha)
     t = 0.0
-    out = dict(rot_deg=rot_deg, side_um=SIDE * 1e6, dx_um=DX * 1e6, heat_flow_bias=alpha, layers=[])
+    out = dict(rot_deg=rot_deg, side_um=SIDE * 1e6, dx_um=DX * 1e6, heat_flow_bias=alpha, seed=seed, layers=[])
     t_wall = time.perf_counter()
     for layer in range(N_LAYERS):
         trs, t = tracks_for_layer(layer, rot_deg, t, sec.speed, SIDE)
@@ -141,7 +142,7 @@ def run(rot_deg, SIDE=240e-6, DX=1e-6, alpha=0.0):
     out.update(steps=res.steps, seconds=time.perf_counter() - t_wall, ca_stats=res.stats)
     # fields for the figure: vertical sections and the top-layer plan, IPF along BD and SD
     kz = int(round((SUB + (N_LAYERS - 0.5) * LAYER) / DX))
-    np.savez_compressed(FIELDS.format(key=key(rot_deg, SIDE, DX, alpha)),
+    np.savez_compressed(FIELDS.format(key=key(rot_deg, SIDE, DX, alpha, seed)),
                         xz_bd=CB._ipf3(res, res.grain[:, n // 2, :], (0.0, 0.0, 1.0)),
                         yz_bd=CB._ipf3(res, res.grain[n // 2, :, :], (0.0, 0.0, 1.0)),
                         plan_bd=CB._ipf3(res, res.grain[:, :, kz], (0.0, 0.0, 1.0)),
@@ -149,7 +150,7 @@ def run(rot_deg, SIDE=240e-6, DX=1e-6, alpha=0.0):
                         top_rot=res.orientations[_ids(res.grain[:, :, int(round((SUB + 5 * LAYER) / DX)):kz][::4, ::4, ::4])]
                         .astype(np.float32), dx=np.array(DX))
     store = json.load(open(OUT)) if os.path.exists(OUT) else {}
-    store[key(rot_deg, SIDE, DX, alpha)] = out
+    store[key(rot_deg, SIDE, DX, alpha, seed)] = out
     json.dump(store, open(OUT, "w"), indent=1)
     return out
 
@@ -157,7 +158,7 @@ def run(rot_deg, SIDE=240e-6, DX=1e-6, alpha=0.0):
 if __name__ == "__main__":
     if sys.argv[1] == "run":
         a = [float(v) for v in sys.argv[2:]]
-        run(a[0], *(v * 1e-6 for v in a[1:3]), *a[3:4])
+        run(a[0], *(v * 1e-6 for v in a[1:3]), *a[3:4], *(int(v) for v in a[4:5]))
     elif sys.argv[1] == "figure":
         import ca_multilayer_figure as F
         F.figure()
