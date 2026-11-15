@@ -95,17 +95,23 @@ def run(name):
     ca = CA.GrainCA(grid, grain, rot, kin, seed=0, heat_flow_bias=alpha)
     t = 0.0
     t_wall = time.perf_counter()
-    out = dict(window=window, heat_flow_bias=alpha, bounds_mm=WINDOWS[window], round_ends=True, layers=[])
+    out = dict(window=window, heat_flow_bias=alpha, bounds_mm=WINDOWS[window], round_ends="at_laser_on_off", layers=[])
     for layer in range(N_LAYERS):
         z_top = Z_START + (layer + 1) * CG.LAYER                       # mm
         path, st = CG.slice_scan_path(gy, z_top - 0.5 * CG.LAYER, (x0 - 0.05, x1 + 0.05, y0 - 0.05, y1 + 0.05),
                                       hatch=CG.HATCH, speed=CG.V_MM_S, contour_offset=CG.CONTOUR_OFFSET)
         tracks = []
-        for v in path:
+        on = [v.power is None or v.power > 0 for v in path]
+
+        def joined(a, b):                        # b continues a without the laser switching off
+            return on[a] and on[b] and abs(path[a].x1 - path[b].x0) + abs(path[a].y1 - path[b].y0) < 1e-6
+
+        for i, v in enumerate(path):
             L = np.hypot(v.x1 - v.x0, v.y1 - v.y0) * 1e-3
-            if v.power is None or v.power > 0:
+            if on[i]:
                 tracks.append(CA.Track((v.x0 * 1e-3, v.y0 * 1e-3), (v.x1 * 1e-3, v.y1 * 1e-3), z_top * 1e-3, t,
-                                       v.speed * 1e-3))
+                                       v.speed * 1e-3, cap_start=not (i > 0 and joined(i - 1, i)),
+                                       cap_end=not (i + 1 < len(path) and joined(i, i + 1))))
             t += L / (v.speed * 1e-3)
         ev = CA.track_events(grid, sec, tracks)
         ca.run(ev)

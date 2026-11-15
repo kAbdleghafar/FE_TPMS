@@ -179,6 +179,8 @@ class Track:
     z_top: float
     t0: float
     speed: Optional[float] = None
+    cap_start: bool = True       # the laser switches on here (rounded pool end); False inside a polyline
+    cap_end: bool = True         # the laser switches off here
 
 
 @dataclass
@@ -201,9 +203,11 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track], r
     by t_m. A track's history at a point is the section's at the point's lateral offset and
     height, delayed by the time the laser takes to reach the point along the track (steady
     state). With ``round_ends`` the pool also melts the half-discs beyond the start and end
-    points (the section at the radial distance, laser standing at the point), as the round
-    front of a real pool does; without, it is cut square, which leaves gaps where short scan
-    vectors meet. The growth direction is grad t_l / |grad t_l|."""
+    points where the laser switches on or off (``Track.cap_start`` / ``cap_end``; the section
+    at the radial distance, laser standing at the point), as the round front of a real pool
+    does; without, it is cut square, which leaves gaps where short scan vectors end. Inside a
+    polyline (consecutive vectors without a jump) the caps must be off: there the laser does
+    not stop, and a cap would remelt cells the pool has already passed. The growth direction is grad t_l / |grad t_l|."""
     x, y, z = (grid.centres(a) for a in range(3))
     cells, tms, tls, crs, ids, dirs = [], [], [], [], [], []
     half = 0.5 * (section.l[-1] - section.l[0])
@@ -228,11 +232,11 @@ def track_events(grid: CAGrid, section: TrackSection, tracks: Sequence[Track], r
         lat = (px - p0[0]) * nrm[0] + (py - p0[1]) * nrm[1]
         body = (s >= 0.0) & (s <= length)
         if round_ends:
-            # rounded ends: beyond the start or end point the pool is that of the section at
-            # the radial distance from the point, with the laser standing there
+            # rounded ends where the laser switches on or off: beyond the point the pool is that
+            # of the section at the radial distance from it, with the laser standing there
             ds = np.where(s < 0.0, s, s - length)
             r = np.where(body, np.abs(lat), np.hypot(ds, lat))
-            keep = r <= half
+            keep = body | ((s < 0.0) & tr.cap_start & (r <= half)) | ((s > length) & tr.cap_end & (r <= half))
         else:
             r, ds, keep = np.abs(lat), 0.0 * s, body
         lat_use = np.where(body, lat, r)
