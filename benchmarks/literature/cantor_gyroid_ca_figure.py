@@ -54,6 +54,10 @@ def figure():
         L = store[name]["layers"]
         ax.plot([l_["layer"] for l_ in L], [100 * l_["frac_100_bd_15"] for l_ in L], "o-", color=colors[name], lw=1.6, ms=3.5,
                 label=f"{name} walls")
+    if "thin_a1" in store:
+        L = store["thin_a1"]["layers"]
+        ax.plot([l_["layer"] for l_ in L], [100 * l_["frac_100_bd_15"] for l_ in L], ":", color=BLUE, lw=1.4,
+                label="thin walls, cellular growth (alpha = 1)")
     ax.axhline(100 * MF.RANDOM_100, color=MUTED, lw=1, ls="--")
     ax.text(M.N_LAYERS, 100 * MF.RANDOM_100 + 0.4, "random", fontsize=7.5, color=MUTED, ha="right", va="bottom")
     ax.set_xlabel("layer", fontsize=8.5)
@@ -66,6 +70,9 @@ def figure():
     for name in names:
         L = store[name]["layers"]
         ax.plot([l_["layer"] for l_ in L], [l_["width_area_weighted_um"] for l_ in L], "o-", color=colors[name], lw=1.6, ms=3.5)
+    if "thin_a1" in store:
+        L = store["thin_a1"]["layers"]
+        ax.plot([l_["layer"] for l_ in L], [l_["width_area_weighted_um"] for l_ in L], ":", color=BLUE, lw=1.4)
     ax.axhline(store[names[0]]["substrate"]["width_area_weighted_um"], color=MUTED, lw=1, ls="--")
     ax.set_xlabel("layer", fontsize=8.5)
     ax.set_ylabel("grain width, area-weighted [um]", fontsize=8.5)

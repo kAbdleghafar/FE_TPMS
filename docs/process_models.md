@@ -983,6 +983,15 @@ Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
     at the random level.
   * The reason has not been checked. One candidate: in thin walls a larger share of the
     melt comes from the contour track, whose pool follows the inclined wall.
+* **Growth mode matters over many layers.** With the heat-flow bias α = 1 (cells growing
+  along the heat flow, §5.4), selection is weaker:
+  * thin walls at layer 20 hold 100 grains instead of 69;
+  * the grains are 84 µm wide instead of 98 µm;
+  * <100>‖BD rises more slowly: 10 % instead of 16 % at layer 5, with a peak of 16 %
+    instead of 19 %.
+
+  Unlike the single track of §5.4, the build therefore depends on the growth mode. Measured
+  grain widths and textures of the lattice would calibrate α.
 * **These texture numbers are lower bounds.** The IN625 resolution check (§5.5) shows that
   coarse cells weaken orientation selection: 15 % at 2 µm against 35 % at 1 µm, at the same
   grain width. The strong <001> fibre reported for LPBF CoCrFeMnNi therefore needs 1 µm cells
