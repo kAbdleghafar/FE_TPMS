@@ -95,7 +95,7 @@ def run(name):
     ca = CA.GrainCA(grid, grain, rot, kin, seed=0, heat_flow_bias=alpha)
     t = 0.0
     t_wall = time.perf_counter()
-    out = dict(window=window, heat_flow_bias=alpha, bounds_mm=WINDOWS[window], layers=[])
+    out = dict(window=window, heat_flow_bias=alpha, bounds_mm=WINDOWS[window], round_ends=True, layers=[])
     for layer in range(N_LAYERS):
         z_top = Z_START + (layer + 1) * CG.LAYER                       # mm
         path, st = CG.slice_scan_path(gy, z_top - 0.5 * CG.LAYER, (x0 - 0.05, x1 + 0.05, y0 - 0.05, y1 + 0.05),

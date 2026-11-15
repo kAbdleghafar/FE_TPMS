@@ -34,7 +34,13 @@ def figure():
     import matplotlib.pyplot as plt
 
     store = json.load(open(M.OUT))
-    rots = [k for k in ("rot90_side480_dx2", "rot67_side480_dx2") if k in store]
+    # main runs: the finest cells available for each rotation (texture needs <= 1 um cells)
+    rots = []
+    for deg in (90, 67):
+        for dx in ("1", "1.5", "2"):
+            if f"rot{deg}_side480_dx{dx}" in store:
+                rots.append(f"rot{deg}_side480_dx{dx}")
+                break
     checks = [k for k in store if k not in rots]
     fig = plt.figure(figsize=(14, 9.4))
     gs = fig.add_gridspec(2, 4, height_ratios=[1.1, 1], hspace=0.38, wspace=0.3, left=0.05, right=0.97, top=0.91,
@@ -64,7 +70,7 @@ def figure():
         ax.set_ylabel("y [um]", fontsize=8)
         ax.tick_params(labelsize=7, colors=MUTED)
 
-    colors = {"rot90_side480_dx2": BLUE, "rot67_side480_dx2": ORANGE}
+    colors = {k: (BLUE if store[k]["rot_deg"] == 90 else ORANGE) for k in rots}
 
     def label(k):
         r = store[k]
@@ -121,7 +127,7 @@ def figure():
         cb.set_label("multiples of random", fontsize=7.5)
         cb.ax.tick_params(labelsize=7)
     fig.suptitle("Grain structure of a 10-layer IN625 block from the 3-D grain CA (AM-Bench 2018 settings: 195 W, 800 mm/s, "
-                 "100 um hatch, 20 um layers; 480 um block, 2 um cells; dotted: resolution and size checks)", fontsize=10.5, x=0.02, ha="left")
+                 "100 um hatch, 20 um layers, 480 um block; dotted: other cell sizes and block sizes)", fontsize=10.5, x=0.02, ha="left")
     fig.savefig(M.FIG, dpi=150)
     print("wrote", M.FIG)
 
