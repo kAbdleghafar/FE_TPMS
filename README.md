@@ -21,7 +21,7 @@ implicit TPMS geometry ──► voxel hex8 mesher ─────────�
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
 | Physics | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
-| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; **2-D quantitative phase field** of cells/dendrites and Nb segregation at the melt-pool G, R (Karma–Echebarria anti-trapping model, numba/CuPy); as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
+| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; **3-D grain cellular automaton** (decentred octahedra, KGT tip kinetics, nucleation, epitaxy, any scan strategy over many tracks and layers, optional heat-flow bias for cellular growth); **2-D quantitative phase field** of cells/dendrites and Nb segregation at the melt-pool G, R (Karma–Echebarria anti-trapping model, solute trapping by the continuous growth model, numba/CuPy); as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
 | Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
 | Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
@@ -91,13 +91,20 @@ four independent groups and compares them:
   along the simulated gradient, the measured grain count. A 3-D back-trace through the
   simulated melt pool explains the rest. Grains that start within 0.5 µm of the measured
   plane match 51 % of the time. Those starting ≥ 1.5 µm behind it, on substrate NIST did not
-  measure, match only 6–8 %.
+  measure, match only 6–8 %. A 3-D grain cellular automaton regrows the same pool. With a
+  stand-in 3-D substrate of the measured grain size it predicts 90–99 grains in the section
+  against 92 measured, at 11–14 µm against 10.1 µm. Point by point it matches the rules (25 %).
+  Over 10-layer blocks it predicts grains widening from 15 to 55–60 µm, robustly, and a <100>
+  build fibre whose strength (14–35 %) still varies with the substrate realisation and the cell
+  size ([docs/process_models.md](docs/process_models.md) §5.4–§5.5).
 * **Ghosh et al. 2017 / 2018** (NIST, phase-field cells in Ni–Nb / IN625): code to code, the phase field
   reproduces their primary spacing at the same interface width (0.604 µm on their fit at 3e5 K/s) and tip
   compositions (3.78 / 6.81 wt% Nb against 3.65 / 6.87). Verified against Mullins–Sekerka theory and
   quantitative while D/V ≳ 10 W0; at 0.1 m/s halving W0 raises the spacing 38 % (0.221 → 0.304 µm).
-  Driven by the case-B melt pool it gives 0.57 µm cells at the fusion boundary (resolved) and 0.30–0.37 µm
-  higher up (under-resolved, likely 30 %+ low), inside the 0.2–1.0 µm measured by SEM.
+  Driven by the case-B melt pool from the fusion boundary to the surface, with solute trapping and W0 following
+  the diffusion length, it gives cells of 0.57 µm at the fusion boundary and 0.28–0.31 µm in the upper pool. They
+  lie inside the 0.2–1.0 µm measured by SEM and converge within 8 % from W0 = 10 to 4.1 nm. Nb segregation
+  weakens upwards: cores 3.27 → 3.90 wt%, intercellular 95th percentile 8.1 → 5.6–6.0 wt%.
 * **CoCrFeMnNi (Cantor alloy) gyroid lattice** (new study, validated on Piglione et al. 2018): the phase field gives
   0.46–0.50 µm cells for a single LPBF layer (measured 0.52–0.64 µm). In a graded gyroid sheet, down-facing
   surfaces built over powder solidify 2.5× slower and grow 1.7× coarser cells (0.86 vs 0.50 µm), whatever the
@@ -112,6 +119,10 @@ four independent groups and compares them:
   * The measured spacing lies inside the phase field's stable band (0.40–0.75 µm).
   * The down-facing contrast holds at 1.4–2.0× across absorptivity, window size and seeding.
   * The residual strains are converged in voxel size but rise about 20 % with half-height lumps.
+
+  Over 20 layers (§7.4) the 3-D grain CA grows columnar grains from 28 to ~100 µm wide in both thin and thick
+  walls. The <100> build fibre stays weak at this resolution: up to 19 % in thin walls, random in thick ones.
+  Cellular growth along the heat flow keeps the grains 15 % narrower.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
@@ -175,7 +186,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 ## Documentation
 
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
-* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, phase-field cells), surface roughness
+* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/porosity_maps.md](docs/porosity_maps.md): porosity process maps (lack of fusion, keyhole) for IN625 (checked against Locatelli et al. 2026) and CoCrFeMnNi, and the risk through the gyroid
