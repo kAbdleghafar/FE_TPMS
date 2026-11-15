@@ -347,13 +347,41 @@ class DirectionalPF:
         """Total solute in the window, sum of c / c_inf over the cells."""
         return float(self.composition().sum())
 
+    def _theta(self, row):
+        return ((row + 0.5) * self.dx + self.offset - self.z0 - self.Vt * self.t) / self.lT
+
+    def adapt_dt(self, tip_row: Optional[int] = None, margin: float = 0.1) -> bool:
+        """Raise the time step to the stability limit of the current window. The phi
+        relaxation coefficient a^2 max(1 - (1 - k) theta, k) is smallest in the warmest
+        liquid, at the window top, and the default step assumes its floor k everywhere.
+        Here the floor is evaluated at theta_tip + 0.65 H / l_T + ``margin`` (the window
+        top just after a shift, H the window height). Returns True if ``dt`` changed."""
+        k = self.alloy.k
+        if tip_row is None:
+            rows = np.flatnonzero((asnumpy(self.phi) > 0.0).any(axis=1))
+            tip_row = int(rows.max()) if len(rows) else 0
+        theta_tip = max(self._theta(tip_row), 0.0)
+        theta = theta_tip + 0.65 * self.nz * self.dx / self.lT + margin
+        f = min(max(1.0 - (1.0 - k) * theta, k), 1.0)
+        dt = 0.5 * min(self.dx ** 2 * f / 4.0, self.dx ** 2 / (4.0 * self.Dt))
+        self._theta_ok = theta_tip + margin                  # re-evaluate once the tip passes this
+        if abs(dt - self.dt) <= 1e-3 * self.dt:
+            return False
+        self.dt = dt
+        return True
+
     def run(self, t_end_s: float, shift_at: Optional[float] = 0.6, record_every: int = 200,
-            verbose: bool = False) -> PFResult:
+            verbose: bool = False, adapt_dt: bool = False) -> PFResult:
         """Advance to ``t_end_s`` (physical time). ``shift_at=None`` keeps the window fixed
-        (closed, solute-conserving box)."""
+        (closed, solute-conserving box). ``adapt_dt=True`` uses the largest stable step for
+        the current tip position (:meth:`adapt_dt`), re-checked at every record."""
         t0 = time.perf_counter()
+        t_target = self.t + t_end_s / self.tau0
+        if adapt_dt:
+            self.adapt_dt()
         n = int(np.ceil(t_end_s / (self.dt * self.tau0)))
-        for s in range(n):
+        s = 0
+        while s < n:
             self.step()
             if s % record_every == 0 or s == n - 1:
                 phi_h = asnumpy(self.phi)
@@ -362,9 +390,14 @@ class DirectionalPF:
                 self.front.append((self.t * self.tau0, ((tip + 0.5) * self.dx + self.offset - self.z0) * self.W0))
                 if shift_at is not None and tip > shift_at * self.nz:
                     self._shift(int(0.25 * self.nz))
+                    tip -= int(0.25 * self.nz)
+                if adapt_dt and (self._theta(tip) > self._theta_ok or s % (record_every * 20) == 0):
+                    if self.adapt_dt(tip):
+                        n = s + 1 + max(int(np.ceil((t_target - self.t) / self.dt)), 0)
                 if verbose and s % (record_every * 20) == 0:
                     print(f"  step {s}/{n}: t = {self.t * self.tau0 * 1e6:.2f} us, tip at "
                           f"{self.front[-1][1] * 1e6:.2f} um", flush=True)
+            s += 1
         solid_c = np.concatenate(self.solid_rows, axis=0) if self.solid_rows else np.zeros((0, self.nx))
         return PFResult(asnumpy(self.phi), asnumpy(self.composition()), solid_c, self.dx * self.W0, self.t * self.tau0, n,
                         time.perf_counter() - t0, self.front,

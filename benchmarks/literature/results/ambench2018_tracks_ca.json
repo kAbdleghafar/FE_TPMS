@@ -1,0 +1,422 @@
+{
+ "extruded": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.2538436375531567,
+  "frac_lt5": 0.2393749528195063,
+  "median_deg": 37.22555420689118,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 47,
+    "area_weighted_d_eq_um": 15.306825291738233,
+    "frac_100_build_15deg": 0.009486424599280341
+   }
+  },
+  "name": "extruded",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2973,
+  "seconds": 23.824556444000336,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, reversed scan": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.21708059686469894,
+  "frac_lt5": 0.2158476132960922,
+  "median_deg": 41.17266152243884,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 49,
+    "area_weighted_d_eq_um": 16.60331825794058,
+    "frac_100_build_15deg": 0.031755617624116154
+   }
+  },
+  "name": "extruded, reversed scan",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3003,
+  "seconds": 16.68033750199993,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, nucleation 1e14/m3 at 10 +- 2 K": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.24470949397347827,
+  "frac_lt5": 0.2320777031277522,
+  "median_deg": 37.61507396448248,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 55,
+    "area_weighted_d_eq_um": 14.192443864411738,
+    "frac_100_build_15deg": 0.009436098739337208
+   }
+  },
+  "name": "extruded, nucleation 1e14/m3 at 10 +- 2 K",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2966,
+  "seconds": 17.151171280999733,
+  "ca_stats": {
+   "nucleated": 18,
+   "captured": 1326582,
+   "sites": 18,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.021866425448515
+ },
+ "extruded, nucleation 1e15/m3 at 30 +- 2 K": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.2408344027578571,
+  "frac_lt5": 0.22450366120631085,
+  "median_deg": 37.6460967935226,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 60,
+    "area_weighted_d_eq_um": 14.10402818099143,
+    "frac_100_build_15deg": 0.009385772879394077
+   }
+  },
+  "name": "extruded, nucleation 1e15/m3 at 30 +- 2 K",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3039,
+  "seconds": 22.828941781999674,
+  "ca_stats": {
+   "nucleated": 73,
+   "captured": 1326527,
+   "sites": 146,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.19723880597014926
+ },
+ "hybrid 0": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.1473792808434614,
+  "frac_lt5": 0.13356483228907173,
+  "median_deg": 39.35800756117036,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 144,
+    "area_weighted_d_eq_um": 8.796601728309739,
+    "frac_100_build_15deg": 0.05573588988701844
+   }
+  },
+  "name": "hybrid 0",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3002,
+  "seconds": 22.29783549200056,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.16625147832213583,
+  "frac_lt5": 0.1353010744571098,
+  "median_deg": 37.68219176799451,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 146,
+    "area_weighted_d_eq_um": 9.173547910416824,
+    "frac_100_build_15deg": 0.025389396341309982
+   }
+  },
+  "name": "hybrid 1",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2986,
+  "seconds": 24.866441834999932,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid 2": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.13509977101733725,
+  "frac_lt5": 0.1338164615887874,
+  "median_deg": 40.809762312963585,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 159,
+    "area_weighted_d_eq_um": 10.87174667011279,
+    "frac_100_build_15deg": 0.049294179814297574
+   }
+  },
+  "name": "hybrid 2",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 3003,
+  "seconds": 21.341340606999438,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid 3": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.14408293701718627,
+  "frac_lt5": 0.1408117561208827,
+  "median_deg": 37.77734243668815,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 149,
+    "area_weighted_d_eq_um": 9.121272542507375,
+    "frac_100_build_15deg": 0.1231977051407866
+   }
+  },
+  "name": "hybrid 3",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2961,
+  "seconds": 23.644525561999217,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid 4": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.12105885609320349,
+  "frac_lt5": 0.1183160967263028,
+  "median_deg": 38.7731558750128,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 168,
+    "area_weighted_d_eq_um": 8.46845406815723,
+    "frac_100_build_15deg": 0.10560881709066204
+   }
+  },
+  "name": "hybrid 4",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2988,
+  "seconds": 18.314904803999525,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 0": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.12284542412118467,
+  "frac_lt5": 0.12073173800357313,
+  "median_deg": 40.81228066670978,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 99,
+    "area_weighted_d_eq_um": 11.21349582848135,
+    "frac_100_build_15deg": 0.058780604413577915
+   }
+  },
+  "name": "hybrid, 7.9 um grains 0",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2984,
+  "seconds": 14.704521411000314,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 1": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.170705316927103,
+  "frac_lt5": 0.1683400015097758,
+  "median_deg": 40.46272866368481,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 90,
+    "area_weighted_d_eq_um": 11.514608346849057,
+    "frac_100_build_15deg": 0.019023175058503813
+   }
+  },
+  "name": "hybrid, 7.9 um grains 1",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2964,
+  "seconds": 16.012632870000743,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "hybrid, 7.9 um grains 2": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.17120857552653432,
+  "frac_lt5": 0.12999169623310938,
+  "median_deg": 36.74020464677161,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 13.989721476158895,
+    "frac_100_build_15deg": 0.010115497848569487
+   }
+  },
+  "name": "hybrid, 7.9 um grains 2",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2967,
+  "seconds": 21.344534607999776,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, 0.25 um cells": {
+  "fusion_zone_px": 39749,
+  "frac_lt10": 0.26805705803919594,
+  "frac_lt5": 0.25188055045409946,
+  "median_deg": 36.93073578286422,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.083224149080841,
+    "frac_100_build_15deg": 0.10080756748597448
+   },
+   "CA": {
+    "grains": 47,
+    "area_weighted_d_eq_um": 16.345666176584643,
+    "frac_100_build_15deg": 0.011019145135726684
+   }
+  },
+  "name": "extruded, 0.25 um cells",
+  "events": 10605600,
+  "melted_cells": 10605600,
+  "steps": 4020,
+  "seconds": 221.11042304200055,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 10605600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ },
+ "extruded, fast kinetics (5 K at 0.1 m/s)": {
+  "fusion_zone_px": 39741,
+  "frac_lt10": 0.24045695880828363,
+  "frac_lt5": 0.22171057597946706,
+  "median_deg": 38.47588886047585,
+  "stats": {
+   "measured": {
+    "grains": 92,
+    "area_weighted_d_eq_um": 10.084369361134991,
+    "frac_100_build_15deg": 0.10082786039606452
+   },
+   "CA": {
+    "grains": 38,
+    "area_weighted_d_eq_um": 14.460188992460166,
+    "frac_100_build_15deg": 0.0015349387282655193
+   }
+  },
+  "name": "extruded, fast kinetics (5 K at 0.1 m/s)",
+  "events": 1326600,
+  "melted_cells": 1326600,
+  "steps": 2387,
+  "seconds": 18.370956869999645,
+  "ca_stats": {
+   "nucleated": 0,
+   "captured": 1326600,
+   "sites": 0,
+   "liquid_left": 0
+  },
+  "nucleated_fraction": 0.0
+ }
+}

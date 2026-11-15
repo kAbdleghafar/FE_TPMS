@@ -412,6 +412,98 @@ Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and 
   * Non-equilibrium solute trapping beyond what the diffuse interface gives is not modelled.
   * IN625 is treated as a binary.
 
+### 5.4 3-D grain cellular automaton
+
+**Why.** §5.1–5.2 place grains by rules: the best-aligned neighbour, or a trace back along
+the thermal gradient. A cellular automaton *grows* them instead:
+* each grain's dendrite envelope advances along its own <100> axes;
+* the advance rate is the tip velocity at the local undercooling;
+* so competition between grains, nucleation ahead of the front, and regrowth across tracks
+  and layers all follow from the kinetics.
+
+It is also the tool for multi-layer builds, where grain size and texture develop over many
+layers.
+
+**Model** (`tpmsfem.process.grain_ca`; the formulation of Gandin & Rappaz 1997 and of ExaCA,
+Rolchigo et al. 2022):
+* **Cells.** Cubic cells, each solid cell carrying a grain id and each grain a cubic
+  orientation.
+* **Thermal history.** Per cell, melting events (t_m, t_l, cooling rate). After the liquidus
+  the cell undercools linearly.
+* **Growth and capture.** Every solid cell next to the liquid carries an octahedral envelope
+  aligned with its grain. The envelope grows at the KGT tip velocity v(ΔT) and captures the
+  liquid neighbours whose centres it reaches; the deepest envelope wins.
+* **Decentring.** A captured cell gets a decentred envelope that keeps its parent's tip, so
+  growth follows the crystal axes, not the grid.
+* **Nucleation.** Optional: Gaussian nucleation undercoolings at random sites.
+* **Epitaxy.** Unmelted cells at the fusion boundary seed the pool.
+* **Scan strategies.** The steady thermal history of one track (from `MeltPoolModel`) is shifted
+  along every scan vector. This includes remelting and regrowth across tracks and layers, but
+  not the preheating of one track by another.
+* **Implementation.** A serial numba kernel over the interface cells. The case-B pool
+  (2.7 M cells at 0.5 µm) runs in about 20 s.
+
+**Verification** (`tests/test_grain_ca.py`):
+* **Grid independence.** One grain in a uniformly undercooling melt grows as an octahedron
+  along its crystal axes, whatever its tilt to the grid:
+  * extent along x relative to that along <100>: 0.870 at 30° (exact 0.866) and 0.707 at 45°
+    (exact 0.707);
+  * size within 4 % of the analytic ∫v dt.
+* **Competitive growth.** Directional growth from 120 random grains at G = 10⁶ K/m and
+  V = 0.05 m/s: over 190 µm the mean angle between <100> and the growth direction falls from
+  32° to 10°, and 12 grains survive. This is Walton–Chalmers selection.
+* **Kinetics consistent with the phase field.** KGT for the Ni–Nb quasi-binary of §5.3 gives
+  31 K tip undercooling at 0.1 m/s and 41 K at 0.3 m/s. The phase-field tips sit 28–40 K below
+  the liquidus at these speeds.
+
+**Against NIST's EBSD section (case B)** (`benchmarks/literature/nist_ambench2018_tracks_ca.py`).
+* **Set-up.** The CA regrows the calibrated case-B pool in 3-D: 0.5 µm cells, 50 µm along
+  the scan, the EBSD plane 40 µm from the upstream end.
+* **Substrate.** The pixels, placement and fusion zone are those of §5.1. Two substrates:
+  * *extruded*: the measured section extended unchanged along the scan, the best case for one
+    section;
+  * *hybrid*: the measured section within ±1.4 µm of the plane, and a statistically equivalent
+    3-D Voronoi substrate elsewhere (orientations drawn from the measured substrate), as in
+    §5.2.
+
+| CA run | pixels within 10° of measured | grains in the section (measured 92) | area-weighted size (measured 10.1 µm) |
+|---|---:|---:|---:|
+| extruded substrate | 25.4 % | 47 | 15.3 µm |
+| extruded, reversed scan direction | 21.7 % | 49 | 16.6 µm |
+| extruded, 0.25 µm cells | 26.8 % | 47 | 16.3 µm |
+| extruded, faster tip kinetics (5 K at 0.1 m/s) | 24.0 % | 38 | 14.5 µm |
+| extruded, nucleation 10¹⁴ /m³ at 10 ± 2 K (2 % of the pool nucleated) | 24.5 % | 55 | 14.2 µm |
+| extruded, nucleation 10¹⁵ /m³ at 30 ± 2 K (20 % nucleated) | 24.1 % | 60 | 14.1 µm |
+| hybrid, 2.7 µm stand-in grains (5 runs) | 12–17 % | 144–168 | 8.5–10.9 µm |
+| **hybrid, 7.9 µm stand-in grains (3 runs)** | 12–17 % | **90–99** | **11.2–14.0 µm** |
+| *rules, for comparison:* gradient trace (§5.1) / with the hybrid substrate (§5.2) | 27.5 % / 26.7 % | 83 / 236 | 12.3 µm / — |
+
+![3-D grain CA against the EBSD section](img/ca_ambench_caseB.png)
+
+**Reading the results.**
+* **Grain statistics are reproduced.** With a stand-in substrate of the measured
+  area-weighted grain size, the CA predicts 90–99 grains against 92 measured. Their size is
+  11–14 µm against 10.1 µm.
+* **The extruded substrate gives too few grains: 47.** Two effects can explain this:
+  * grains entering the section from substrate outside the plane (§5.2);
+  * grain selection in the CA that is too strong (next point).
+* **Point-wise agreement does not improve on the rules.** The extruded substrate gives 25.4 %
+  (21.7 % for the other scan direction), against 25.8–27.5 % for the 2-D rules. The hybrid
+  gives 12–17 %, against 26.7 % for the gradient trace with the same substrate.
+* **Why the CA selects grains too strongly.** Its envelopes grow along <100> (dendrites).
+  LPBF IN625 solidifies as cells (§5.3), and cells follow the heat flow more closely than the
+  crystal axes. The gradient trace follows the heat flow, which is the likely reason it does
+  better point by point.
+  * Selection strength is a model property, not a resolution effect: halving the cell size
+    changes nothing (26.8 %, 47 grains).
+  * Faster tip kinetics strengthen the selection (38 grains).
+* **Nucleation plays no role here.** At 10¹⁴ /m³ (10 K) it changes nothing. At 10¹⁵ /m³
+  (30 K) a fifth of the pool, near the top, becomes new grains. The measured section shows no
+  equiaxed band, so heterogeneous nucleation is weak in this track.
+* **Use.** The CA is suited to grain size and texture statistics, and to builds of many tracks
+  and layers (§5.5). For point-wise maps of a single track, the gradient trace is as good. A
+  cell-growth rule that weights the envelope towards the heat flow is the natural next step.
+
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 
 Kasperovich, Becker, Artzt et al., *Materials & Design* 207 (2021) 109858,
