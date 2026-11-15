@@ -1,30 +1,51 @@
-# tpmsfem
+# TPMSsuite
 
-**Open-source, GPU-accelerated finite element analysis of TPMS lattice implants:
-stress/strain under physiological loads and additive-manufacturing residual stress,
-with interfaces to open-source meshers and a code-to-code benchmarking workflow
-against commercial solvers.**
+![TPMSsuite: design, mesh, mechanics, process and microstructure of TPMS structures](docs/img/tpmssuite_social_preview.png)
+
+**An open-source, GPU-ready suite for triply periodic minimal surface (TPMS) structures, from
+the geometry to the as-built part.**
+
+TPMSsuite covers six stages:
+* **Design and meshing** of TPMS lattices.
+* **Mechanics:** stiffness, strength and homogenised properties.
+* **Heat transfer and residual stress** from additive manufacturing.
+* **The laser process:** melt pool, melt flow, scan paths, porosity and surface roughness.
+* **The solidification microstructure:** cells, segregation, grains and texture.
+* **Benchmarking:** every model is verified against analytical solutions, cross-checked
+  against commercial solvers and compared with published experiments.
+
+TPMSsuite is not tied to one application. The same tools serve lightweight and
+energy-absorbing lattices, architected materials and biomedical implants. The
+implant-specific parts (a parametric femoral stem and acetabular cup, ISO 7206-4 loading)
+are one module among many.
+
+> **Start here:** the [user manual](docs/manual.md) has a worked, tested example for every
+> calculation. The Python package is imported as `tpmsfem`, and the command-line tool is
+> `tpmsfem`.
 
 ```
-implicit TPMS geometry ──► voxel hex8 mesher ─────────────┐
- (gyroid, diamond, P, IWP,   (GPU classification)          │
-  graded density, implants) ─► marching cubes ─► Gmsh /     ├─► matrix-free FE solver ─► VTU (ParaView)
-                                 TetGen / fTetWild (tet4/10)│    NumPy | CuPy (CUDA)   ─► Abaqus / CalculiX deck
- any .msh/.inp/.vtu/.med via meshio ───────────────────────┘    elastic | J2 plastic   ─► benchmark metrics
-                                                                 element birth + eigenstrain (LPBF)
+ design             mesh                 mechanics & heat              LPBF process                 microstructure
+ TPMS sheet /       voxel hex8 (GPU)     matrix-free FE, CPU | GPU      scan paths for TPMS layers   G, R, cooling rate
+ network, graded ─► marching cubes    ─► elastic | J2 plastic        ─► melt pool (conduction)    ─► spacing laws, CET
+ walls, implants,   Gmsh / TetGen /      homogenised stiffness          melt flow + powder (LBM)     phase field: cells,
+ SDF booleans       fTetWild, meshio     transient heat                 porosity maps                segregation, trapping
+                                         AM residual stress             surface roughness            3-D grain CA: texture
+                                         ─► VTU (ParaView), Abaqus / CalculiX decks, benchmark metrics
 ```
 
 | | |
 |---|---|
-| Geometry | Gyroid, Schwarz-P, diamond, IWP, Neovius, FKS; sheet or network; density-calibrated and functionally graded; composable SDF booleans; parametric femoral stem (lattice core / porous coating) and acetabular cup |
+| Geometry | Gyroid, Schwarz-P, diamond, IWP, Neovius, FKS; sheet or network; density-calibrated and functionally graded; sheets of prescribed or graded wall thickness; composable SDF booleans; parametric femoral stem (lattice core / porous coating) and acetabular cup |
 | Meshing | Built-in voxel (hex8) mesher with island removal and GPU classification; marching cubes → **Gmsh**, **TetGen**, **fTetWild** (tet4/tet10); anything **meshio** reads |
 | Elements | hex8 (full integration or **B-bar**), tet4, tet10 |
-| Physics | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
+| Mechanics & heat | Small-strain elasticity; J2 plasticity with linear or **tabulated, temperature-dependent** isotropic hardening (exact multilinear radial return + consistent tangent, annealing); thermal strains with E(T), ν(T), α(T); eigenstrains (inherent strain); element birth (strain-free activation, also at a deposition temperature); **transient heat conduction** (k(T), c_p(T), latent heat by an enthalpy method, convection + radiation on evolving free surfaces) |
+| Homogenisation | Periodic unit cells: full 6 × 6 effective stiffness, Young's and shear moduli, Poisson ratios, Zener anisotropy; in-plane properties of plates |
 | Residual stress | LPBF **inherent-strain layer-by-layer** build, or a **sequentially coupled thermo-mechanical** layer-lumped build (heat + temperature-dependent elasto-plasticity), + build-plate removal (3-2-1 support) → residual stress and distortion |
-| Process scale | **Laser scan → melt pool → solidification → surface**: explicit enthalpy finite-volume melt-pool solver on voxel grids (Gaussian laser, scan paths and hatching, powder layer, latent heat, evaporation, NumPy/CuPy), G–R maps, cell spacing (Kurz–Fisher/Hunt), Hunt CET, epitaxial competitive grain growth with IPF maps, **ExaCA** export; **3-D grain cellular automaton** (decentred octahedra, KGT tip kinetics, nucleation, epitaxy, any scan strategy over many tracks and layers, optional heat-flow bias for cellular growth); **2-D quantitative phase field** of cells/dendrites and Nb segregation at the melt-pool G, R (Karma–Echebarria anti-trapping model, solute trapping by the continuous growth model, numba/CuPy); as-built roughness (staircase + melt-pool rounding + adhered powder) vs build angle, mapped onto TPMS surfaces |
+| Process | **Melt pool**: explicit enthalpy finite-volume solver on voxel grids (Gaussian/top-hat laser with absorption depth, any scan path, powder layer, latent heat, evaporation, radiation; NumPy/CuPy); part-aware substrate with powder below overhangs; **scan paths clipped to TPMS layers** (contours + hatching); **free-surface melt flow** (lattice Boltzmann: Marangoni, Sahoo surface tension, recoil, evaporation; powder-bed generator); **porosity process maps** (lack-of-fusion criterion and unfused fraction, keyhole number); **as-built roughness** (staircase, melt-pool rounding, adhered powder) vs build angle, mapped onto TPMS surfaces |
+| Microstructure | G–R maps, cooling rates, spacing laws (Kurz–Fisher, Hunt), Hunt CET; **2-D quantitative phase field** of cells and dendrites with solute segregation and solute trapping (Karma–Echebarria, continuous growth model; numba/CuPy); **3-D grain cellular automaton** (decentred octahedra, KGT kinetics, nucleation, epitaxy, any scan strategy over many tracks and layers, cellular-growth bias): grain size and texture; reduced grain model; **ExaCA** export; EBSD analysis (CTF reader, cubic misorientation, grain segmentation, KAM) |
 | Fatigue | Strain-life post-processing: cyclic Ramberg–Osgood, Basquin–Coffin–Manson with Morrow / SWT mean-stress correction, Neuber notch rule |
 | Solver | Matrix-free element-by-element operator (one batched GEMM per chunk on voxel meshes); **geometric multigrid** PCG for voxel meshes (matrix-free Galerkin hierarchy, mesh-independent iteration counts, CPU **or GPU**); AMG (pyamg) or sparse direct for tet meshes; Newton–Raphson with an elastic predictor and automatic cut-back for plasticity |
-| Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI |
+| Benchmarking | Exact Abaqus/CalculiX deck export (same nodes, elements, BCs, **consistent nodal loads**, eigenstrains, layer steps), CalculiX runner + readers, Abaqus ODB→CSV script, field metrics, Roache GCI; re-implemented published benchmarks (lattices, implants, NIST AM-Bench) |
 
 ## Status: what is verified
 
@@ -145,6 +166,8 @@ Gmsh's wheel needs `libglu1-mesa` (and X libs) on minimal Linux images.
 
 ## Quick start
 
+The [manual](docs/manual.md) covers every calculation; the two most common ones are:
+
 ```python
 import numpy as np
 import tpmsfem as tf
@@ -187,6 +210,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 
 ## Documentation
 
+* [docs/manual.md](docs/manual.md): **user manual**, how to perform every calculation, with tested examples
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
 * [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found

@@ -25,7 +25,7 @@ def main(argv=None):
         from . import __version__
         from .backend import device_info
 
-        print(f"tpmsfem {__version__}: {device_info()}")
+        print(f"TPMSsuite (tpmsfem {__version__}): {device_info()}")
     elif a.cmd == "compare":
         from .bench.compare import _main
 

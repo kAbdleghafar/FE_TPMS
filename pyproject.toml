@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tpmsfem"
 version = "0.1.0"
-description = "GPU-accelerated finite element analysis of TPMS lattice implants (stress, strain, AM residual stress)"
+description = "TPMSsuite: open-source, GPU-ready suite for TPMS structures - design, meshing, FE mechanics and homogenisation, heat transfer, AM residual stress, laser process and microstructure simulation"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
