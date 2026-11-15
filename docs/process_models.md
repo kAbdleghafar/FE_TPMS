@@ -513,6 +513,52 @@ Rolchigo et al. 2022):
   and layers (§5.5), where growth distances are long. There, competition and the growth mode
   (α) decide the texture. For point-wise maps of a single track, the gradient trace is as good.
 
+### 5.5 Grains of multi-layer blocks: texture and grain width (3-D grain CA)
+
+**Question.** How do grain width and texture develop over many layers, and how much do they
+depend on the scan rotation?
+
+**Method** (`benchmarks/literature/ca_multilayer.py`).
+* **Build.** An IN625 block of 10 layers at the AM-Bench 2018 settings: the calibrated case-B
+  track (179.2 W, 800 mm/s), 100 µm hatch, 20 µm layers, bidirectional.
+* **Rotation.** 90° (x/y alternation) or 67° between layers.
+* **Grid.** 480 × 480 µm, on 40 µm of substrate with random 8 µm grains. KGT kinetics, no
+  nucleation.
+* **Thermal history.** The steady track is shifted along every vector; tracks overrun the
+  block, so pool ends do not enter. Preheating is not included.
+* **Checks.** Cell size 1, 1.5 and 2 µm; a 240 µm block; three substrate realisations.
+
+| run (layer 10) | <100> within 15° of BD | <110> within 15° of BD | grain width | grains |
+|---|---:|---:|---:|---:|
+| 90°, 2 µm cells, substrates 0 / 1 / 2 | 15 / 14 / 24 % | 27 / 32 / 32 % | 57 / 60 / 60 µm | 230 / 236 / 220 |
+| 90°, 1.5 µm cells | 17 % | 22 % | 56 µm | 265 |
+| 90°, 1 µm cells | 35 % | 16 % | 56 µm | 237 |
+| 90°, 1 µm cells, 240 µm block | 19 % | 19 % | 55 µm | 79 |
+| 67°, 2 µm cells | 26 % | 24 % | 55 µm | 193 |
+| 67°, 1 µm cells, 240 µm block | 21 % | 8 % | 48 µm | 56 |
+| random orientations | 10 % | 21 % | | |
+
+The substrate grains are 9 µm wide.
+
+![IN625 blocks](img/ca_multilayer.png)
+
+**Reading the results.**
+* **Grain width is robust.** The grains widen from 15 µm in the first layer to 55–60 µm in
+  the tenth, the same within 10 % for every cell size, block size, substrate and rotation. They
+  have not levelled off after 10 layers.
+* **A <100> fibre along BD develops, but its strength is uncertain.**
+  * At 2 µm cells it reaches 14–24 % at 90°, depending on the substrate realisation; at
+    1.5 µm, 17 %; in the one 1 µm run, 35 %.
+  * The substrate alone moves the number by about ±5 points, so these runs do not show
+    whether finer cells strengthen the fibre.
+  * A volume fraction over ~200 grains is dominated by its largest grains. A firm texture
+    prediction needs several realisations at ≤ 1 µm cells, i.e. the GPU.
+* **The track pattern is visible.** At 90° the grains in plan view form a checkerboard on the
+  100 µm hatch grid, and their boundaries run along the track overlaps. At 67° the pattern is
+  irregular.
+* **Rotation.** At 2 µm cells, 67° gives a stronger <100> fibre than 90° (26 % against
+  14–24 %), but this lies within the realisation scatter.
+
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 
 Kasperovich, Becker, Artzt et al., *Materials & Design* 207 (2021) 109858,
@@ -992,7 +1038,9 @@ Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
 
   Unlike the single track of §5.4, the build therefore depends on the growth mode. Measured
   grain widths and textures of the lattice would calibrate α.
-* **These texture numbers are lower bounds.** The IN625 resolution check (§5.5) shows that
-  coarse cells weaken orientation selection: 15 % at 2 µm against 35 % at 1 µm, at the same
-  grain width. The strong <001> fibre reported for LPBF CoCrFeMnNi therefore needs 1 µm cells
-  on the lattice. That is about 700 M cells for these windows, which needs the GPU.
+* **The texture numbers are uncertain; the widths are not.** In the IN625 blocks (§5.5) the
+  substrate realisation alone moves the <100> fraction by about ±5 points. One run at 1 µm
+  cells gave 35 % against 14–24 % at 2 µm, so finer cells may also strengthen it.
+  * Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs
+    several realisations at ≤ 1 µm cells on the lattice.
+  * That is about 700 M cells per window, a GPU task.
