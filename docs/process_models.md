@@ -403,14 +403,77 @@ Their fit is `PDAS = 800 µm (G V)^-0.57`. Hunt's law gives 0.56–0.89 µm and 
   report 15.8 wt% in a 40 µm domain. The value keeps rising with depth because the binary model
   has no eutectic or Laves reaction to cap it.
 * **Limits.**
-  * Only the fusion-boundary point satisfies D/V ≥ 10 W0. The three points above it
-    (D/V = 2.3–4 W0) are probably under-predicted by 30 % or more, by the 0.1 m/s convergence
-    test. Corrected that way they become roughly 0.45–0.5 µm, still inside the measured range,
-    but the downward trend from the fusion boundary is then weaker than the table shows.
+  * Only the fusion-boundary point satisfies D/V ≥ 10 W0; the three points above it have
+    D/V = 2.3–4 W0. The 0.1 m/s convergence test suggested they might be 30 % low. The
+    convergence series below, on this path, does not confirm that: at 10 µm the spacing changes
+    by less than one window step (8 %) between W0 = 10, 6.5 and 4.1 nm.
   * The model is 2-D, and 2-D cell arrays are coarser than 3-D ones.
   * The temperature field is frozen (no latent heat at this scale).
-  * Non-equilibrium solute trapping beyond what the diffuse interface gives is not modelled.
   * IN625 is treated as a binary.
+
+**The whole path, with solute trapping** (`benchmarks/literature/pf_path_trapping.py`).
+* **Path.** The same centreline as above, extended to the surface (7 points, 0–30 µm above the
+  fusion boundary). R rises from 0.027 to 0.29 m/s, so D/V falls from 110 to 10 nm.
+* **Trapping.** The continuous growth model (Aziz & Kaplan) as velocity-corrected alloy
+  parameters (`DiluteAlloy.at_velocity`, V_D = 1 m/s): k rises from 0.49 to 0.60, and the
+  freezing range falls from 43 to 29 K.
+* **Resolution.** The interface width follows the diffusion length, W0 = min(10 nm, D/5R),
+  i.e. D/V ≥ 5 W0 everywhere (2.1 nm at the surface). The full criterion D/V ≥ 10 W0 would
+  cost ~300 CPU-hours here; the cost scales as W0⁻⁵.
+* **Convergence check.** At 10 µm, W0 = 10, 6.5 and 4.1 nm (D/V = 3.3, 5 and 8 W0).
+* **Trapping on and off.** One run without trapping at the same W0, 20 µm up.
+* **Windows and cost.** 2.4 × 1.2 µm windows (1.6 × 0.8 µm at the top two points), 6 µm of
+  growth, the last 40 % averaged. An adaptive stable time step (×1.7 faster) and checkpoints
+  make the runs feasible: about 6 h each for the top two points on two cores.
+
+| height above the fusion boundary | R | k(V) | W0 | spacing | c_s* (cores) | c_l* (tip liquid) | c_s*/c_l* | 95th pct. of the solid |
+|---|---|---|---|---|---|---|---|---|
+| 0 µm | 0.027 m/s | 0.49 | 10 nm | 0.57 µm | 3.27 wt% | 5.77 wt% | 0.57 | 8.1 wt% |
+| 5 µm | 0.074 m/s | 0.52 | 8.1 nm | 0.37 µm | 3.46 wt% | 5.52 wt% | 0.63 | 7.1 wt% |
+| 10 µm | 0.092 m/s | 0.52 | 10 / 6.5 / 4.1 nm | 0.35 / 0.32 / 0.33 µm | 3.47–3.50 wt% | 5.24–5.72 wt% | 0.61–0.66 | 6.2–7.2 wt% |
+| 15 µm | 0.133 m/s | 0.54 | 4.5 nm | 0.28 µm | 3.62 wt% | 5.51 wt% | 0.66 | 6.6 wt% |
+| 20 µm | 0.173 m/s | 0.56 | 3.5 nm | 0.30 µm | 3.72 wt% | 5.50 wt% | 0.68 | 6.0 wt% |
+| 20 µm, no trapping | 0.173 m/s | 0.48 | 3.5 nm | 0.28 µm | 3.60 wt% | 5.79 wt% | 0.62 | 6.7 wt% |
+| 25 µm | 0.257 m/s | 0.59 | 2.3 nm | 0.30 µm | 3.90 wt% | 5.56 wt% | 0.70 | 5.6 wt% |
+| 30 µm | 0.287 m/s | 0.60 | 2.1 nm | 0.31 µm | 3.90 wt% | 5.55 wt% | 0.70 | 6.0 wt% |
+
+The 95th percentile is that of the Nb content of the solid that left the window: a measure of
+the intercellular enrichment.
+
+![phase field up the pool with trapping](img/pf_path_trapping.png)
+
+* **The cells refine from the fusion boundary, then level off.** The spacing goes from
+  0.57 µm at the boundary to 0.37 µm 5 µm above it, and stays at 0.28–0.31 µm from 10 µm up
+  to the surface.
+  * This lies within the measured 0.2–1.0 µm and within Ghosh et al.'s phase field
+    (0.20–0.43 µm). The micrographs show the same coarse-to-fine progression.
+  * Hunt's law trends the other way (0.56 → 2.9 µm), because G falls 100-fold while R rises
+    only 10-fold.
+* **The resolution is adequate.** At 10 µm, W0 = 10, 6.5 and 4.1 nm give 0.35, 0.32 and
+  0.33 µm, within one window step. So D/V = 5 W0 is converged for the spacing here, and so are
+  the W0 = 10 nm values in the table above.
+* **Segregation weakens up the pool.**
+  * The cell cores carry 3.27 wt% Nb at the fusion boundary and 3.90 wt% at the top, against
+    4 wt% in the alloy.
+  * The effective partition c_s*/c_l* rises from 0.57 to 0.70. The intercellular enrichment
+    (95th percentile) falls from 8.1 to 5.6–6.0 wt%.
+  * Less Laves phase is therefore expected in the upper part of each pool than at its
+    fusion boundary.
+* **Trapping accounts for part of this.** At 20 µm, switching it off (same W0):
+  * lowers the cores from 3.72 to 3.60 wt% Nb;
+  * raises the tip liquid from 5.50 to 5.79 wt% and the 95th percentile from 6.0 to 6.7 wt%;
+  * raises the tip undercooling from 32 to 41 K.
+  The rest of the trend comes from the faster growth itself. At the fusion boundary
+  trapping changes nothing (k = 0.49 against 0.48).
+* **No planar front within the pool.** With trapping, the absolute-stability velocity falls
+  from 0.78 to 0.40 m/s at the top, where R = 0.29 m/s (R/V_abs = 0.72). The cells there are
+  shallow, with weak boundaries, but still cells.
+* **Limits.**
+  * V_D = 1 m/s is assumed; values of 0.5–2 m/s are used for Ni–Nb.
+  * The CGM enters as effective parameters. Kinetic undercooling and solute drag are not
+    included.
+  * The model is 2-D, with a frozen temperature field and a binary alloy.
+  * The narrower windows at the top quantise the spacing in steps of about 10 %.
 
 ### 5.4 3-D grain cellular automaton
 

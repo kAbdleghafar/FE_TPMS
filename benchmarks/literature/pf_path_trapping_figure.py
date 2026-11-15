@@ -76,7 +76,7 @@ def figure():
     conv = sorted([(store[t]["W0_nm"], store[t]) for t in store if t.startswith("z=-22.5|trap")])
     for i, (W, r) in enumerate(conv):
         ax.plot(r["z_um"] - z0 + 0.8, _sp(r), "D", color=ORANGE, ms=5, mfc="none")
-        ax.annotate(f"W0 {W:.1f} nm", (r["z_um"] - z0 + 0.8, _sp(r)), xytext=(10.5, 0.62 + 0.09 * i), fontsize=6.5,
+        ax.annotate(f"W0 {W:.1f} nm", (r["z_um"] - z0 + 0.8, _sp(r)), xytext=(12.5, 0.05 + 0.065 * i), fontsize=6.5,
                     color=ORANGE, arrowprops=dict(arrowstyle="-", color=ORANGE, lw=0.5))
     ax.plot(h, [r["hunt_um"] for _, r in main], ":", color=AQUA, lw=1.4, label="Hunt (with k(V))")
     ax.set_ylim(0, 1.6)
@@ -109,7 +109,7 @@ def figure():
     ax.set_xlabel("height above the fusion boundary [um]", fontsize=8.5)
     ax.set_ylabel("Nb [wt%]", fontsize=8.5)
     ax.set_title("(c) Nb partitioning at the cell tips", fontsize=9, loc="left")
-    ax.legend(fontsize=6.8, frameon=False, loc="upper right")
+    ax.legend(fontsize=6.8, frameon=False, loc="center right", bbox_to_anchor=(1.0, 0.62))
     ax.set_ylim(2.8, 6.4)
     _style(ax)
 
