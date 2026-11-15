@@ -74,7 +74,8 @@ def figure():
 
     def label(k):
         r = store[k]
-        return (f"{r['rot_deg']:.0f} deg, {r['side_um']:.0f} um block, {r['dx_um']:g} um cells"
+        return (f"{r['rot_deg']:.0f} deg, {r['dx_um']:g} um cells" + (", 240 um block" if r["side_um"] < 300 else "")
+                + (f", substrate {r['seed']}" if r.get("seed") else "")
                 + (f", alpha {r['heat_flow_bias']:g}" if r.get("heat_flow_bias") else ""))
     ax = fig.add_subplot(gs[1, 0])
     for key in rots:
@@ -85,14 +86,14 @@ def figure():
         L = store[key]["layers"]
         c = BLUE if store[key]["rot_deg"] == 90 else ORANGE
         ax.plot([l_["layer"] for l_ in L], [100 * l_["frac_100_bd_15"] for l_ in L], ":", color=c, lw=1.0,
-                label=label(key) + " (check)")
+                label=label(key))
     ax.axhline(100 * RANDOM_100, color=MUTED, lw=1, ls="--")
     ax.text(10.2, 100 * RANDOM_100 + 0.4, "random", fontsize=7.5, color=MUTED, ha="right", va="bottom")
     ax.set_xlabel("layer", fontsize=8.5)
     ax.set_ylabel("<100> within 15 deg of BD [% of volume]", fontsize=8.5)
     ax.set_title("(e) <100> fibre along the build direction", fontsize=9, loc="left")
-    ax.set_ylim(0, 40)
-    ax.legend(fontsize=6.3, frameon=False, loc="upper left")
+    ax.set_ylim(0, 75)
+    ax.legend(fontsize=6.0, frameon=False, loc="upper left", ncol=1)
     _style(ax)
     ax = fig.add_subplot(gs[1, 1])
     for key in rots:
@@ -126,8 +127,8 @@ def figure():
         cb = fig.colorbar(im, ax=ax, fraction=0.045, pad=0.02)
         cb.set_label("multiples of random", fontsize=7.5)
         cb.ax.tick_params(labelsize=7)
-    fig.suptitle("Grain structure of a 10-layer IN625 block from the 3-D grain CA (AM-Bench 2018 settings: 195 W, 800 mm/s, "
-                 "100 um hatch, 20 um layers, 480 um block; dotted: other cell sizes and block sizes)", fontsize=10.5, x=0.02, ha="left")
+    fig.suptitle("10-layer IN625 blocks from the 3-D grain CA (AM-Bench 2018 settings, 100 um hatch, 20 um layers). "
+                 "Solid: 480 um block, 1 um cells; dotted: coarser cells, smaller block, other substrates", fontsize=10.5, x=0.02, ha="left")
     fig.savefig(M.FIG, dpi=150)
     print("wrote", M.FIG)
 

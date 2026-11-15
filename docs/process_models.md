@@ -593,12 +593,12 @@ depend on the scan rotation?
 
 | run (layer 10) | <100> within 15° of BD | <110> within 15° of BD | grain width | grains |
 |---|---:|---:|---:|---:|
-| 90°, 2 µm cells, substrates 0 / 1 / 2 | 15 / 14 / 24 % | 27 / 32 / 32 % | 57 / 60 / 60 µm | 230 / 236 / 220 |
+| **90°, 1 µm cells** | **35 %** | 16 % | 56 µm | 237 |
+| **67°, 1 µm cells** | **68 %** | 7 % | 72 µm | 164 |
 | 90°, 1.5 µm cells | 17 % | 22 % | 56 µm | 265 |
-| 90°, 1 µm cells | 35 % | 16 % | 56 µm | 237 |
-| 90°, 1 µm cells, 240 µm block | 19 % | 19 % | 55 µm | 79 |
+| 90°, 2 µm cells, substrates 0 / 1 / 2 | 15 / 14 / 24 % | 27 / 32 / 32 % | 57 / 60 / 60 µm | 230 / 236 / 220 |
 | 67°, 2 µm cells | 26 % | 24 % | 55 µm | 193 |
-| 67°, 1 µm cells, 240 µm block | 21 % | 8 % | 48 µm | 56 |
+| 90° / 67°, 1 µm cells, 240 µm block | 19 / 21 % | 19 / 8 % | 55 / 48 µm | 79 / 56 |
 | random orientations | 10 % | 21 % | | |
 
 The substrate grains are 9 µm wide.
@@ -606,21 +606,33 @@ The substrate grains are 9 µm wide.
 ![IN625 blocks](img/ca_multilayer.png)
 
 **Reading the results.**
-* **Grain width is robust.** The grains widen from 15 µm in the first layer to 55–60 µm in
-  the tenth, the same within 10 % for every cell size, block size, substrate and rotation. They
-  have not levelled off after 10 layers.
-* **A <100> fibre along BD develops, but its strength is uncertain.**
-  * At 2 µm cells it reaches 14–24 % at 90°, depending on the substrate realisation; at
-    1.5 µm, 17 %; in the one 1 µm run, 35 %.
-  * The substrate alone moves the number by about ±5 points, so these runs do not show
-    whether finer cells strengthen the fibre.
-  * A volume fraction over ~200 grains is dominated by its largest grains. A firm texture
-    prediction needs several realisations at ≤ 1 µm cells, i.e. the GPU.
-* **The track pattern is visible.** At 90° the grains in plan view form a checkerboard on the
-  100 µm hatch grid, and their boundaries run along the track overlaps. At 67° the pattern is
-  irregular.
-* **Rotation.** At 2 µm cells, 67° gives a stronger <100> fibre than 90° (26 % against
-  14–24 %), but this lies within the realisation scatter.
+* **A <100> fibre along BD builds up layer by layer, and 67° makes it stronger than 90°.**
+  * At 1 µm cells it grows from 14 % in the first layer to 35 % (90°, levelling off) and 68 %
+    (67°, still rising) in the tenth.
+  * 67° beats 90° in every comparable pair of runs (68 vs 35 %, 26 vs 14–24 %, 21 vs 19 %).
+* **The fibre needs fine cells.** At 2 µm cells it stalls at 14–26 %, and at 1.5 µm at 17 %.
+  The three substrate realisations at 2 µm scatter by about ±5 points, far less than the jump
+  to 35 % and 68 % at 1 µm.
+  * Coarse cells blunt the orientation selection at every layer; already in the first layer
+    the fibre is 14 % against 11 %.
+  * Whether 1 µm is converged is not known: a 0.5 µm check of a 480 µm block (900 M cells)
+    needs the GPU.
+* **The fibre also needs a large block.** The 240 µm blocks at 1 µm give only 19–21 %. With
+  56–79 grains left at layer 10, a large share of them lie against the side walls, where they
+  cannot be overgrown from outside; this is the likely cause. Periodic side boundaries would
+  remove it.
+* **Grain width is robust where the fibre is weak.** The grains widen from 15 µm in the first
+  layer to 55–60 µm in the tenth for every cell size, block and substrate at 90°, within 10 %.
+  At 67° with 1 µm cells the strongly selected grains grow wider, to 72 µm. Width and texture
+  develop together.
+* **The track pattern is visible.**
+  * At 90°, the grains in plan view form a checkerboard on the 100 µm hatch grid, with
+    boundaries along the track overlaps.
+  * At 67°, the plan view is dominated by large <100> grains (red), with tilted, blocky
+    boundaries.
+* **Against experiment.** LPBF Ni superalloys commonly show a <100> fibre along BD, which
+  agrees qualitatively. How its strength depends on the scan rotation differs between published
+  builds, and no measured texture of these builds was available to test the numbers.
 
 ## 6. Roughness vs build angle (Kasperovich et al. 2021, LPBF IN718)
 
@@ -1080,8 +1092,9 @@ Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
 **Reading the results.**
 * **Grains coarsen steadily, whatever the wall thickness.** Epitaxy across layers makes the
   grains columnar, crossing many layers. Their width grows from 28 µm to about 100 µm in
-  20 layers (0.6 mm) and has not levelled off. This width is resolution-independent: in the
-  IN625 blocks of §5.5, 1 and 2 µm cells give the same width within 10 %.
+  20 layers (0.6 mm) and has not levelled off. In the IN625 blocks of §5.5 the width is the
+  same at 1 and 2 µm cells where the fibre stays weak (90°). Where it is strong (67° at 1 µm),
+  it is 30 % larger.
 * **The grain pattern follows the scan.** Without rotation, the grains in plan view are
   elongated along the hatch direction, with boundaries on the 85 µm track spacing.
 * **Down-facing walls carry dross.** On the overhanging side of the inclined walls, each
@@ -1101,9 +1114,10 @@ Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
 
   Unlike the single track of §5.4, the build therefore depends on the growth mode. Measured
   grain widths and textures of the lattice would calibrate α.
-* **The texture numbers are uncertain; the widths are not.** In the IN625 blocks (§5.5) the
-  substrate realisation alone moves the <100> fraction by about ±5 points. One run at 1 µm
-  cells gave 35 % against 14–24 % at 2 µm, so finer cells may also strengthen it.
-  * Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs
-    several realisations at ≤ 1 µm cells on the lattice.
-  * That is about 700 M cells per window, a GPU task.
+* **The texture numbers are lower bounds.** In the IN625 blocks (§5.5), going from 2 to 1 µm
+  cells raises the <100> fraction after 10 layers from 15–24 % to 35 % (90°) and from 26 % to
+  68 % (67°).
+  * At 2.5 µm cells the lattice runs therefore underestimate the fibre, and probably the
+    grain width where selection is strong.
+  * Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs 1 µm
+    cells on the lattice: about 700 M cells per window, a GPU task.

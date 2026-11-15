@@ -94,9 +94,10 @@ four independent groups and compares them:
   measure, match only 6–8 %. A 3-D grain cellular automaton regrows the same pool. With a
   stand-in 3-D substrate of the measured grain size it predicts 90–99 grains in the section
   against 92 measured, at 11–14 µm against 10.1 µm. Point by point it matches the rules (25 %).
-  Over 10-layer blocks it predicts grains widening from 15 to 55–60 µm, robustly, and a <100>
-  build fibre whose strength (14–35 %) still varies with the substrate realisation and the cell
-  size ([docs/process_models.md](docs/process_models.md) §5.4–§5.5).
+  Over 10-layer blocks it predicts columnar grains widening from 15 to 55–72 µm and a <100> fibre
+  along the build direction. At 1 µm cells the fibre reaches 35 % of the volume with 90° rotation and
+  68 % with 67° (random: 10 %); coarser cells blunt it to 14–26 %, so texture needs ≤ 1 µm cells
+  ([docs/process_models.md](docs/process_models.md) §5.4–§5.5).
 * **Ghosh et al. 2017 / 2018** (NIST, phase-field cells in Ni–Nb / IN625): code to code, the phase field
   reproduces their primary spacing at the same interface width (0.604 µm on their fit at 3e5 K/s) and tip
   compositions (3.78 / 6.81 wt% Nb against 3.65 / 6.87). Verified against Mullins–Sekerka theory and
@@ -121,8 +122,9 @@ four independent groups and compares them:
   * The residual strains are converged in voxel size but rise about 20 % with half-height lumps.
 
   Over 20 layers (§7.4) the 3-D grain CA grows columnar grains from 28 to ~100 µm wide in both thin and thick
-  walls. The <100> build fibre stays weak at this resolution: up to 19 % in thin walls, random in thick ones.
-  Cellular growth along the heat flow keeps the grains 15 % narrower.
+  walls. At the affordable 2.5 µm cells the <100> build fibre stays weak (up to 19 % in thin walls, random in
+  thick ones): a lower bound, as the IN625 resolution check shows. Cellular growth along the heat flow keeps the
+  grains 15 % narrower.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
