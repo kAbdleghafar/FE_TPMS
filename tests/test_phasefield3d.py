@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+from tpmsfem.backend import on_gpu
 from tpmsfem.process import phasefield as PF
 from tpmsfem.process import phasefield3d as P3
 
@@ -9,7 +10,8 @@ MODEL = PF.DiluteAlloy(c_inf=1.0, k=0.3, freezing_range=10.0, D=1e-9, gibbs_thom
 W0 = 2.5 * MODEL.d0
 V = MODEL.D / (10 * W0)                 # D/V = 10 W0
 G = MODEL.freezing_range / (300 * W0)   # l_T = 300 W0
-KERNELS = ["array"] + (["numba"] if PF.numba_available() else [])
+NUMBA = PF.numba_available() and not on_gpu()   # the numba kernel runs on the NumPy backend only
+KERNELS = ["array"] + (["numba"] if NUMBA else [])
 
 
 @pytest.mark.parametrize("kernel", KERNELS)
@@ -48,8 +50,8 @@ def _in625_model(kernel, seed=5):
 
 
 def test_numba_kernel_matches_array_kernel():
-    if not PF.numba_available():
-        pytest.skip("numba not installed")
+    if not NUMBA:
+        pytest.skip("numba not installed, or not on the NumPy backend")
     a, n = _in625_model("array"), _in625_model("numba")
     for _ in range(100):
         a.step()
@@ -85,7 +87,7 @@ def test_rotation_matrix_is_orthonormal_and_identity_at_zero():
 
 
 def test_checkpoint_round_trip(tmp_path):
-    m = _in625_model("numba" if PF.numba_available() else "array")
+    m = _in625_model("numba" if NUMBA else "array")
     m.run(30 * m.dt * m.tau0, record_every=10)
     m._shift(4)                                      # store some solidified rows as well
     p = str(tmp_path / "ck.npz")

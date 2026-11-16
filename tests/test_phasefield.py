@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+from tpmsfem.backend import on_gpu
 from tpmsfem.process import phasefield as PF
 
 # model alloy with comfortable thin-interface conditions; W0 = 2.5 d0 = 25 nm
@@ -19,7 +20,7 @@ def model_run(lD, lT, nx, height_W, alloy=MODEL, **kw):
 def perturb(m, amp_W, q):
     x = (np.arange(m.nx) + 0.5) * m.dx
     z = (np.arange(m.nz) + 0.5) * m.dx
-    m.phi = -np.tanh((z[:, None] - (m.z0 + amp_W * np.cos(q * x))[None, :]) / np.sqrt(2.0))
+    m.phi = m.xp.asarray(-np.tanh((z[:, None] - (m.z0 + amp_W * np.cos(q * x))[None, :]) / np.sqrt(2.0)))
 
 
 def mode_amplitude(m):
@@ -39,6 +40,8 @@ def test_alloy_from_slope():
 def test_solute_conserved_in_closed_box(kernel):
     if kernel == "numba" and not PF.numba_available():
         pytest.skip("numba not installed")
+    if kernel == "numba" and on_gpu():
+        pytest.skip("the numba kernel runs on the NumPy backend only")
     a = PF.DiluteAlloy(**{**MODEL.__dict__, "eps4": 0.03})
     m = model_run(10, 300, 48, 40, alloy=a, noise=0.3, seed=2, kernel=kernel, tilt_deg=15.0)
     s0 = m.solute()
@@ -49,6 +52,8 @@ def test_solute_conserved_in_closed_box(kernel):
 def test_numba_kernel_matches_array_kernel():
     if not PF.numba_available():
         pytest.skip("numba not installed")
+    if on_gpu():
+        pytest.skip("the numba kernel runs on the NumPy backend only")
     a = PF.DiluteAlloy(**{**MODEL.__dict__, "eps4": 0.05})
     m0 = model_run(10, 300, 40, 40, alloy=a, noise=0.3, seed=3, tilt_deg=20.0, kernel="array")
     m1 = model_run(10, 300, 40, 40, alloy=a, noise=0.3, seed=3, tilt_deg=20.0, kernel="numba")

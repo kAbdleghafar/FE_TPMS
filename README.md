@@ -75,10 +75,13 @@ All numbers are reproducible with `pytest` and the scripts in `examples/`.
 (1e-6 is the precision floor of CalculiX' `.frd` output.) The Abaqus decks for the same
 cases are written next to the CalculiX ones; see [docs/benchmarking.md](docs/benchmarking.md).
 
-**Not yet verified:** the CuPy (GPU) path has not been executed by the authors yet (the
-development container had no GPU). The code uses only NumPy-compatible CuPy APIs; please
-run `pytest` with `TPMSFEM_BACKEND=cupy` and report results. Abaqus decks have been
-validated through CalculiX but not run in Abaqus itself.
+**GPU (CuPy) path:** the full test suite passes with `TPMSFEM_BACKEND=cupy` on an NVIDIA
+RTX 4070 SUPER (CuPy 14.2, CUDA 12.9, Windows 11), against the same reference values as the
+CPU run. Tests of the numba kernels are skipped on the GPU backend (numba runs on the NumPy
+backend only). GPU speed-ups at production problem sizes have not been benchmarked yet.
+
+**Not yet verified:** Abaqus decks have been validated through CalculiX but not run in
+Abaqus itself.
 
 ### Against published results
 
@@ -163,9 +166,14 @@ four independent groups and compares them:
 
 ```bash
 pip install -e ".[dev]"            # CPU: numpy/scipy + meshers, AMG, pytest
-pip install cupy-cuda12x           # GPU (CUDA 12); then TPMSFEM_BACKEND=cupy
+pip install -e ".[gpu]"            # GPU (CUDA 12, cupy-cuda12x); then TPMSFEM_BACKEND=cupy
 sudo apt install calculix-ccx      # optional: open-source reference solver
 ```
+
+Without a CUDA toolkit on the machine, CuPy finds the GPU but fails when it compiles its first
+kernel ("Failed to find CUDA headers"). Install the toolkit as pip wheels instead:
+`pip install "cupy-cuda12x[ctk]"` (CuPy ≥ 14). Check the GPU path with
+`TPMSFEM_BACKEND=cupy pytest`.
 
 Gmsh's wheel needs `libglu1-mesa` (and X libs) on minimal Linux images.
 

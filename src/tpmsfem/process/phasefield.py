@@ -553,7 +553,7 @@ def front_profile(phi: np.ndarray, dx: float):
     """Height of the phi = 0 level in each column [same unit as dx], linearly interpolated
     at the highest solid-liquid crossing; z of cell i is (i + 0.5) dx. A column with no solid
     (a liquid groove reaching the window bottom) gets 0."""
-    phi = np.asarray(phi)
+    phi = asnumpy(phi)                 # post-processing on the host; works for CuPy arrays too
     nz, nx = phi.shape
     solid = phi > 0.0
     has = solid.any(axis=0)

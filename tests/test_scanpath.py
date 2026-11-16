@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 import tpmsfem as tf
+from tpmsfem.backend import asnumpy
 from tpmsfem.fem.materials import ThermalProperties
 from tpmsfem.geometry.fields import Field, box
 from tpmsfem.process import Laser, MeltPoolModel
@@ -47,12 +48,12 @@ def test_slice_mask_and_part_substrate():
     md = MeltPoolModel(mat, 0.01, length=0.6, width=0.4, depth=0.1, powder=0.03, symmetric_y=False)
     frac = md.set_part_geometry(wall)
     assert frac == pytest.approx(0.2 / 0.6, abs=0.02)
-    pm = np.asarray(md.powder_mask)
+    pm = asnumpy(md.powder_mask)
     assert pm[:, :, md.nz_sub:].all()                                     # new powder layer
     # thermal check on the bare wall top (no powder layer): the substrate geometry alone
     md = MeltPoolModel(mat, 0.01, length=0.6, width=0.4, depth=0.1, symmetric_y=False)
     md.set_part_geometry(wall)
-    pm = np.asarray(md.powder_mask)
+    pm = asnumpy(md.powder_mask)
     i_in = int(np.argmin(np.abs(md.x - 0.3)))
     i_out = int(np.argmin(np.abs(md.x - 0.1)))
     assert not pm[i_in, :, :md.nz_sub].any() and pm[i_out, :, :md.nz_sub].all()
@@ -60,7 +61,7 @@ def test_slice_mask_and_part_substrate():
     assert m[i_in].all() and not m[i_out].any()
     # heat stays in the wall: a track along the wall heats the powder beside it much less
     md.set_temperature(80.0)
-    assert float(np.asarray(md.T).mean()) == pytest.approx(80.0)
+    assert float(asnumpy(md.T).mean()) == pytest.approx(80.0)
     from tpmsfem.process import ScanVector
     res = md.run(Laser(150.0, 0.4, 0.04), [ScanVector(0.3, -0.15, 0.3, 0.15, 800.0)], t_extra=5e-5)
     k = md.nz_sub - 2
