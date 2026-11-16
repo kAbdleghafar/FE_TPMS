@@ -1,4 +1,4 @@
-// Word report: process and microstructure results (tpmsfem), November 2026.
+// Word report: process and microstructure results (TPMSsuite, Python package tpmsfem), November 2026.
 // Usage: node tools/report/make_report.js docs/reports/<name>.docx  (figure sizes in img_sizes.json)
 const fs = require("fs");
 const path = require("path");
@@ -86,15 +86,15 @@ const body = [];
 
 // Title page
 body.push(
-  new Paragraph({ spacing: { before: 2400, after: 200 }, children: [new TextRun({ text: "tpmsfem", font: FONT, size: 28, color: MUTED })] }),
+  new Paragraph({ spacing: { before: 2400, after: 200 }, children: [new TextRun({ text: "TPMSsuite", font: FONT, size: 28, color: MUTED })] }),
   new Paragraph({ spacing: { after: 240 }, children: [new TextRun({
-    text: "Process and microstructure results: melt-pool flow, porosity, solute trapping and 3-D grain structure",
+    text: "Process and microstructure results: melt-pool flow, porosity, solute trapping, 3-D cells with EDS maps and 3-D grain structure",
     font: FONT, size: 44, bold: true, color: ACCENT })] }),
   new Paragraph({ spacing: { after: 120 }, children: [new TextRun({
     text: "AM-Bench 2018 IN625 benchmarks and the CoCrFeMnNi graded-gyroid lattice", font: FONT, size: 26, color: INK })] }),
-  new Paragraph({ spacing: { before: 600, after: 60 }, children: runs("Progress report, 15 November 2026", { size: 22, color: MUTED }) }),
-  new Paragraph({ spacing: { after: 60 }, children: runs("Repository: kAbdleghafar/FE_TPMS, branch benchmarks/published-results", { size: 20, color: MUTED }) }),
-  new Paragraph({ spacing: { after: 60 }, children: runs("Every number in this report is produced by scripts in the repository (Appendix A); the detailed write-ups are in docs/freesurface_lbm.md, docs/porosity_maps.md and docs/process_models.md (§5.3–§5.5, §7.4).", { size: 20, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 600, after: 60 }, children: runs("Progress report, 16 November 2026 (revision 2: adds the 3-D multicomponent phase field and synthetic EDS maps, Section 6)", { size: 22, color: MUTED }) }),
+  new Paragraph({ spacing: { after: 60 }, children: runs("Repository: kAbdleghafar/TPMSsuite (default branch main; Python package tpmsfem). Contributors: Khaled Abdelghafar and Claude (Anthropic).", { size: 20, color: MUTED }) }),
+  new Paragraph({ spacing: { after: 60 }, children: runs("Every number in this report is produced by scripts in the repository (Appendix A); the detailed write-ups are in docs/freesurface_lbm.md, docs/porosity_maps.md and docs/process_models.md (§5.3–§5.6, §7.4); every calculation is explained in docs/manual.md.", { size: 20, color: MUTED }) }),
   pageBreak(),
 );
 
@@ -105,22 +105,25 @@ body.push(
     ["1. Summary", 0], ["2. What was built", 0], ["3. Melt-pool flow with a free surface", 0],
     ["3.1 Method · 3.2 Verification and case B · 3.3 Powder and calibration status", 1],
     ["4. Porosity process maps", 0], ["5. Cells and Nb segregation up the melt pool, with solute trapping", 0],
-    ["6. Grain structure: 3-D cellular automaton", 0],
-    ["6.1 Model and verification · 6.2 Single track against NIST's EBSD · 6.3 Ten-layer IN625 blocks · 6.4 CoCrFeMnNi gyroid over 20 layers", 1],
-    ["7. Problems found and fixed", 0], ["8. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
+    ["6. Cells in 3-D with Nb, Mo, Cr and Fe, and what EDS would record", 0],
+    ["6.1 Model and alloy data · 6.2 Run · 6.3 Cells and segregation · 6.4 Synthetic EDS maps · 6.5 Findings and limits", 1],
+    ["7. Grain structure: 3-D cellular automaton", 0],
+    ["7.1 Model and verification · 7.2 Single track against NIST's EBSD · 7.3 Ten-layer IN625 blocks · 7.4 CoCrFeMnNi gyroid over 20 layers", 1],
+    ["8. Problems found and fixed", 0], ["9. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
   ].map(([t, lvl]) => new Paragraph({ indent: { left: lvl ? 400 : 0 }, spacing: { after: lvl ? 100 : 40 },
       children: [new TextRun({ text: t, font: FONT, size: lvl ? 18 : 22, color: lvl ? MUTED : INK, bold: !lvl })] })),
-  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 CA vs EBSD · 5 IN625 blocks · 6 CoCrFeMnNi gyroid.", { size: 18, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid.", { size: 18, color: MUTED }) }),
   pageBreak(),
 );
 
 // 1 Summary
 body.push(H1("1. Summary"));
-body.push(P("This phase extended tpmsfem from conduction melt pools and rule-based grains to four new capabilities, each tested and checked against published data where data exist:"));
+body.push(P("This phase extended TPMSsuite (formerly tpmsfem) from conduction melt pools and rule-based grains to five new capabilities, each tested and checked against published data where data exist:"));
 body.push(
   B("**Free-surface melt-pool flow solver** (our own implementation of the free-surface lattice Boltzmann method with an enthalpy heat solver, NumPy/CuPy). It is verified to round-off in mass and energy and predicts the AM-Bench case-B pool at 120 × 34.5 µm against the measured 123.5 × 36.0 µm. Calibrating it independently needs finer cells than a CPU affords."),
   B("**Porosity process maps** (lack of fusion and keyhole). For IN625 they reproduce 12 of 13 conditions reported by Locatelli et al. (2026). For the CoCrFeMnNi gyroid they place the study's 200 W / 0.75 m/s point on the lack-of-fusion limit near the build plate. A 70 µm hatch removes the risk."),
   B("**Phase field up the whole melt pool with solute trapping.** The cells refine from 0.57 µm at the fusion boundary to 0.28–0.31 µm higher up, inside the 0.2–1.0 µm measured by SEM, converged within 8 % in the interface width. Nb segregation weakens towards the top of the pool."),
+  B("**3-D phase field with several elements, and synthetic EDS maps.** IN625 cells at the case-B mid-pool point, with Nb, Mo, Cr and Fe, form a columnar network whose edges carry Nb- and Mo-rich columns. The spacing of the material grown last is 0.33 µm (2-D: 0.34 µm; measured 0.2–1.0 µm) and was still coarsening. The segregation matches the 2-D model within 0.2 wt%. Simulated EDS maps show that SEM-EDS at 15 kV keeps only about a quarter of the Nb contrast of these cells, 5 kV keeps 85 % and STEM 96 %; Cr and Fe segregation stays below the counting noise."),
   B("**3-D grain cellular automaton.**"),
   B("On the AM-Bench case-B track it reproduces the measured grain count (90–99 against 92) and size (11–14 µm against 10.1 µm).", 1),
   B("In 10-layer IN625 blocks it develops a <100> fibre along the build direction: 35 % of the volume at 90° rotation and 68 % at 67° with 1 µm cells (random: 10 %).", 1),
@@ -129,10 +132,10 @@ body.push(
 body.push(P("**What limits the results now** is compute. Three things need a GPU:"));
 body.push(
   B("a converged calibration of the flow model (5 µm cells or finer, with a clean interface);"),
-  B("phase-field runs with D/V ≥ 10 W0 at the top of the pool (about 300 CPU-hours);"),
+  B("phase-field runs with D/V ≥ 10 W0 at the top of the pool (about 300 CPU-hours), and 3-D runs with a converged interface width, long enough for a steady spacing;"),
   B("textures on the lattice at ≤ 1 µm cells (about 700 million cells per window)."),
 );
-body.push(P("Several numerical problems were found and fixed along the way (Section 7); every result in this report was produced after the fixes."));
+body.push(P("Several numerical problems were found and fixed along the way (Section 8); every result in this report was produced after the fixes."));
 
 // 2 What was built
 body.push(H1("2. What was built"));
@@ -143,13 +146,16 @@ body.push(...table(["module / script", "purpose", "tests"], [
   ["process/defects.py; benchmarks/literature/porosity_maps.py", "lack-of-fusion criterion and unfused fraction, keyhole number; process maps", "tests/test_defects.py (3)"],
   ["process/phasefield.py", "solute trapping (continuous growth model) as velocity-corrected alloy parameters; adaptive stable time step (1.7× faster)", "tests/test_phasefield.py (11)"],
   ["benchmarks/literature/pf_path_trapping.py", "phase field along the case-B melt-pool path with checkpoint/resume", "—"],
+  ["process/phasefield3d.py", "3-D quantitative phase field of a dilute multicomponent alloy: one supersaturation per solute, cubic anisotropy in any orientation, anti-trapping and trapping per solute, solidified 3-D composition stored, numba and NumPy/CuPy kernels, checkpoints, watershed cell counting", "tests/test_phasefield3d.py (12)"],
+  ["post/eds.py", "synthetic SEM-EDS (X-ray generation volume against beam voltage and line) and STEM-EDS (thin foil, beam broadening) maps with counting noise and overlays", "tests/test_eds.py (6)"],
+  ["benchmarks/literature/pf3d_in625_eds.py", "3-D IN625 cells at the case-B mid-pool point and their EDS maps", "—"],
   ["process/grain_ca.py", "3-D grain cellular automaton: decentred octahedra, KGT tip kinetics, nucleation, epitaxy, persistent state, scan-strategy events with rounded pool ends, optional heat-flow bias", "tests/test_grain_ca.py (6)"],
   ["nist_ambench2018_tracks_ca.py, ca_multilayer.py, cantor_gyroid_ca.py", "CA studies: case-B EBSD comparison, IN625 blocks, CoCrFeMnNi gyroid", "—"],
 ], [3.0, 5.2, 1.8]));
 
 // 3 Free-surface flow
 body.push(H1("3. Melt-pool flow with a free surface"));
-body.push(P("**Why.** The conduction melt-pool model (calibrated on AM-Bench) has no fluid flow, no free surface and no powder. A colleague's high-fidelity LBM video motivated an equivalent capability. A feasibility check of waLBerla and OpenLB showed that neither code ships laser-melting physics, so the solver was written in tpmsfem, following the published method of Lei et al. (2025)."));
+body.push(P("**Why.** The conduction melt-pool model (calibrated on AM-Bench) has no fluid flow, no free surface and no powder. A colleague's high-fidelity LBM video motivated an equivalent capability. A feasibility check of waLBerla and OpenLB showed that neither code ships laser-melting physics, so the solver was written in TPMSsuite, following the published method of Lei et al. (2025)."));
 body.push(H2("3.1 Method"));
 body.push(
   B("**Flow:** D3Q19 lattice, two-relaxation-time collision with Guo forcing; Körner et al. (2005) free surface (gas, interface, liquid, wall cells; mass exchanged through streamed populations; mass conserved to round-off); Carman–Kozeny damping for melting and solidification."),
@@ -228,16 +234,70 @@ body.push(
 );
 body.push(P("**Limits.** V_D = 1 m/s is assumed (0.5–2 m/s are used for Ni–Nb); kinetic undercooling and solute drag are not included; the model is 2-D with a frozen temperature field and a binary alloy."));
 
-// 6 CA
-body.push(H1("6. Grain structure: 3-D cellular automaton"));
-body.push(H2("6.1 Model and verification"));
+// 6 3-D multicomponent phase field and EDS
+body.push(H1("6. Cells in 3-D with Nb, Mo, Cr and Fe, and what EDS would record"));
+body.push(P("**Question.** What do the cells of the case-B melt pool look like in 3-D when all the main alloying elements segregate, and how much of that segregation can an EDS map show? The 2-D, one-solute phase field of Section 5 cannot answer either: 2-D spacings are larger than 3-D ones, and an EDS map shows several elements at the resolution of the instrument."));
+body.push(H2("6.1 Model and alloy data"));
+body.push(
+  B("**Phase field** (process/phasefield3d.py): the model of Section 5 in 3-D with one supersaturation per solute. The interface temperature sees their sum, each weighted by the solute's share of the freezing range. Every solute has its own anti-trapping current and solute trapping (continuous growth model, V_D = 1 m/s). The anisotropy is cubic, with <100> along the build direction."),
+  B("**Verification:** with one solute and a box one cell thick the model reproduces the 2-D model to 1e-15; splitting a solute into two identical halves changes nothing; the numba and NumPy/CuPy kernels agree; every solute is conserved to round-off."),
+);
+body.push(tcap("IN625 of the AM-Bench 2018 feedstock as a dilute four-solute alloy."));
+body.push(...table(["solute", "content [wt%]", "k (equilibrium)", "k at 0.092 m/s", "liquidus slope [K/wt%]", "share of the freezing range"], [
+  ["Nb", "3.75", "0.48", "0.52", "−10.5 (Ni–Nb, as in Section 5)", "90 %"],
+  ["Mo", "8.83", "0.85", "0.86", "−2.9 (Ni–Mo liquidus secant, estimate)", "10 %"],
+  ["Cr", "20.7", "1.02", "1.02", "partitions only", "0"],
+  ["Fe", "0.72", "1.09", "1.08", "partitions only", "0"],
+], [1.0, 1.4, 1.5, 1.5, 3.2, 1.6]));
+body.push(
+  B("**Sources:** composition by ICP from Keller et al. (2017, Table 1); partition coefficients from Gan et al. (2019, Table 4, after Hu et al. 2017). The freezing range is 47 K at equilibrium and 40 K with trapping. One liquid diffusivity, 3e-9 m²/s."),
+  B("**Ni** is the balance of the four solutes; the ~1 wt% of Ti, Al, Co and Si is not modelled. Cr and Fe have k close to 1: their effect on the interface temperature is below 2 % of the freezing range, so they are carried without it."),
+  B("**EDS** (post/eds.py). SEM: the X-ray generation volume reaches the Anderson–Hasler range of each line, widens with depth as depth^1.5 and holds 90 % of the signal within that range. STEM: a 100 nm foil at 200 kV, the average through the foil plus about 5 nm of beam broadening. Both with Poisson counting noise and a continuum background; concentration to counts is linear (no ZAF corrections)."),
+);
+body.push(H2("6.2 Run"));
+body.push(P("The mid-pool point of Section 5, 22.5 µm below the surface (G = 6.6e6 K/m, R = 0.092 m/s): a periodic 1.6 × 1.6 µm box with a 1.2 µm window, grown 5 µm, W0 = 10 nm (200 × 200 × 150 cells; the 2-D spacing at this W0 is within 8 % of the converged value). 60,000 steps took 2.2 h on 4 CPU cores. The 2-D reference uses the same multicomponent model, one cell thick and 2.4 µm wide."));
+body.push(...figure("pf3d_in625_eds_3d.png", "3-D IN625 cells at the case-B mid-pool point: (a) the cell front at the end of the run, coloured by height; (b) Nb on three faces of the solidified block; (c) the Nb-rich columns along the cell edges (iso-surface)."));
+body.push(H2("6.3 Cells and segregation"));
+body.push(tcap("2-D and 3-D, same model; compositions over the material grown after the first third of the run."));
+body.push(...table(["", "2-D", "3-D"], [
+  ["cell spacing, material grown last (0.6–1 µm below the tips)", "0.34 µm", "0.32–0.33 µm"],
+  ["cell spacing, material grown 4 / 5 µm earlier", "", "0.27 / 0.24 µm"],
+  ["Nb: 5 % / median / 95 % [wt%]", "3.15 / 3.37 / 5.95", "2.95 / 3.44 / 5.84"],
+  ["Mo: 5 % / median / 95 % [wt%]", "8.54 / 8.66 / 9.79", "8.42 / 8.67 / 9.77"],
+  ["Cr: 5 % / median / 95 % [wt%]", "20.44 / 20.75 / 20.78", "20.45 / 20.75 / 20.82"],
+  ["Fe: 5 % / median / 95 % [wt%]", "0.68 / 0.73 / 0.73", "0.68 / 0.73 / 0.74"],
+  ["Ni (balance): 5 % / median / 95 % [wt%]", "63.1 / 66.5 / 66.8", "63.3 / 66.4 / 67.1"],
+], [5.2, 2.4, 2.4]));
+body.push(P("The 3-D spacing is sqrt(A/N) on transverse sections, with cells counted by watershed; for hexagonal cells the centre-to-centre distance is 7 % larger. Case-B cells measured by SEM: 0.2–1.0 µm (Ghosh et al. 2018)."));
+body.push(H2("6.4 Synthetic EDS maps"));
+body.push(tcap("Transverse section 0.8 µm below the tips: Nb contrast (5–95 % spread) kept in a noise-free map."));
+body.push(...table(["technique", "Nb, Mo line", "90 % of the signal within", "Nb contrast kept"], [
+  ["SEM, 15 kV", "Lα", "0.68 µm (Ni Kα: 0.45 µm)", "27 %"],
+  ["SEM, 5 kV", "Lα (also Cr, Fe, Ni Lα)", "0.08 µm (Ni Lα: 0.11 µm)", "85 %"],
+  ["STEM, 100 nm foil, 200 kV", "Kα", "0.01 µm", "96 %"],
+], [2.6, 2.6, 3.0, 1.8]));
+body.push(P("Figure 5, at the end of this section, shows the simulated section and the maps each technique would record, with profiles across the cells and longitudinal sections."));
+body.push(H2("6.5 Findings and limits"));
+body.push(
+  B("**In 3-D the cells form a network of hexagon-like columns.** The front is a field of rounded cell caps over narrow, deep liquid grooves. Nb and Mo pile up along the cell walls and most of all along the cell edges, where three cells meet; these triple junctions form Nb-rich columns (up to 7–8 wt% Nb in the solid section). Cr, Fe and Ni are slightly depleted there. Isolated droplets of the last liquid reach 13–21 wt% Nb: the sites where Laves phase or carbides form in the real alloy (not modelled)."),
+  B("**The 3-D spacing was still coarsening when the run ended.** The front first breaks up into fine cells, then cells are eliminated: 0.24 µm in the material grown 5 µm before the end, 0.33 µm in the material grown last. The tips were still drifting ahead of the T0 isotherm (1.2 µm mid-run, 1.4 µm at the end). 0.33 µm is therefore a lower bound for the steady 3-D spacing; it is close to the 2-D value and inside the measured range."),
+  B("**Segregation agrees between 2-D and 3-D.** The 5–95 % ranges of Nb, Mo, Cr and Fe agree within 0.2 wt%; the 3-D cores are about 0.2 wt% leaner in Nb. The cheaper 2-D model gives the segregation statistics; 3-D is needed for the shape of the network (edges against walls, droplets, sections at any angle)."),
+  B("**Only Nb and Mo segregation is measurable by EDS.** Cr and Fe vary by under 2 % of their content, below the counting noise of a map in every technique; Ni depletion at the walls (about 5 %) is visible in STEM."),
+  B("**SEM-EDS at 15 kV cannot resolve these cells.** At 15 kV, 90 % of the Nb and Mo signal comes from a volume 0.7 µm wide, two cells across, and the map keeps about a quarter of the Nb contrast. At 5 kV (L lines for all elements) the volume shrinks below 0.1 µm and 85 % survives; STEM keeps nearly all of it. SEM-EDS at the usual 15–20 kV therefore underestimates intercellular segregation in LPBF alloys several-fold: quantitative comparison needs STEM-EDS, low-kV SEM, or the same blurring applied to the simulation first."),
+  B("**Uncertain inputs.** The SEM numbers depend on the shape assumed for the generation volume: a single Gaussian with the same 90 % diameter would keep under 1 % of the contrast at 15 kV, against 27 % here; a measured line scan would calibrate it. The Mo liquidus slope is an estimate (Mo carries 10 % of the freezing range); one liquid diffusivity is used for all solutes. A steady and converged 3-D spacing needs longer runs below W0 = 10 nm (GPU)."),
+);
+body.push(...figure("pf3d_in625_eds.png", "Simulated composition of a transverse section 0.8 µm below the tips (top row) and the maps an EDS would record with counting noise: SEM at 15 kV and 5 kV, STEM on a 100 nm foil; overlays of Nb (red), Cr (blue) and Ni (green). Bottom: Nb and Mo across the cells, noise-free, and longitudinal sections (simulated, SEM at 15 kV, STEM).", 6.4));
+
+// 7 CA
+body.push(H1("7. Grain structure: 3-D cellular automaton"));
+body.push(H2("7.1 Model and verification"));
 body.push(
   B("**Model** (Gandin & Rappaz 1997, as in ExaCA): each solid cell next to the liquid carries an octahedral envelope aligned with its grain's <100> axes, growing at the KGT dendrite-tip velocity; captured cells receive decentred envelopes, so growth follows the crystal, not the grid. Nucleation is optional; unmelted cells seed the pool (epitaxy)."),
   B("**Thermal input:** the steady thermal history of one track is shifted along every scan vector, with rounded pool ends where the laser switches on or off. Remelting and regrowth across tracks and layers are included; preheating between tracks is not."),
   B("**Heat-flow bias α** (optional): the growth axis turns towards the heat flow; α = 0 is dendritic, α = 1 the cellular limit."),
   B("**Verification:** a tilted grain grows as an octahedron along its own axes (extent ratio 0.870 vs exact 0.866 at 30°, 0.707 vs 0.707 at 45°); directional growth from 120 random grains selects aligned ones (misalignment 32° → 10°); KGT gives 31 K at 0.1 m/s, matching the phase-field tips (28–40 K)."),
 );
-body.push(H2("6.2 Single track against NIST's EBSD section (case B)"));
+body.push(H2("7.2 Single track against NIST's EBSD section (case B)"));
 body.push(tcap("CA regrowth of the case-B pool, 0.5 µm cells, compared pixel by pixel with the measured section."));
 body.push(...table(["CA run", "pixels within 10° of measured", "grains (measured 92)", "area-weighted size (measured 10.1 µm)"], [
   ["measured substrate extended along the scan", "25.4 %", "47", "15.3 µm"],
@@ -250,7 +310,7 @@ body.push(...table(["CA run", "pixels within 10° of measured", "grains (measure
 ], [4.4, 2.0, 1.6, 2.4]));
 body.push(...figure("ca_ambench_caseB.png", "3-D grain CA against NIST's EBSD section of the case-B track: measured and predicted sections (IPF along the build direction), a longitudinal section and a plan view, and the point-wise agreement of all models."));
 body.push(P("**Reading.** With a statistically equivalent substrate the CA reproduces the grain count and size. Point by point it matches the simpler rules (about 25 %), independently of cell size, kinetics and growth mode: the limit is the substrate that NIST measured in one plane only."));
-body.push(H2("6.3 Ten-layer IN625 blocks: texture and grain width"));
+body.push(H2("7.3 Ten-layer IN625 blocks: texture and grain width"));
 body.push(tcap("IN625 blocks at the AM-Bench settings (100 µm hatch, 20 µm layers), layer 10, 480 µm blocks unless stated."));
 body.push(...table(["run", "<100> within 15° of BD", "grain width", "grains"], [
   ["**90°, 1 µm cells**", "**35 %**", "56 µm", "237"],
@@ -268,7 +328,7 @@ body.push(
   B("**It also needs a large block:** 240 µm blocks give only 19–21 %, most likely because many of their few remaining grains touch the side walls."),
   B("**Grain width** grows from 15 µm to 55–60 µm in ten layers wherever the fibre is weak; with the strong 67° fibre the grains reach 72 µm."),
 );
-body.push(H2("6.4 CoCrFeMnNi gyroid over 20 layers"));
+body.push(H2("7.4 CoCrFeMnNi gyroid over 20 layers"));
 body.push(P("The CA builds 20 layers (0.7–1.3 mm build height) of the graded gyroid in two 1 × 1 mm windows, thin walls and thick walls, at the study's settings (200 W, 0.75 m/s, 30 µm layers, 85 µm hatch, contour plus hatch, no rotation). The cells are 2.5 µm (43 million per window)."));
 body.push(tcap("Gyroid windows: area-weighted grain width and <100> fraction along BD."));
 body.push(...table(["", "layer 1", "layer 5", "layer 10", "layer 20"], [
@@ -286,8 +346,8 @@ body.push(
   B("**The textures are lower bounds:** at 2.5 µm cells the fibre stays weak (up to 19 % in thin walls, random in thick ones), and the IN625 blocks show that coarse cells blunt it. Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs 1 µm cells on the lattice."),
 );
 
-// 7 Problems fixed
-body.push(H1("7. Problems found and fixed"));
+// 8 Problems fixed
+body.push(H1("8. Problems found and fixed"));
 body.push(P("All results in this report were produced after these fixes; affected runs were repeated."));
 body.push(
   N("**Free surface:** walls seen as gas in the curvature (fixed with mirror walls); half the surface area in the surface forces (fixed with gas-face areas); energy created at the moving surface (fixed by carrying enthalpy with the mass); powder runs blowing up (solid–solid mass exchange, laser absorption, recoil cap and speed limiter)."),
@@ -301,28 +361,33 @@ body.push(
   B("square pool ends left 10 % of thin gyroid walls unmelted; rounding every segment end then remelted cells along contours (now rounded only where the laser switches on or off);", 1),
   B("diagonal tracks ran out of memory at 1 µm cells (candidates now built in chunks; events identical).", 1),
 );
+body.push(N("**3-D phase field, cell counting:** a global (Otsu) threshold merged all cell cores into one when the walls are weak next to strongly enriched triple junctions, reporting one cell per section; cells are now counted by a periodic watershed from the composition minima (new test with weak walls)."));
+body.push(N("**EDS, SEM generation volume:** the first model (one Gaussian of the generation range) kept under 1 % of the Nb contrast at 15 kV. It was replaced by a depth-resolved volume, cusped as Monte Carlo volumes are and calibrated on the same 90 % diameter; the sensitivity is reported in Section 6.5."));
 body.push(N("**Withdrawn claims:** an explanation of the CA's point-wise agreement (too-strong selection) that a later test disproved, and an unsupported statement about the rotation dependence of published textures."));
 
-// 8 Next steps
-body.push(H1("8. Limits and next steps"));
+// 9 Next steps
+body.push(H1("9. Limits and next steps"));
 body.push(tcap("Open items, in order of value."));
 body.push(...table(["item", "needs", "what it would settle"], [
   ["calibrate the flow model on AM-Bench cases A–C", "GPU; ≤ 5 µm cells with a clean interface", "independent absorptivity; Marangoni model; pool shape over powder"],
   ["CA textures at ≤ 1 µm (0.5 µm check) and with periodic side walls", "GPU; periodic boundaries (code change)", "a converged <100> fibre; the lattice texture against reported LPBF CoCrFeMnNi"],
   ["calibrate the heat-flow bias α", "measured grain widths or textures of the lattice", "growth mode for many-layer predictions"],
-  ["phase field with D/V ≥ 10 W0 at the top of the pool; 3-D", "GPU (~300 CPU-hours otherwise)", "final spacing and segregation near the surface"],
+  ["phase field with D/V ≥ 10 W0 at the top of the pool; 3-D runs at converged W0 and long enough for a steady spacing", "GPU (~300 CPU-hours otherwise)", "final spacing and segregation near the surface; the steady 3-D spacing"],
+  ["calibrate the SEM generation volume", "a measured EDS line scan across a known feature", "absolute SEM-EDS contrast (Section 6.4)"],
+  ["Mo (and minor-element) liquidus slopes from CALPHAD", "a thermodynamic database", "the Mo share of the freezing range"],
   ["preheating and part-scale heat in the CA thermal input", "couple the part-scale thermal model", "grain growth in hot, thin walls"],
-  ["measured textures / EBSD of the gyroid builds", "experiment", "validation of §6.4"],
+  ["measured textures / EBSD of the gyroid builds", "experiment", "validation of §7.4"],
 ], [3.6, 3.0, 3.4]));
 body.push(P("**Compute note.** This cloud machine is reclaimed when the session is idle, which interrupted long runs three times. Checkpointing and a restart script now make that cost at most one step, but multi-hour runs belong on a dedicated machine or GPU."));
 
 // Appendix
 body.push(H1("Appendix A. Reproducing the results"));
 const cmds = [
-  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_grain_ca.py",
+  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_phasefield3d.py tests/test_eds.py tests/test_grain_ca.py",
   "python tools/lbm/freesurface_caseB.py marangoni 10",
   "python benchmarks/literature/porosity_maps.py run IN625 30 ; python benchmarks/literature/porosity_maps.py figure",
   "python benchmarks/literature/pf_path_trapping.py run <tag> ... ; ... report ; ... figure",
+  "python benchmarks/literature/pf3d_in625_eds.py run 2d_W10 ; ... run 3d_W10 ; ... summarise 3d_W10 ; ... figure",
   "python benchmarks/literature/nist_ambench2018_tracks_ca.py section ; ... run ; ... figure",
   "python benchmarks/literature/ca_multilayer.py run 90 480 1 ; ... run 67 480 1 ; ... figure",
   "python benchmarks/literature/cantor_gyroid_ca.py section ; ... run thin ; ... run thick ; ... run thin_a1 ; ... figure",
@@ -332,9 +397,9 @@ body.push(P("Results are stored as JSON and NPZ files in benchmarks/literature/r
 
 // ---------- document ----------
 const doc = new Document({
-  creator: "tpmsfem",
-  title: "tpmsfem process and microstructure results",
-  description: "Melt-pool flow, porosity, solute trapping and 3-D grain structure",
+  creator: "TPMSsuite",
+  title: "TPMSsuite process and microstructure results",
+  description: "Melt-pool flow, porosity, solute trapping, 3-D multicomponent cells with synthetic EDS maps, 3-D grain structure",
   styles: {
     default: { document: { run: { font: FONT, size: 20, color: INK } } },
     paragraphStyles: [
@@ -364,7 +429,7 @@ const doc = new Document({
   sections: [{
     properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
     headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
-      new TextRun({ text: "tpmsfem: process and microstructure results, November 2026", font: FONT, size: 16, color: MUTED })] })] }) },
+      new TextRun({ text: "TPMSsuite: process and microstructure results, November 2026", font: FONT, size: 16, color: MUTED })] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
       new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: MUTED })] })] }) },
     children: body,
