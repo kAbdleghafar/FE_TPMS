@@ -737,9 +737,10 @@ contrast (5–95 % spread) kept in a noise-free map:
   * Where the 2-D model is cheaper, it gives the right segregation statistics. 3-D is needed
     for the shape of the network: edges against walls, droplets, sections at any angle.
 * **Only Nb and Mo segregation is measurable by EDS; Cr and Fe are not.**
-  * Cr and Fe vary by under 2 % of their content, below the counting noise of a map in every
-    technique. Their segregation can only be quantified from line scans or point analyses with
-    long counting times.
+  * In the section, Cr varies by 2 % of its content and Fe by 9 % of its 0.7 wt%. Both stay
+    below the counting noise of a map in every technique: Cr because the variation is small,
+    Fe because its signal is only about 11 counts per pixel here. Their segregation can only be
+    quantified from line scans or point analyses with long counting times.
   * Ni depletion at the walls (about 5 %) is visible in STEM.
 * **SEM-EDS at 15 kV cannot resolve these cells.**
   * At 15 kV, 90 % of the Nb and Mo signal comes from a 0.7 µm wide volume, two cells across.
