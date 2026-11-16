@@ -380,6 +380,7 @@ class SolidModel:
     def internal_force(self, u):
         """Assemble f_int(u) and update the trial material state."""
         xp = self.xp
+        u = xp.asarray(u)                  # accept host (NumPy) input on the GPU backend
         f = xp.zeros(self.ndof, dtype=self.dtype)
         fabs = xp.zeros(self.ndof, dtype=self.dtype)
         for sl in self._chunks():
@@ -426,6 +427,7 @@ class SolidModel:
         than evaluating the consistent tangent everywhere.
         """
         xp = self.xp
+        v = xp.asarray(v)                  # accept host (NumPy) input on the GPU backend
         f = xp.zeros(self.ndof, dtype=self.dtype)
         for sl in self._chunks():
             ve = v[self.dofs[sl]]

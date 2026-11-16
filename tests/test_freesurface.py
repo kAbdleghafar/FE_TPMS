@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 import tpmsfem as tf
+from tpmsfem.backend import asnumpy, on_gpu, to_device
 from tpmsfem.fem.materials import ThermalProperties
 from tpmsfem.process import Laser, MeltPoolModel, ScanVector
 from tpmsfem.process.freesurface import GAS, INTERFACE, LIQUID, WALL, FreeSurfaceLBM, FreeSurfaceMeltPool
@@ -29,10 +30,10 @@ def test_laplace_pressure_and_mass():
     for _ in range(300):
         s.step()
     R = (3.0 * s.total_mass() / (4.0 * np.pi)) ** (1.0 / 3.0)
-    core = float(np.asarray(s.rho)[10:14, 10:14, 10:14].mean())
+    core = float(asnumpy(s.rho)[10:14, 10:14, 10:14].mean())
     assert core - 1.0 == pytest.approx(2.0 * sigma / R * 3.0, rel=0.08)       # Laplace: dp = 2 sigma / R
     assert abs(s.total_mass() - m0) / m0 < 1e-12
-    assert float(np.sqrt((np.asarray(s.u) ** 2).sum(axis=0)).max()) < 1e-3   # spurious currents
+    assert float(np.sqrt((asnumpy(s.u) ** 2).sum(axis=0)).max()) < 1e-3   # spurious currents
 
 
 def test_falling_column_conserves_mass_and_moves_the_interface():
@@ -48,7 +49,7 @@ def test_falling_column_conserves_mass_and_moves_the_interface():
     for _ in range(400):
         s.step()
     assert abs(s.total_mass() - m0) / m0 < 1e-12
-    f = np.asarray(s.fill)
+    f = asnumpy(s.fill)
     assert f[:, 8:11, 1:4].sum() > 1.0                 # liquid has spread along the floor
 
 
@@ -88,11 +89,11 @@ def test_surface_shear_gives_couette_profile():
     s = FreeSurfaceLBM(flag, fill, tau=0.8)
     F = np.zeros((3,) + n)
     F[0][:, :, 9] = 1e-6
-    s.force = F
+    s.force = to_device(F)
     nu = 0.1
     for _ in range(int(6 * 9 * 9 / nu)):
         s.step()
-    u = np.asarray(s.u[0])[0, 0, 1:10]
+    u = asnumpy(s.u[0])[0, 0, 1:10]
     z = np.arange(9) + 0.5
     np.testing.assert_allclose(u[:-1], 1e-6 * z[:-1] / nu, rtol=0.01)
 
@@ -107,7 +108,7 @@ def test_marangoni_force_and_quiescent_plate():
     x = (np.arange(20) + 0.5) * h
     md.T = md.xp.asarray(np.broadcast_to((1400.0 + 1e6 * x)[:, None, None], md.shape).copy())
     md._surface_terms()
-    Fx = np.asarray(md.lbm.force[0]) / (md.dt ** 2 / (md.rho0 * h))          # N/m^3
+    Fx = asnumpy(md.lbm.force[0]) / (md.dt ** 2 / (md.rho0 * h))          # N/m^3
     col = Fx[10, 3, :]
     assert col[6] == pytest.approx(-1e-4 * 1e6 / h, rel=1e-6)             # surface cell: tau / dx
     assert np.all(col[:6] == 0.0)
@@ -118,7 +119,7 @@ def test_marangoni_force_and_quiescent_plate():
         md2._surface_terms()
         md2._couple()
         md2.lbm.step()
-    assert float(np.abs(np.asarray(md2.lbm.u)).max()) < 1e-12
+    assert float(np.abs(asnumpy(md2.lbm.u)).max()) < 1e-12
     assert abs(md2.lbm.total_mass() - m0) / m0 < 1e-12
 
 
@@ -157,6 +158,8 @@ def test_numba_kernel_matches_array_version():
 
     if not K.available():
         pytest.skip("numba not installed")
+    if on_gpu():
+        pytest.skip("the numba kernel runs on the NumPy backend only")
     flag, fill = _droplet(n=20, r=5.0)
     out = {}
     for kern in ("array", "numba"):

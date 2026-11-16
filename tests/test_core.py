@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import tpmsfem as tf
+from tpmsfem.backend import asnumpy, to_device
 from tpmsfem.geometry import TPMS, box, lattice_cube, sphere
 from tpmsfem.mesh import voxelize
 
@@ -63,9 +64,9 @@ def test_solvers_agree_and_operator_symmetric():
     rng = np.random.default_rng(1)
     v = rng.standard_normal(md.ndof)
     K = md.assemble()
-    assert np.allclose(md.tangent(v), K @ v, rtol=1e-10, atol=1e-8)
-    assert abs((K - K.T)).max() < 1e-8 * abs(K).max()
-    assert np.allclose(md.diagonal(), K.diagonal())
+    assert np.allclose(asnumpy(md.tangent(v)), asnumpy(K @ to_device(v)), rtol=1e-10, atol=1e-8)
+    assert float(abs((K - K.T)).max()) < 1e-8 * float(abs(K).max())
+    assert np.allclose(asnumpy(md.diagonal()), asnumpy(K.diagonal()))
 
 
 def test_non_voxel_path_matches_voxel_path():
@@ -221,11 +222,13 @@ def test_mixed_plastic_tangent_matches_integration_point_kernel():
             break
     assert 0.05 < frac < 0.95
     v = rng.standard_normal(md.ndof)
-    fast = md.tangent(v)
-    ref = np.zeros(md.ndof)
+    fast = asnumpy(md.tangent(v))                          # host input: tangent moves it to the backend
+    vd = to_device(v)
+    ref = md.xp.zeros(md.ndof)
     from tpmsfem.backend import scatter_add
     for sl in md._chunks():                                # reference: integration-point kernel everywhere
-        ref += scatter_add(md.ndof, md.dofs[sl], md._elem_tangent(v[md.dofs[sl]], sl))
+        ref += scatter_add(md.ndof, md.dofs[sl], md._elem_tangent(vd[md.dofs[sl]], sl))
+    ref = asnumpy(ref)
     assert np.allclose(fast, ref, rtol=1e-10, atol=1e-8 * np.abs(ref).max())
 
 
