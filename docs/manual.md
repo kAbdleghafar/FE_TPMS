@@ -734,8 +734,15 @@ img = stem.overlay(["Nb", "Cr", "Ni"])                      # RGB image, e.g. fo
   diffusivity is used for all solutes.
 * **Cost.** A 3-D run costs about the 2-D cost times the number of cells across y. A 1.6 × 1.6 µm
   block grown 5 µm at W0 = 10 nm takes about 2.5 h on 4 cores. Converged interface widths need
-  a GPU (CuPy backend, `kernel="array"`). The study is in
-  [process_models.md](process_models.md) §5.6.
+  a GPU. The study is in [process_models.md](process_models.md) §5.6.
+* **GPU.** On the CuPy backend the default is `kernel="cuda"`: the numba kernel's three passes as
+  fused CUDA kernels, matching the array kernel to round-off. On an RTX 4070 SUPER, a 2 µm cube
+  (15.6 M cells) runs 3.6× faster than numba on 20 CPU cores in float64, and 46× faster with
+  `dtype=np.float32`. (Consumer GeForce cards run float64 at 1/64 of the float32 rate.)
+  float32 gives the same morphology, but solute conservation drifts by about 1e-4 per 2 × 10⁴
+  steps, against 1e-13 in float64. Use float32 for morphology and screening runs, and float64
+  for quantitative segregation and EDS maps. `kernel="array"` is the unfused reference
+  implementation.
 
 ---
 

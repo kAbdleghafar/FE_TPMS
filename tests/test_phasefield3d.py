@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+from tpmsfem.backend import on_gpu
 from tpmsfem.process import phasefield as PF
 from tpmsfem.process import phasefield3d as P3
 
@@ -9,7 +10,9 @@ MODEL = PF.DiluteAlloy(c_inf=1.0, k=0.3, freezing_range=10.0, D=1e-9, gibbs_thom
 W0 = 2.5 * MODEL.d0
 V = MODEL.D / (10 * W0)                 # D/V = 10 W0
 G = MODEL.freezing_range / (300 * W0)   # l_T = 300 W0
-KERNELS = ["array"] + (["numba"] if PF.numba_available() else [])
+NUMBA = PF.numba_available() and not on_gpu()   # the numba kernel runs on the NumPy backend only
+KERNELS = ["array"] + (["numba"] if NUMBA else [])        # shared with the 2-D model
+KERNELS3D = KERNELS + (["cuda"] if on_gpu() else [])        # fused CUDA kernel: 3-D model, CuPy backend
 
 
 @pytest.mark.parametrize("kernel", KERNELS)
@@ -25,7 +28,7 @@ def test_one_solute_one_cell_thick_is_the_2d_model(kernel):
     assert np.abs(m3.U[0, :, 0] - m2.U).max() < 1e-12
 
 
-@pytest.mark.parametrize("kernel", KERNELS)
+@pytest.mark.parametrize("kernel", KERNELS3D)
 def test_two_identical_half_solutes_equal_one(kernel):
     a1 = P3.MultiAlloy.from_dilute(MODEL)
     s = a1.solutes[0]
@@ -48,8 +51,8 @@ def _in625_model(kernel, seed=5):
 
 
 def test_numba_kernel_matches_array_kernel():
-    if not PF.numba_available():
-        pytest.skip("numba not installed")
+    if not NUMBA:
+        pytest.skip("numba not installed, or not on the NumPy backend")
     a, n = _in625_model("array"), _in625_model("numba")
     for _ in range(100):
         a.step()
@@ -57,7 +60,36 @@ def test_numba_kernel_matches_array_kernel():
     assert np.abs(a.phi - n.phi).max() < 1e-12 and np.abs(a.U - n.U).max() < 1e-12
 
 
-@pytest.mark.parametrize("kernel", KERNELS)
+@pytest.mark.parametrize("ny", [None, 1])
+def test_cuda_kernel_matches_array_kernel(ny):
+    """The fused CUDA kernel gives the array version's result (to round-off), in 3-D and for one cell
+    across y; in float32 it stays within float32 round-off of the float64 result."""
+    if not on_gpu():
+        pytest.skip("the cuda kernel runs on the CuPy backend only")
+    kw = dict(seed=5, noise=0.3, orientation=P3.rotation_matrix((15.0, 25.0, 40.0)), ny=ny)
+    size = ((13 * 8e-9, 7 * 8e-9), 40 * 8e-9)                   # odd sizes: periodic wrap on both axes
+    a = P3.DirectionalPF3D(P3.IN625_AMBENCH, 6.6e6, 0.092, *size, W0_m=10e-9, kernel="array", **kw)
+    c = P3.DirectionalPF3D(P3.IN625_AMBENCH, 6.6e6, 0.092, *size, W0_m=10e-9, kernel="cuda", **kw)
+    f = P3.DirectionalPF3D(P3.IN625_AMBENCH, 6.6e6, 0.092, *size, W0_m=10e-9, kernel="cuda", dtype=np.float32, **kw)
+    for _ in range(100):
+        a.step()
+        c.step()
+        f.step()
+    assert float(np.abs(a.phi - c.phi).max()) < 1e-12 and float(np.abs(a.U - c.U).max()) < 1e-12
+    assert float(np.abs(a.phi - f.phi.astype(np.float64)).max()) < 1e-5
+
+
+def test_kernel_backend_checks():
+    m = P3.DirectionalPF3D(P3.MultiAlloy.from_dilute(MODEL), G, V, (8 * 0.8 * W0, 8 * 0.8 * W0), 10 * W0)
+    assert m.kernel == ("cuda" if on_gpu() else ("numba" if PF.numba_available() else "array"))
+    with pytest.raises(ValueError):
+        P3.DirectionalPF3D(P3.MultiAlloy.from_dilute(MODEL), G, V, (8 * 0.8 * W0, 8 * 0.8 * W0), 10 * W0,
+                           kernel="numba" if on_gpu() else "cuda")
+    with pytest.raises(ValueError):
+        P3.DirectionalPF3D(P3.MultiAlloy.from_dilute(MODEL), G, V, (8 * 0.8 * W0, 8 * 0.8 * W0), 10 * W0, kernel="fast")
+
+
+@pytest.mark.parametrize("kernel", KERNELS3D)
 def test_every_solute_conserved_in_closed_box(kernel):
     m = _in625_model(kernel)
     s0 = m.solute()
@@ -85,7 +117,7 @@ def test_rotation_matrix_is_orthonormal_and_identity_at_zero():
 
 
 def test_checkpoint_round_trip(tmp_path):
-    m = _in625_model("numba" if PF.numba_available() else "array")
+    m = _in625_model("auto")
     m.run(30 * m.dt * m.tau0, record_every=10)
     m._shift(4)                                      # store some solidified rows as well
     p = str(tmp_path / "ck.npz")

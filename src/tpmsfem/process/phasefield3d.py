@@ -38,7 +38,9 @@ Numerics: explicit finite differences, ``dx = 0.8 W0``, conservative face fluxes
 conserved to round-off), periodic in x and y, no flux in z, a window that moves up by a quarter of
 its height when the front passes 60 % of it; the composition of the rows leaving the window is
 stored (wt%, float32) as the solidified 3-D microstructure. Kernels: fused numba kernel
-(CPU, threaded over z) or NumPy/CuPy arrays (GPU). With ``ny = 1`` and one solute the model is
+(CPU, threaded over z), the same three passes as fused CUDA kernels (GPU, ``kernel="cuda"``,
+the default on the CuPy backend), or plain NumPy/CuPy arrays (``kernel="array"``, the
+reference implementation). With ``ny = 1`` and one solute the model is
 the 2-D model of :mod:`tpmsfem.process.phasefield` (checked in the tests).
 
 Validity: as for the 2-D model, ``W0`` must be well below ``D/V``; check convergence in ``W0``.
@@ -255,9 +257,13 @@ class DirectionalPF3D:
                  kernel: str = "auto", ny: Optional[int] = None):
         self.xp = xp = get_xp()
         if kernel == "auto":
-            kernel = "numba" if (xp is np and numba_available()) else "array"
+            kernel = ("numba" if numba_available() else "array") if xp is np else "cuda"
         if kernel == "numba" and xp is not np:
             raise ValueError("the numba kernel runs on the NumPy backend only")
+        if kernel == "cuda" and xp is np:
+            raise ValueError("the cuda kernel runs on the CuPy backend only")
+        if kernel not in ("numba", "cuda", "array"):
+            raise ValueError(f"unknown kernel {kernel!r}; use 'auto', 'numba', 'cuda' or 'array'")
         self.kernel = kernel
         self.alloy, self.G, self.V = alloy, float(G), float(V)
         d0 = alloy.d0
@@ -326,6 +332,8 @@ class DirectionalPF3D:
                             self.alloy.eps4, self.Rm, self.ks, self.ws)
             self._work = [R, self.phi, FX, FY, FZ, NX, NY, NZ, self.U]
             self.phi, self.U = phin, Un
+        elif self.kernel == "cuda":
+            self._step_cuda()
         else:
             self._step_array()
         self.t += self.dt
@@ -425,6 +433,36 @@ class DirectionalPF3D:
             JZ[-1] = 0.0
             divJ = (JX - Wst(JX) + JY - S(JY) + JZ - Bz(JZ)) / dx
             Un[s] = U + dt * (divJ + 0.5 * F * R) / ((1.0 + k - (1.0 - k) * phin) / 2.0)
+        self.phi, self.U = phin, Un
+
+    def _step_cuda(self):
+        """The numba kernel's three passes as fused CUDA kernels (one thread per cell)."""
+        import cupy as cp
+
+        phi, U = self.phi, self.U
+        dt_ = phi.dtype
+        real = dt_.type
+        if self._work is None or self._work[0].shape != phi.shape or self._work[0].dtype != dt_:
+            self._work = [cp.empty_like(phi) for _ in range(8)] + [cp.empty_like(U)]
+            self._cuda_consts = (cp.asarray(self.Rm, dtype=dt_), cp.asarray(self.ks, dtype=dt_),
+                                 cp.asarray(self.ws, dtype=dt_), cp.asarray(self._zc, dtype=dt_))
+        R, phin, FX, FY, FZ, NX, NY, NZ, Un = self._work
+        Rm, ks, ws, zc = self._cuda_consts
+        phi = cp.ascontiguousarray(phi)
+        U = cp.ascontiguousarray(U)
+        k1, k2, k3 = _cuda_kernels(dt_)
+        nz, ny, nx = phi.shape
+        n = nz * ny * nx
+        block = 256
+        grid = ((n + block - 1) // block,)
+        ni = (np.int32(nz), np.int32(ny), np.int32(nx))
+        k1(grid, (block,), (phi, FX, FY, FZ, NX, NY, NZ, Rm, real(self.alloy.eps4), real(self.dx)) + ni)
+        k2(grid, (block,), (phi, U, FX, FY, FZ, R, Rm, ws, zc, real(self.alloy.eps4), real(self.dx),
+                            real(self.offset), real(self.z0), real(self.Vt), real(self.t), real(self.lT),
+                            real(self.kbar), real(self.lam), np.int32(len(self.ks))) + ni)
+        k3(grid, (block,), (phi, U, R, NX, NY, NZ, phin, Un, ks, real(self.Dt), real(A_AT), real(self.dx),
+                            real(self.dt), np.int32(len(self.ks))) + ni)
+        self._work = [R, phi, FX, FY, FZ, NX, NY, NZ, U]
         self.phi, self.U = phin, Un
 
     # ------------------------------------------------------------------
@@ -651,3 +689,167 @@ def _numba_kernel():
 
     _KERNELS["step"] = step
     return step
+
+
+# The numba kernel's three passes, one CUDA thread per cell, same arithmetic in the same
+# order (so fp64 results match the array and numba kernels to round-off). ``real`` is
+# double or float; everything, scalars included, is computed in it.
+_CUDA_SRC = r"""
+typedef REAL real;
+
+#define IDX(i, j, l) ((((long long)(i)) * ny + (j)) * nx + (l))
+#define DECODE                                                            \
+    long long c = (long long)blockIdx.x * blockDim.x + threadIdx.x;      \
+    long long n = (long long)nz * ny * nx;                                 \
+    if (c >= n) return;                                                     \
+    const int l = (int)(c % nx);                                            \
+    const long long r_ = c / nx;                                            \
+    const int j = (int)(r_ % ny);                                           \
+    const int i = (int)(r_ / ny);                                           \
+    const int ip = i + 1 < nz ? i + 1 : nz - 1;                             \
+    const int im = i > 0 ? i - 1 : 0;                                       \
+    const int jp = j + 1 < ny ? j + 1 : 0;                                  \
+    const int jm = j > 0 ? j - 1 : ny - 1;                                  \
+    const int lp = l + 1 < nx ? l + 1 : 0;                                  \
+    const int lm = l > 0 ? l - 1 : nx - 1;
+
+__device__ __forceinline__ void flux(real px, real py, real pz, real eps, const real* Rm,
+                                     real& ox, real& oy, real& oz, real& g, real& a)
+{
+    real qx = Rm[0] * px + Rm[1] * py + Rm[2] * pz;
+    real qy = Rm[3] * px + Rm[4] * py + Rm[5] * pz;
+    real qz = Rm[6] * px + Rm[7] * py + Rm[8] * pz;
+    real s2 = qx * qx + qy * qy + qz * qz;
+    real S4 = qx * qx * qx * qx + qy * qy * qy * qy + qz * qz * qz * qz;
+    real inv = (real)1.0 / (s2 * s2 + (real)1e-24);
+    a = (real)1.0 + eps * ((real)4.0 * S4 - (real)3.0 * s2 * s2) * inv;
+    real b = (real)16.0 * eps * a * inv;
+    real fx = a * a * qx + b * (qx * qx * qx * s2 - S4 * qx);
+    real fy = a * a * qy + b * (qy * qy * qy * s2 - S4 * qy);
+    real fz = a * a * qz + b * (qz * qz * qz * s2 - S4 * qz);
+    ox = Rm[0] * fx + Rm[3] * fy + Rm[6] * fz;
+    oy = Rm[1] * fx + Rm[4] * fy + Rm[7] * fz;
+    oz = Rm[2] * fx + Rm[5] * fy + Rm[8] * fz;
+    g = px * px + py * py + pz * pz;
+}
+
+// pass 1: phi fluxes and unit-normal components on the east, north and top faces
+extern "C" __global__ void pf3_faces(const real* __restrict__ phi, real* FX, real* FY, real* FZ,
+                                     real* NX, real* NY, real* NZ, const real* __restrict__ Rm,
+                                     const real eps, const real dx, const int nz, const int ny, const int nx)
+{
+    DECODE
+    const real q = (real)1.0 / ((real)4.0 * dx);
+    real fx, fy, fz, g, a, px, py, pz;
+    const real pc = phi[c];
+    px = (phi[IDX(i, j, lp)] - pc) / dx;
+    py = (phi[IDX(i, jp, l)] + phi[IDX(i, jp, lp)] - phi[IDX(i, jm, l)] - phi[IDX(i, jm, lp)]) * q;
+    pz = (phi[IDX(ip, j, l)] + phi[IDX(ip, j, lp)] - phi[IDX(im, j, l)] - phi[IDX(im, j, lp)]) * q;
+    flux(px, py, pz, eps, Rm, fx, fy, fz, g, a);
+    FX[c] = fx;
+    NX[c] = px / sqrt(g + (real)1e-24);
+    py = (phi[IDX(i, jp, l)] - pc) / dx;
+    px = (phi[IDX(i, j, lp)] + phi[IDX(i, jp, lp)] - phi[IDX(i, j, lm)] - phi[IDX(i, jp, lm)]) * q;
+    pz = (phi[IDX(ip, j, l)] + phi[IDX(ip, jp, l)] - phi[IDX(im, j, l)] - phi[IDX(im, jp, l)]) * q;
+    flux(px, py, pz, eps, Rm, fx, fy, fz, g, a);
+    FY[c] = fy;
+    NY[c] = py / sqrt(g + (real)1e-24);
+    if (i < nz - 1) {
+        pz = (phi[IDX(i + 1, j, l)] - pc) / dx;
+        px = (phi[IDX(i, j, lp)] + phi[IDX(i + 1, j, lp)] - phi[IDX(i, j, lm)] - phi[IDX(i + 1, j, lm)]) * q;
+        py = (phi[IDX(i, jp, l)] + phi[IDX(i + 1, jp, l)] - phi[IDX(i, jm, l)] - phi[IDX(i + 1, jm, l)]) * q;
+        flux(px, py, pz, eps, Rm, fx, fy, fz, g, a);
+        FZ[c] = fz;
+        NZ[c] = pz / sqrt(g + (real)1e-24);
+    } else {
+        FZ[c] = (real)0.0;
+        NZ[c] = (real)0.0;
+    }
+}
+
+// pass 2: d_t phi
+extern "C" __global__ void pf3_rate(const real* __restrict__ phi, const real* __restrict__ U,
+                                    const real* __restrict__ FX, const real* __restrict__ FY,
+                                    const real* __restrict__ FZ, real* R, const real* __restrict__ Rm,
+                                    const real* __restrict__ ws, const real* __restrict__ zc,
+                                    const real eps, const real dx, const real offset, const real z0,
+                                    const real Vt, const real t, const real lT, const real kbar, const real lam,
+                                    const int ns, const int nz, const int ny, const int nx)
+{
+    DECODE
+    const real theta = (zc[i] + offset - z0 - Vt * t) / lT;
+    real tf = (real)1.0 - ((real)1.0 - kbar) * theta;
+    tf = tf > kbar ? tf : kbar;
+    const real fb = i > 0 ? FZ[IDX(i - 1, j, l)] : (real)0.0;
+    const real div = (FX[c] - FX[IDX(i, j, lm)] + FY[c] - FY[IDX(i, jm, l)] + FZ[c] - fb) / dx;
+    real fx, fy, fz, g, a;
+    flux((phi[IDX(i, j, lp)] - phi[IDX(i, j, lm)]) / ((real)2.0 * dx),
+         (phi[IDX(i, jp, l)] - phi[IDX(i, jm, l)]) / ((real)2.0 * dx),
+         (phi[IDX(ip, j, l)] - phi[IDX(im, j, l)]) / ((real)2.0 * dx), eps, Rm, fx, fy, fz, g, a);
+    real us = (real)0.0;
+    for (int s = 0; s < ns; ++s) us += ws[s] * U[s * n + c];
+    const real p = phi[c];
+    const real g2 = ((real)1.0 - p * p) * ((real)1.0 - p * p);
+    R[c] = (div + p - p * p * p - lam * g2 * (us + theta)) / (a * a * tf);
+}
+
+// pass 3: phi and solute updates
+extern "C" __global__ void pf3_update(const real* __restrict__ phi, const real* __restrict__ U,
+                                      const real* __restrict__ R, const real* __restrict__ NX,
+                                      const real* __restrict__ NY, const real* __restrict__ NZ,
+                                      real* phin, real* Un, const real* __restrict__ ks,
+                                      const real Dt, const real at, const real dx, const real dt,
+                                      const int ns, const int nz, const int ny, const int nx)
+{
+    DECODE
+    const real pc = phi[c];
+    const real rc = R[c];
+    const real pn = pc + dt * rc;
+    phin[c] = pn;
+    const long long ce = IDX(i, j, lp), cw = IDX(i, j, lm), cn = IDX(i, jp, l), cs = IDX(i, jm, l);
+    const long long ct = IDX(ip, j, l), cb = IDX(i > 0 ? i - 1 : 0, j, l);
+    const real q = (real)0.25;
+    for (int s = 0; s < ns; ++s) {
+        const real k = ks[s];
+        const real* Us = U + s * n;
+        const real uc = Us[c];
+        const real Fc = (real)1.0 + ((real)1.0 - k) * uc;
+        const real je = (Dt * q * ((real)2.0 - pc - phi[ce]) * (Us[ce] - uc) / dx
+                         + at * q * (Fc + (real)1.0 + ((real)1.0 - k) * Us[ce]) * (rc + R[ce]) * NX[c]);
+        const real jw = (Dt * q * ((real)2.0 - phi[cw] - pc) * (uc - Us[cw]) / dx
+                         + at * q * ((real)1.0 + ((real)1.0 - k) * Us[cw] + Fc) * (R[cw] + rc) * NX[cw]);
+        const real jn = (Dt * q * ((real)2.0 - pc - phi[cn]) * (Us[cn] - uc) / dx
+                         + at * q * (Fc + (real)1.0 + ((real)1.0 - k) * Us[cn]) * (rc + R[cn]) * NY[c]);
+        const real js = (Dt * q * ((real)2.0 - phi[cs] - pc) * (uc - Us[cs]) / dx
+                         + at * q * ((real)1.0 + ((real)1.0 - k) * Us[cs] + Fc) * (R[cs] + rc) * NY[cs]);
+        real jt = (real)0.0;
+        if (i < nz - 1)
+            jt = (Dt * q * ((real)2.0 - pc - phi[ct]) * (Us[ct] - uc) / dx
+                  + at * q * (Fc + (real)1.0 + ((real)1.0 - k) * Us[ct]) * (rc + R[ct]) * NZ[c]);
+        real jb = (real)0.0;
+        if (i > 0)
+            jb = (Dt * q * ((real)2.0 - phi[cb] - pc) * (uc - Us[cb]) / dx
+                  + at * q * ((real)1.0 + ((real)1.0 - k) * Us[cb] + Fc) * (R[cb] + rc) * NZ[cb]);
+        Un[s * n + c] = uc + dt * ((je - jw + jn - js + jt - jb) / dx + (real)0.5 * Fc * rc)
+                        / (((real)1.0 + k - ((real)1.0 - k) * pn) / (real)2.0);
+    }
+}
+"""
+
+
+def _cuda_kernels(dtype):
+    """Compiled (faces, rate, update) kernels for float64 or float32 fields (cached)."""
+    dtype = np.dtype(dtype)
+    key = ("cuda", dtype.str)
+    if key not in _KERNELS:
+        import cupy as cp
+
+        if dtype == np.float64:
+            real = "double"
+        elif dtype == np.float32:
+            real = "float"
+        else:
+            raise ValueError(f"the cuda kernel supports float64 and float32 fields, not {dtype}")
+        mod = cp.RawModule(code=_CUDA_SRC.replace("REAL", real), options=("--std=c++14",))
+        _KERNELS[key] = tuple(mod.get_function(f) for f in ("pf3_faces", "pf3_rate", "pf3_update"))
+    return _KERNELS[key]
