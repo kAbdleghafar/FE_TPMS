@@ -329,6 +329,46 @@ print(f"max PEEQ {peeq.max():.4f}, force {-md.reactions()[top, 2].sum():.0f} N")
 * **Robustness.** `solve` cuts back failed increments and uses line search. Check
   `info.converged`.
 
+### Where twins or HCP could start: stacking-fault extension
+
+Deformation twins and the FCC → HCP transformation both start from stacking faults that
+extend. `tpmsfem.post.fcc_faults` checks where the local stress can do this.
+* **Criterion.** For every element stress and grain orientation it takes the shear stress on
+  the 12 {111}⟨112⟩ systems of the leading Shockley partial, τ\*. A fault extends where
+  τ\* ≥ τ_c.
+* **Threshold for CoCrFeMnNi.** τ_c = 360 MPa reproduces the measured twinning onset
+  (720 MPa uniaxial, Laplanche et al. 2016) in the best-oriented grains.
+* **Lower thresholds** stand for lower fault energies, such as cryogenic temperature, Mn/Fe-rich
+  variants or thick HCP embryos.
+
+```python
+from tpmsfem.post import fcc_faults as FF
+
+cantor = Material("CoCrFeMnNi_LPBF", E=203e3, nu=0.25, yield_stress=757.0, hardening=1500.0)
+mc = tf.SolidModel(mesh, cantor)                           # the lattice above
+mc.fix(np.flatnonzero(z < 1e-9))
+mc.fix(top, (0, 1), 0.0)
+mc.fix(top, (2,), -0.08)                                   # 2 % compression
+mc.solve(n_inc=4)
+sig = mc.stress().mean(axis=1)                             # element stresses [MPa]
+yielded = mc.plastic_strain()[1].mean(axis=1) > 0          # nucleation needs dislocation sources
+rot = FF.random_rotations(300)                             # or a texture, e.g. from the grain CA
+tau = FF.leading_partial_stress(sig, rot)                  # (elements, orientations) [MPa]
+for tau_c in (360.0, 240.0):
+    frac = ((tau >= tau_c).mean(axis=1) * yielded).mean()
+    print(f"tau_c = {tau_c:.0f} MPa: faults can extend in {100 * frac:.1f} % of the lattice")
+print("leading-partial Schmid factor, [001] compression / tension:",
+      FF.uniaxial_factor(np.eye(3)[None], (0, 0, 1), -1)[0], FF.uniaxial_factor(np.eye(3)[None], (0, 0, 1), +1)[0])
+```
+
+* **Stricter bound.** `fault_energy_capacity(..., criterion="byun")` lets both partials move
+  freely. That is a stricter condition: it needs about twice the measured twinning stress.
+* **Grain stress.** Each grain takes the stress of its element (a Sachs-type assumption).
+  Grain-to-grain stresses need crystal plasticity.
+* **Twin or HCP.** Which forms is decided by the FCC/HCP free-energy difference, not by this
+  criterion.
+* **Study.** The compressed Cantor gyroid is in [process_models.md](process_models.md) §7.5.
+
 ---
 
 ## 7. Implants, load cases and fatigue
