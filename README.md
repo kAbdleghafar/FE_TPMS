@@ -154,6 +154,12 @@ four independent groups and compares them:
   walls. At the affordable 2.5 µm cells the <100> build fibre stays weak (up to 19 % in thin walls, random in
   thick ones): a lower bound, as the IN625 resolution check shows. Cellular growth along the heat flow keeps the
   grains 15 % narrower.
+
+  Under compression (§7.5, Level 0 of the FCC → HCP question), the stress can extend stacking faults (the
+  precursor of twins and HCP) as soon as the walls yield, because the as-built yield (757 MPa) exceeds the
+  measured twinning stress (720 MPa). That is 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending
+  hinges of the inclined walls; with a third lower fault energy (low-SFE variants, cryogenic loading) it is
+  28 % and 52 %. Texture and wall thickness change little.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
