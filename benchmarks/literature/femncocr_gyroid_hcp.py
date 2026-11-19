@@ -112,13 +112,15 @@ def figure():
     c = s["calibration"]
     ax.plot([0, 100 * (c["strain"] - c["uts_MPa"] / s["material"]["E_MPa"])], [100 * c["f0"], 100 * c["f"]], "ko", ms=6,
             label="measured (EBSD, tension)")
-    pmax = max(r["peeq_max"] for r in rows)
-    ax.axvspan(0, 100 * pmax, color="#d6d5d0", alpha=0.5, lw=0)
-    ax.text(100 * pmax / 2, 30, "plastic strains\nin the gyroid", fontsize=7, ha="center", color=MUTED)
+    p95 = rows[-1]["peeq_p95"]
+    ax.axvspan(0, 100 * p95, color="#d6d5d0", alpha=0.6, lw=0)
+    ax.text(100 * p95 + 0.4, 6, f"95 % of the gyroid's\nplastic strains at\n{100 * rows[-1]['strain']:.0f} % compression",
+            fontsize=7, ha="left", color=MUTED)
     ax.set_xlabel("equivalent plastic strain [%]", fontsize=8.5)
     ax.set_ylabel("HCP fraction [%]", fontsize=8.5)
     ax.set_title("(a) HCP kinetics, LPBF Fe50Mn30Co10Cr10", fontsize=9.5, loc="left")
     ax.legend(fontsize=7.5, frameon=False, loc="upper left")
+    ax.set_xlim(0, 25)
     style(ax)
     ax = fig.add_subplot(gs[1])
     eps = [100 * r["strain"] for r in rows]

@@ -1358,3 +1358,72 @@ only yielded material, with the CA textures:
   * The as-built residual state as the starting point.
   * Measurement: in-situ synchrotron or neutron diffraction during compression, to look for HCP
     peaks, with EBSD/TEM of interrupted samples.
+
+### 7.6 How much HCP: a gyroid of a metastable FeMnCoCr alloy (Level 1a)
+
+**Question.** If the gyroid were printed from an alloy that does transform, how much HCP would
+compression produce, and where? The equiatomic CoCrFeMnNi of §7.5 twins rather than
+transforming at room temperature, so its HCP fraction stays at zero. This section therefore uses
+the metastable Fe50Mn30Co10Cr10 (at%), for which LPBF data exist.
+
+**Method** (`benchmarks/literature/femncocr_gyroid_hcp.py`, `tpmsfem.post.hcp_kinetics`).
+* **Lattice and loading.** As in §7.5: the graded gyroid column, 0.1 mm voxels, compressed along
+  the build direction between bonded platens. Here up to 5 % nominal strain (small-strain J2;
+  geometric nonlinearity not included).
+* **Material.** LPBF Fe50Mn30Co10Cr10 at room temperature (Micromachines 15 (2024) 123,
+  doi:10.3390/mi15010123, Table 1):
+  * yield 487.6 MPa, tensile strength 744.9 MPa, elongation 22.3 %;
+  * linear hardening 1300 MPa, estimated from the tensile strength;
+  * E = 200 GPa and ν = 0.28, assumed.
+  * The measured flow curve already contains the TRIP hardening, so the coupling is one-way:
+    the transformation strain is not fed back.
+* **Kinetics.** An Olson–Cohen law in each element's equivalent plastic strain:
+  f = f0 + (1 − f0)[1 − exp(−β (1 − exp(−α ε_p))^n)].
+  * It is fitted to the same study's EBSD fractions in tension: 0.94 % as built, 28.1 % at 20 %
+    strain.
+  * One measured point fixes one rate constant. Two shapes bound the rest: exponential (n = 1)
+    and sigmoidal (n = 2, α = 5).
+
+**Results.** The two kinetic shapes are given as exponential / sigmoidal. As built, the alloy
+holds 0.94 % HCP.
+
+| nominal compressive strain | 1 % | 2 % | 3 % | 5 % |
+|---|---:|---:|---:|---:|
+| nominal stress [MPa] | 53 | 56 | 58 | 62 |
+| yielded volume | 51 % | 68 % | 76 % | 85 % |
+| plastic strain, lattice mean / 95th percentile | 0.2 / 1.1 % | 0.6 / 2.6 % | 0.9 / 4.1 % | 1.7 / 7.0 % |
+| **HCP, lattice mean** | **1.3 / 1.0 %** | **1.8 / 1.2 %** | **2.4 / 1.4 %** | **3.5 / 2.2 %** |
+| HCP, 95th percentile | 2.7 / 1.2 % | 5.1 / 2.2 % | 7.4 / 3.7 % | 11.6 / 7.7 % |
+| lattice volume with ≥ 10 % HCP | 0 / 0 | 0.4 / 0.1 % | 2.0 / 0.5 % | 7.1 / 3.2 % |
+
+![FeMnCoCr gyroid HCP](img/femncocr_gyroid_hcp.png)
+
+**Reading the results.**
+* **Little HCP forms at typical lattice-test strains, and only in the hinges.**
+  * The plastic strain of a compressed gyroid is very uneven: at 5 % nominal strain the lattice
+    mean is 1.7 %, but the bending hinges of the inclined walls reach 7 % (95th percentile).
+  * So the lattice-average HCP rises only from 0.94 % to 2–3.5 %, while the hinges reach 8–12 %.
+  * A diffraction measurement averaged over the whole lattice would see little. One focused on
+    the hinges, or EBSD of an interrupted sample, would see the transformation.
+* **The shape of the kinetics at small strain is the main uncertainty.**
+  * The one measured point (28 % at 20 % strain) leaves the small-strain part of the curve open.
+  * The exponential and sigmoidal shapes differ by a factor of 1.6 on the mean at 5 % strain,
+    and by up to 2.3 on the hinges at 1–3 %.
+  * A measured HCP fraction at 2–10 % strain would remove most of this. That could come from
+    interrupted tests or in-situ diffraction of the bulk alloy.
+* **Against the equiatomic alloy.**
+  * Fe50Mn30Co10Cr10 yields lower (488 against 757 MPa), so the lattice yields earlier and more
+    widely: 51 % of it at 1 % strain, against 39 % for CoCrFeMnNi.
+  * The equiatomic alloy forms no HCP at room temperature; its faults would become twins
+    (§7.5).
+* **Limits.**
+  * The kinetics are calibrated in tension and applied to the local plastic strain whatever the
+    stress state: the stress-state dependence (Stringfellow et al. 1992) is not included, nor the
+    tension-compression asymmetry of the partials (§7.5).
+  * The coupling is one-way: no transformation strain or volume change acts on the stresses.
+  * Small-strain J2 with estimated hardening and assumed elastic constants. The few voxels with
+    plastic strains above about 20 % are outside its range, so maxima are not reported.
+* **Next.**
+  * Level 1b: transformation strain and stress-state-dependent kinetics in the constitutive
+    update.
+  * Calibration on HCP fractions measured at several strains.

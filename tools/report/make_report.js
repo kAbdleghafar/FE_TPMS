@@ -88,11 +88,11 @@ const body = [];
 body.push(
   new Paragraph({ spacing: { before: 2400, after: 200 }, children: [new TextRun({ text: "TPMSsuite", font: FONT, size: 28, color: MUTED })] }),
   new Paragraph({ spacing: { after: 240 }, children: [new TextRun({
-    text: "Process and microstructure results: melt-pool flow, porosity, solute trapping, 3-D cells with EDS maps and 3-D grain structure",
+    text: "Process and microstructure results: melt-pool flow, porosity, solute trapping, 3-D cells with EDS maps, 3-D grain structure and stress-induced HCP",
     font: FONT, size: 44, bold: true, color: ACCENT })] }),
   new Paragraph({ spacing: { after: 120 }, children: [new TextRun({
     text: "AM-Bench 2018 IN625 benchmarks and the CoCrFeMnNi graded-gyroid lattice", font: FONT, size: 26, color: INK })] }),
-  new Paragraph({ spacing: { before: 600, after: 60 }, children: runs("Progress report, 16 November 2026 (revision 2: adds the 3-D multicomponent phase field and synthetic EDS maps, Section 6)", { size: 22, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 600, after: 60 }, children: runs("Progress report, 19 November 2026 (revision 3: adds where twins or HCP could start in the compressed CoCrFeMnNi gyroid and how much HCP a metastable FeMnCoCr gyroid would form, Section 8; revision 2 added Section 6)", { size: 22, color: MUTED }) }),
   new Paragraph({ spacing: { after: 60 }, children: runs("Repository: kAbdleghafar/TPMSsuite (default branch main; Python package tpmsfem). Contributors: Khaled Abdelghafar and Claude (Anthropic).", { size: 20, color: MUTED }) }),
   new Paragraph({ spacing: { after: 60 }, children: runs("Every number in this report is produced by scripts in the repository (Appendix A); the detailed write-ups are in docs/freesurface_lbm.md, docs/porosity_maps.md and docs/process_models.md (§5.3–§5.6, §7.4); every calculation is explained in docs/manual.md.", { size: 20, color: MUTED }) }),
   pageBreak(),
@@ -110,11 +110,11 @@ body.push(
     ["7. Grain structure: 3-D cellular automaton", 0],
     ["7.1 Model and verification · 7.2 Single track against NIST's EBSD · 7.3 Ten-layer IN625 blocks · 7.4 CoCrFeMnNi gyroid over 20 layers", 1],
     ["8. Where twins or HCP could start: a CoCrFeMnNi gyroid in compression (Level 0)", 0],
-    ["8.1 Criterion and calibration · 8.2 The gyroid column in compression · 8.3 Findings and limits", 1],
+    ["8.1 Criterion and calibration · 8.2 The gyroid column in compression · 8.3 Findings and limits · 8.4 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)", 1],
     ["9. Problems found and fixed", 0], ["10. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
   ].map(([t, lvl]) => new Paragraph({ indent: { left: lvl ? 400 : 0 }, spacing: { after: lvl ? 100 : 40 },
       children: [new TextRun({ text: t, font: FONT, size: lvl ? 18 : 22, color: lvl ? MUTED : INK, bold: !lvl })] })),
-  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid · 9 stacking faults in the compressed gyroid.", { size: 18, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid · 9 stacking faults in the compressed gyroid · 10 HCP in a FeMnCoCr gyroid.", { size: 18, color: MUTED }) }),
   pageBreak(),
 );
 
@@ -130,7 +130,7 @@ body.push(
   B("On the AM-Bench case-B track it reproduces the measured grain count (90–99 against 92) and size (11–14 µm against 10.1 µm).", 1),
   B("In 10-layer IN625 blocks it develops a <100> fibre along the build direction: 35 % of the volume at 90° rotation and 68 % at 67° with 1 µm cells (random: 10 %).", 1),
   B("In the CoCrFeMnNi gyroid, columnar grains grow to about 100 µm in 20 layers.", 1),
-  B("**Where twins or HCP could start under compression (Level 0 of the FCC → HCP question).** In a compressed CoCrFeMnNi gyroid, stacking faults (the precursor of both) can extend as soon as the walls yield, because the as-built yield stress (757 MPa) exceeds the measured twinning stress (720 MPa): 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending hinges of the walls. With a third lower fault energy (low-SFE variants, cryogenic loading) it is 28 % and 52 %."),
+  B("**Where twins or HCP could start under compression (Level 0 of the FCC → HCP question).** In a compressed CoCrFeMnNi gyroid, stacking faults (the precursor of both) can extend as soon as the walls yield, because the as-built yield stress (757 MPa) exceeds the measured twinning stress (720 MPa): 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending hinges of the walls. With a third lower fault energy (low-SFE variants, cryogenic loading) it is 28 % and 52 %. How much HCP forms (Level 1a): in a gyroid of the metastable Fe50Mn30Co10Cr10, an Olson–Cohen law fitted to LPBF EBSD data gives 2–3.5 % HCP on average at 5 % compression (0.94 % as built), 8–12 % in the bending hinges."),
 );
 body.push(P("**What limits the results now** is compute. Three things need a GPU:"));
 body.push(
@@ -152,6 +152,7 @@ body.push(...table(["module / script", "purpose", "tests"], [
   ["process/phasefield3d.py", "3-D quantitative phase field of a dilute multicomponent alloy: one supersaturation per solute, cubic anisotropy in any orientation, anti-trapping and trapping per solute, solidified 3-D composition stored, numba and NumPy/CuPy kernels, checkpoints, watershed cell counting", "tests/test_phasefield3d.py (12)"],
   ["post/eds.py", "synthetic SEM-EDS (X-ray generation volume against beam voltage and line) and STEM-EDS (thin foil, beam broadening) maps with counting noise and overlays", "tests/test_eds.py (6)"],
   ["benchmarks/literature/pf3d_in625_eds.py", "3-D IN625 cells at the case-B mid-pool point and their EDS maps", "—"],
+  ["post/hcp_kinetics.py; benchmarks/literature/femncocr_gyroid_hcp.py", "HCP fraction against plastic strain (Olson–Cohen, exponential and sigmoidal shapes, one rate constant fitted to measured data; LPBF Fe50Mn30Co10Cr10 preset); the FeMnCoCr gyroid study", "tests/test_hcp_kinetics.py (3)"],
   ["post/fcc_faults.py; benchmarks/literature/cantor_gyroid_faults.py", "Shockley-partial bookkeeping, shear stress on the leading partial (twinning / transformation systems) for any stress and orientation, the free-partials bound; the compressed gyroid study", "tests/test_fcc_faults.py (8)"],
   ["process/phasefield3d.py, CUDA kernel (from a local GPU session)", "fused CUDA kernel for the 3-D phase field; the CuPy path passes the full test suite on an RTX 4070 SUPER", "tests/test_phasefield3d.py (on GPU)"],
   ["process/grain_ca.py", "3-D grain cellular automaton: decentred octahedra, KGT tip kinetics, nucleation, epitaxy, persistent state, scan-strategy events with rounded pool ends, optional heat-flow bias", "tests/test_grain_ca.py (6)"],
@@ -383,6 +384,27 @@ body.push(
   B("**Limits.** Grain-to-grain stresses are not resolved (crystal plasticity, Level 2); the hardening is assumed; the threshold is calibrated on wrought, coarse-grained CoCrFeMnNi; room temperature, compression along the build direction, a column two cells tall. As-built residual stresses (median von Mises 584 MPa) are not included here; the compression from the simulated as-built state is running."),
 );
 
+body.push(H2("8.4 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)"));
+body.push(P("The equiatomic CoCrFeMnNi twins rather than transforming at room temperature, so its HCP fraction stays at zero. To show how much HCP a transforming alloy would form, the same gyroid column is compressed (to 5 %) with the metastable Fe50Mn30Co10Cr10, for which LPBF data exist (Micromachines 15 (2024) 123): yield 487.6 MPa, tensile strength 744.9 MPa, elongation 22.3 %, HCP 0.94 % as built and 28.1 % at 20 % strain (EBSD, tension)."));
+body.push(
+  B("**Kinetics** (post/hcp_kinetics.py): an Olson–Cohen law in each element's equivalent plastic strain, f = f0 + (1 − f0)[1 − exp(−β(1 − exp(−α ε_p))^n)], fitted to the measured point. One point fixes one rate constant; an exponential (n = 1) and a sigmoidal (n = 2, α = 5) shape bound the rest."),
+  B("**Coupling** is one-way: the measured flow curve already contains the TRIP hardening (linear hardening 1300 MPa estimated from the tensile strength; E = 200 GPa and ν = 0.28 assumed)."),
+);
+body.push(tcap("HCP in the compressed Fe50Mn30Co10Cr10 gyroid column (exponential / sigmoidal kinetics; 0.94 % as built)."));
+body.push(...table(["nominal compressive strain", "1 %", "2 %", "3 %", "5 %"], [
+  ["nominal stress [MPa]", "53", "56", "58", "62"],
+  ["yielded volume", "51 %", "68 %", "76 %", "85 %"],
+  ["plastic strain, mean / 95th percentile", "0.2 / 1.1 %", "0.6 / 2.6 %", "0.9 / 4.1 %", "1.7 / 7.0 %"],
+  ["**HCP, lattice mean**", "**1.3 / 1.0 %**", "**1.8 / 1.2 %**", "**2.4 / 1.4 %**", "**3.5 / 2.2 %**"],
+  ["HCP, 95th percentile", "2.7 / 1.2 %", "5.1 / 2.2 %", "7.4 / 3.7 %", "11.6 / 7.7 %"],
+  ["volume with ≥ 10 % HCP", "0 / 0", "0.4 / 0.1 %", "2.0 / 0.5 %", "7.1 / 3.2 %"],
+], [3.6, 1.6, 1.6, 1.6, 1.6]));
+body.push(...figure("femncocr_gyroid_hcp.png", "Strain-induced HCP in a gyroid of the metastable Fe50Mn30Co10Cr10: (a) the two fitted kinetic laws against the measured fractions; (b) lattice mean and 95th percentile of the HCP fraction against compressive strain; (c, d) HCP on an x–z section at 5 % strain for both laws; (e) plastic strain."));
+body.push(
+  B("**Little HCP at typical lattice-test strains, concentrated in the hinges:** the lattice-average HCP rises only to 2–3.5 % at 5 % compression, because the plastic strain is very uneven (lattice mean 1.7 %), while the bending hinges reach 8–12 %. A diffraction measurement averaged over the lattice would see little; one focused on the hinges, or EBSD of an interrupted sample, would see the transformation."),
+  B("**The small-strain shape of the kinetics is the main uncertainty** (a factor 1.6–2.3 between the shapes); an HCP fraction measured at 2–10 % strain would fix it. The stress-state dependence (Stringfellow et al. 1992) and the transformation strain are not included (Level 1b)."),
+);
+
 // 9 Problems fixed
 body.push(H1("9. Problems found and fixed"));
 body.push(P("All results in this report were produced after these fixes; affected runs were repeated."));
@@ -414,7 +436,7 @@ body.push(...table(["item", "needs", "what it would settle"], [
   ["Mo (and minor-element) liquidus slopes from CALPHAD", "a thermodynamic database", "the Mo share of the freezing range"],
   ["preheating and part-scale heat in the CA thermal input", "couple the part-scale thermal model", "grain growth in hot, thin walls"],
   ["measured textures / EBSD of the gyroid builds", "experiment", "validation of §7.4"],
-  ["Level 1: HCP-fraction law (Olson–Cohen type) coupled to the plasticity", "the FCC/HCP free-energy difference; measured HCP fractions for calibration", "how much HCP forms, not only where it could start (Section 8)"],
+  ["Level 1b: transformation strain and stress-state-dependent HCP kinetics in the constitutive update", "HCP fractions measured at several strains and stress states", "the small-strain kinetics (Section 8.4) and the TRIP effect on the lattice response"],
   ["in-situ diffraction during compression of a printed gyroid", "synchrotron or neutron beamtime", "HCP peaks and phase fractions against strain: validation of Section 8"],
 ], [3.6, 3.0, 3.4]));
 body.push(P("**Compute note.** This cloud machine is reclaimed when the session is idle, which interrupted long runs several times. Checkpointing and a restart script now make that cost at most one step, but multi-hour runs belong on a dedicated machine or GPU. The GPU path now runs: on an RTX 4070 SUPER the full test suite passes with CuPy, and a fused CUDA kernel runs the 3-D phase field 3.6× (float64) to 46× (float32) faster than 20 CPU cores."));
@@ -422,7 +444,7 @@ body.push(P("**Compute note.** This cloud machine is reclaimed when the session 
 // Appendix
 body.push(H1("Appendix A. Reproducing the results"));
 const cmds = [
-  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_phasefield3d.py tests/test_eds.py tests/test_fcc_faults.py tests/test_grain_ca.py",
+  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_phasefield3d.py tests/test_eds.py tests/test_fcc_faults.py tests/test_hcp_kinetics.py tests/test_grain_ca.py",
   "python tools/lbm/freesurface_caseB.py marangoni 10",
   "python benchmarks/literature/porosity_maps.py run IN625 30 ; python benchmarks/literature/porosity_maps.py figure",
   "python benchmarks/literature/pf_path_trapping.py run <tag> ... ; ... report ; ... figure",
@@ -431,6 +453,7 @@ const cmds = [
   "python benchmarks/literature/ca_multilayer.py run 90 480 1 ; ... run 67 480 1 ; ... figure",
   "python benchmarks/literature/cantor_gyroid_ca.py section ; ... run thin ; ... run thick ; ... run thin_a1 ; ... figure",
   "python benchmarks/literature/cantor_gyroid_faults.py run ; FAULTS_VOX=0.05 python benchmarks/literature/cantor_gyroid_faults.py run",
+  "python benchmarks/literature/femncocr_gyroid_hcp.py run",
 ];
 cmds.forEach((c) => body.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: c, font: "Consolas", size: 17 })] })));
 body.push(P("Results are stored as JSON and NPZ files in benchmarks/literature/results/; figures in docs/img/."));
