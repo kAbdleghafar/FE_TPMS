@@ -369,6 +369,26 @@ print("leading-partial Schmid factor, [001] compression / tension:",
   criterion.
 * **Study.** The compressed Cantor gyroid is in [process_models.md](process_models.md) §7.5.
 
+**How much HCP forms.** `tpmsfem.post.hcp_kinetics` turns the plastic strain into an HCP volume
+fraction with an Olson–Cohen-type law. It is fitted to measured fractions: the preset is LPBF
+Fe50Mn30Co10Cr10 (0.94 % as built, 28.1 % at 20 % strain).
+* **Coupling.** One-way: the measured flow curve already contains the TRIP hardening.
+* **Equiatomic CoCrFeMnNi** twins instead of transforming at room temperature, so its fraction
+  stays at zero.
+
+```python
+from tpmsfem.post import hcp_kinetics as HK
+
+peeq = mc.plastic_strain()[1].mean(axis=1)                 # the compressed lattice above
+for shape in ("exponential", "sigmoidal"):                 # one data point: report the band
+    f = HK.femncocr_lpbf(shape).fraction(peeq)
+    print(f"{shape:11s}: HCP mean {100 * f.mean():.2f} %, max {100 * f.max():.2f} %")
+```
+
+* **Your own data.** `StrainInducedHCP.fit(eps_p, f, f0, shape=...)` fits the law to a measured
+  point.
+* **Study.** The FeMnCoCr gyroid is in [process_models.md](process_models.md) §7.6.
+
 ---
 
 ## 7. Implants, load cases and fatigue
