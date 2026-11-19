@@ -1,6 +1,6 @@
 # TPMSsuite
 
-![TPMSsuite: design, mesh, mechanics, process and microstructure of TPMS structures](docs/img/tpmssuite_social_preview.png)
+![TPMSsuite: an integrated computational framework for architected materials (geometry, physics, performance)](docs/img/tpmssuite_thumbnail.jpg)
 
 **An open-source, GPU-ready suite for triply periodic minimal surface (TPMS) structures, from
 the geometry to the as-built part.**
