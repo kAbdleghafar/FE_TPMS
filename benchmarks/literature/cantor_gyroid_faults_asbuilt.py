@@ -204,7 +204,7 @@ def figure():
                     label=f"tau_c = {tc:.0f} MPa, {case.replace('_', '-')}")
     ax.set_xlabel("nominal compressive strain [%]", fontsize=8.5)
     ax.set_ylabel("lattice volume where faults can extend [%]", fontsize=8.5)
-    ax.set_title("(b) where twins / HCP could nucleate: as-built (solid) vs stress-free (dashed)", fontsize=9.5, loc="left")
+    ax.set_title("(b) faults can extend (solid: as-built; dashed: stress-free)", fontsize=9.5, loc="left")
     ax.legend(fontsize=6.8, frameon=False, ncol=1, loc="upper left")
     style(ax)
     ijk = d["ijk"].astype(int)

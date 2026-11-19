@@ -1346,9 +1346,7 @@ only yielded material, with the CA textures:
   * Each grain takes the stress of its element: grain-to-grain stress differences need crystal
     plasticity (Level 2).
   * The hardening (1500 MPa) is assumed and controls how fast the fraction grows after onset.
-  * As-built residual stresses (median von Mises 584 MPa after removal from the plate, §7.2)
-    are not included. They would move the onset to lower applied strain where they add to
-    the load.
+  * The main results start from a stress-free lattice. The as-built start is below.
   * The threshold is calibrated on wrought, coarse-grained CoCrFeMnNi. The LPBF cell structure,
     dislocation density and Mn/Ni segregation may shift it.
   * Room temperature only; compression along the build direction only; a column two cells tall
@@ -1358,6 +1356,43 @@ only yielded material, with the CA textures:
   * The as-built residual state as the starting point.
   * Measurement: in-situ synchrotron or neutron diffraction during compression, to look for HCP
     peaks, with EBSD/TEM of interrupted samples.
+
+
+**From the as-built state** (`benchmarks/literature/cantor_gyroid_faults_asbuilt.py`).
+* **Set-up.**
+  * The thermo-mechanical build of §7.2 is re-run: layer lumps on a 1 mm plate, cooling to
+    20 °C, release onto a 3-2-1 support. Its state is kept: residual stress and build plastic
+    strain.
+  * The column is then compressed with the plate bottom held and the lattice top moved down.
+  * The stress-free reference is the same mesh, plate and supports.
+  * Only material that yields during the compression counts: the build has already yielded
+    much of the part.
+* **Before any load.** The residual stress alone (lattice median von Mises 584 MPa, 95th
+  percentile 748 MPa) already gives τ\* ≥ 360 MPa in 3.7 % of the lattice, and ≥ 240 MPa in 45 %.
+
+| nominal compressive strain | 0.4 % | 0.6 % | 1 % | 2 % | 3 % |
+|---|---:|---:|---:|---:|---:|
+| nominal stress [MPa], as-built / stress-free | 44 / 58 | 57 / 69 | 71 / 78 | 84 / 85 | 88 / 88 |
+| yielding during compression | 39 / 7.5 % | 47 / 21 % | 60 / 38 % | 75 / 59 % | 82 / 69 % |
+| **faults can extend, τ_c = 360 MPa** | **5.5 / 0.8 %** | **6.9 / 3.0 %** | **9.4 / 6.1 %** | **13.6 / 10.4 %** | **16.2 / 13.0 %** |
+| faults can extend, τ_c = 240 MPa | 27 / 4.9 % | 33 / 14 % | 42 / 28 % | 55 / 44 % | 61 / 52 % |
+
+![As-built start](img/cantor_gyroid_faults_asbuilt.png)
+
+* **The residual stresses bring the onset forward.** Where they add to the applied load, the
+  walls yield at a lower applied strain.
+  * At 0.4 % strain the as-built column has five times as much yielding material and 6.5 times
+    as much fault-prone volume as the stress-free one.
+  * The difference shrinks as the load takes over: 1.5 times at 1 % strain, 1.25 times at 3 %.
+* **The macroscopic response softens early.** The nominal stress is 24 % lower at 0.4 % strain.
+  The curves meet at about 2.5 %.
+* **For an experiment.** In as-built lattices the first faults (twins) should appear at
+  smaller strains than a stress-free model predicts. A stress-relief anneal would remove most of
+  the difference.
+* **Also with the build.**
+  * The build model's own assumptions apply: lumped layers, no powder, 0.1 mm voxels (§7.2).
+  * The stress-free reference sits on the plate, unlike the plate-free column above. It gives
+    the same fault-prone volume within 0.1 point at 1 % strain.
 
 ### 7.6 How much HCP: a gyroid of a metastable FeMnCoCr alloy (Level 1a)
 

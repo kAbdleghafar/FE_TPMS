@@ -110,11 +110,11 @@ body.push(
     ["7. Grain structure: 3-D cellular automaton", 0],
     ["7.1 Model and verification · 7.2 Single track against NIST's EBSD · 7.3 Ten-layer IN625 blocks · 7.4 CoCrFeMnNi gyroid over 20 layers", 1],
     ["8. Where twins or HCP could start: a CoCrFeMnNi gyroid in compression (Level 0)", 0],
-    ["8.1 Criterion and calibration · 8.2 The gyroid column in compression · 8.3 Findings and limits · 8.4 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)", 1],
+    ["8.1 Criterion and calibration · 8.2 The gyroid column in compression · 8.3 Findings and limits · 8.4 From the as-built state · 8.5 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)", 1],
     ["9. Problems found and fixed", 0], ["10. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
   ].map(([t, lvl]) => new Paragraph({ indent: { left: lvl ? 400 : 0 }, spacing: { after: lvl ? 100 : 40 },
       children: [new TextRun({ text: t, font: FONT, size: lvl ? 18 : 22, color: lvl ? MUTED : INK, bold: !lvl })] })),
-  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid · 9 stacking faults in the compressed gyroid · 10 HCP in a FeMnCoCr gyroid.", { size: 18, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid · 9 stacking faults in the compressed gyroid · 10 the as-built start · 11 HCP in a FeMnCoCr gyroid.", { size: 18, color: MUTED }) }),
   pageBreak(),
 );
 
@@ -130,7 +130,7 @@ body.push(
   B("On the AM-Bench case-B track it reproduces the measured grain count (90–99 against 92) and size (11–14 µm against 10.1 µm).", 1),
   B("In 10-layer IN625 blocks it develops a <100> fibre along the build direction: 35 % of the volume at 90° rotation and 68 % at 67° with 1 µm cells (random: 10 %).", 1),
   B("In the CoCrFeMnNi gyroid, columnar grains grow to about 100 µm in 20 layers.", 1),
-  B("**Where twins or HCP could start under compression (Level 0 of the FCC → HCP question).** In a compressed CoCrFeMnNi gyroid, stacking faults (the precursor of both) can extend as soon as the walls yield, because the as-built yield stress (757 MPa) exceeds the measured twinning stress (720 MPa): 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending hinges of the walls. With a third lower fault energy (low-SFE variants, cryogenic loading) it is 28 % and 52 %. How much HCP forms (Level 1a): in a gyroid of the metastable Fe50Mn30Co10Cr10, an Olson–Cohen law fitted to LPBF EBSD data gives 2–3.5 % HCP on average at 5 % compression (0.94 % as built), 8–12 % in the bending hinges."),
+  B("**Where twins or HCP could start under compression (Level 0 of the FCC → HCP question).** In a compressed CoCrFeMnNi gyroid, stacking faults (the precursor of both) can extend as soon as the walls yield, because the as-built yield stress (757 MPa) exceeds the measured twinning stress (720 MPa): 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending hinges of the walls. With a third lower fault energy (low-SFE variants, cryogenic loading) it is 28 % and 52 %; from the simulated as-built state the residual stresses bring this forward (6.5 times the fault-prone volume at 0.4 % strain). How much HCP forms (Level 1a): in a gyroid of the metastable Fe50Mn30Co10Cr10, an Olson–Cohen law fitted to LPBF EBSD data gives 2–3.5 % HCP on average at 5 % compression (0.94 % as built), 8–12 % in the bending hinges."),
 );
 body.push(P("**What limits the results now** is compute. Three things need a GPU:"));
 body.push(
@@ -381,10 +381,21 @@ body.push(
   B("**HCP or twins.** The equiatomic alloy forms HCP only at hydrostatic pressures of order 10–20 GPa (Tracy et al. 2017; Zhang et al. 2017), so at room temperature these faults would most likely become twins. With a third lower effective fault energy (lower-SFE variants, cryogenic loading, thick HCP embryos) the fault-prone volume is four times larger; below a third of the room-temperature value every yielded region qualifies, where a stress-induced FCC → HCP transformation becomes plausible."),
   B("**Texture and wall thickness hardly matter:** the walls are inclined and each is loaded along its own direction, so the CA and random textures agree within 0.1 point, and the thin and thick halves within 0.2 point."),
   B("**Resolution.** A 0.05 mm run (stopped after 2 % strain by a container restart) gives the stress within 2 %, 8–14 % more fault-prone volume at τ_c = 360 MPa and within 4–9 % at 240 MPa; its free-partials maximum reaches 28.7 mJ/m² against 22.5, so thin-wall stress peaks are under-resolved at 0.1 mm."),
-  B("**Limits.** Grain-to-grain stresses are not resolved (crystal plasticity, Level 2); the hardening is assumed; the threshold is calibrated on wrought, coarse-grained CoCrFeMnNi; room temperature, compression along the build direction, a column two cells tall. As-built residual stresses (median von Mises 584 MPa) are not included here; the compression from the simulated as-built state is running."),
+  B("**Limits.** Grain-to-grain stresses are not resolved (crystal plasticity, Level 2); the hardening is assumed; the threshold is calibrated on wrought, coarse-grained CoCrFeMnNi; room temperature, compression along the build direction, a column two cells tall. The as-built start follows in 8.4."),
 );
 
-body.push(H2("8.4 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)"));
+body.push(H2("8.4 From the as-built state"));
+body.push(P("The thermo-mechanical build of the column (layer lumps on a 1 mm plate, cooling to 20 °C, release onto a 3-2-1 support) is re-run and its state kept: residual stress and build plastic strain. The column is then compressed (plate bottom held, lattice top moved down) and compared with a stress-free model on the same mesh, plate and supports. Only material that yields during the compression counts. Before any load, the residual stress alone (median von Mises 584 MPa) already gives τ* ≥ 360 MPa in 3.7 % of the lattice."));
+body.push(tcap("Compression from the simulated as-built state against the stress-free column (as-built / stress-free)."));
+body.push(...table(["nominal compressive strain", "0.4 %", "1 %", "2 %", "3 %"], [
+  ["nominal stress [MPa]", "44 / 58", "71 / 78", "84 / 85", "88 / 88"],
+  ["yielding during compression", "39 / 7.5 %", "60 / 38 %", "75 / 59 %", "82 / 69 %"],
+  ["**faults can extend, τ_c = 360 MPa**", "**5.5 / 0.8 %**", "**9.4 / 6.1 %**", "**13.6 / 10.4 %**", "**16.2 / 13.0 %**"],
+  ["faults can extend, τ_c = 240 MPa", "27 / 4.9 %", "42 / 28 %", "55 / 44 %", "61 / 52 %"],
+], [3.6, 1.6, 1.6, 1.6, 1.6]));
+body.push(...figure("cantor_gyroid_faults_asbuilt.png", "The gyroid column compressed from its simulated as-built state against the same column stress-free: (a) nominal stress; (b) lattice volume where faults can extend for three thresholds; (c, d) fraction of grains that can extend faults (τ_c = 360 MPa) on an x–z section at 1 % strain."));
+body.push(B("**The residual stresses bring the onset forward:** where they add to the load the walls yield earlier, giving 6.5 times the fault-prone volume at 0.4 % strain; the difference shrinks to 1.5 times at 1 % and 1.25 times at 3 %, and the stress–strain curves meet at about 2.5 %. In as-built lattices the first twins should therefore appear at smaller strains than a stress-free model predicts; a stress-relief anneal would remove most of the difference."));
+body.push(H2("8.5 How much HCP: a metastable FeMnCoCr gyroid (Level 1a)"));
 body.push(P("The equiatomic CoCrFeMnNi twins rather than transforming at room temperature, so its HCP fraction stays at zero. To show how much HCP a transforming alloy would form, the same gyroid column is compressed (to 5 %) with the metastable Fe50Mn30Co10Cr10, for which LPBF data exist (Micromachines 15 (2024) 123): yield 487.6 MPa, tensile strength 744.9 MPa, elongation 22.3 %, HCP 0.94 % as built and 28.1 % at 20 % strain (EBSD, tension)."));
 body.push(
   B("**Kinetics** (post/hcp_kinetics.py): an Olson–Cohen law in each element's equivalent plastic strain, f = f0 + (1 − f0)[1 − exp(−β(1 − exp(−α ε_p))^n)], fitted to the measured point. One point fixes one rate constant; an exponential (n = 1) and a sigmoidal (n = 2, α = 5) shape bound the rest."),
@@ -454,6 +465,7 @@ const cmds = [
   "python benchmarks/literature/cantor_gyroid_ca.py section ; ... run thin ; ... run thick ; ... run thin_a1 ; ... figure",
   "python benchmarks/literature/cantor_gyroid_faults.py run ; FAULTS_VOX=0.05 python benchmarks/literature/cantor_gyroid_faults.py run",
   "python benchmarks/literature/femncocr_gyroid_hcp.py run",
+  "python benchmarks/literature/cantor_gyroid_faults_asbuilt.py build ; ... compress ; ... figure",
 ];
 cmds.forEach((c) => body.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: c, font: "Consolas", size: 17 })] })));
 body.push(P("Results are stored as JSON and NPZ files in benchmarks/literature/results/; figures in docs/img/."));

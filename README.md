@@ -159,7 +159,8 @@ four independent groups and compares them:
   precursor of twins and HCP) as soon as the walls yield, because the as-built yield (757 MPa) exceeds the
   measured twinning stress (720 MPa). That is 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending
   hinges of the inclined walls; with a third lower fault energy (low-SFE variants, cryogenic loading) it is
-  28 % and 52 %. Texture and wall thickness change little. How much HCP forms (§7.6, Level 1a): in a gyroid of the
+  28 % and 52 %. Texture and wall thickness change little. Starting from the simulated as-built state, the residual
+  stresses bring the onset forward: 6.5 times the fault-prone volume at 0.4 % strain, 1.25 times at 3 %. How much HCP forms (§7.6, Level 1a): in a gyroid of the
   metastable Fe50Mn30Co10Cr10, an Olson–Cohen law fitted to LPBF EBSD data gives 2–3.5 % HCP on average at 5 %
   compression (0.94 % as built), but 8–12 % in the bending hinges.
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
