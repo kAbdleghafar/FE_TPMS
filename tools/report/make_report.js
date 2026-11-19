@@ -109,16 +109,18 @@ body.push(
     ["6.1 Model and alloy data · 6.2 Run · 6.3 Cells and segregation · 6.4 Synthetic EDS maps · 6.5 Findings and limits", 1],
     ["7. Grain structure: 3-D cellular automaton", 0],
     ["7.1 Model and verification · 7.2 Single track against NIST's EBSD · 7.3 Ten-layer IN625 blocks · 7.4 CoCrFeMnNi gyroid over 20 layers", 1],
-    ["8. Problems found and fixed", 0], ["9. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
+    ["8. Where twins or HCP could start: a CoCrFeMnNi gyroid in compression (Level 0)", 0],
+    ["8.1 Criterion and calibration · 8.2 The gyroid column in compression · 8.3 Findings and limits", 1],
+    ["9. Problems found and fixed", 0], ["10. Limits and next steps", 0], ["Appendix A. Reproducing the results", 0],
   ].map(([t, lvl]) => new Paragraph({ indent: { left: lvl ? 400 : 0 }, spacing: { after: lvl ? 100 : 40 },
       children: [new TextRun({ text: t, font: FONT, size: lvl ? 18 : 22, color: lvl ? MUTED : INK, bold: !lvl })] })),
-  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid.", { size: 18, color: MUTED }) }),
+  new Paragraph({ spacing: { before: 240 }, children: runs("Figures: 1 flow solver (case B) · 2 porosity maps · 3 phase field up the pool · 4 3-D cells · 5 EDS maps · 6 CA vs EBSD · 7 IN625 blocks · 8 CoCrFeMnNi gyroid · 9 stacking faults in the compressed gyroid.", { size: 18, color: MUTED }) }),
   pageBreak(),
 );
 
 // 1 Summary
 body.push(H1("1. Summary"));
-body.push(P("This phase extended TPMSsuite (formerly tpmsfem) from conduction melt pools and rule-based grains to five new capabilities, each tested and checked against published data where data exist:"));
+body.push(P("This phase extended TPMSsuite (formerly tpmsfem) from conduction melt pools and rule-based grains to six new capabilities, each tested and checked against published data where data exist:"));
 body.push(
   B("**Free-surface melt-pool flow solver** (our own implementation of the free-surface lattice Boltzmann method with an enthalpy heat solver, NumPy/CuPy). It is verified to round-off in mass and energy and predicts the AM-Bench case-B pool at 120 × 34.5 µm against the measured 123.5 × 36.0 µm. Calibrating it independently needs finer cells than a CPU affords."),
   B("**Porosity process maps** (lack of fusion and keyhole). For IN625 they reproduce 12 of 13 conditions reported by Locatelli et al. (2026). For the CoCrFeMnNi gyroid they place the study's 200 W / 0.75 m/s point on the lack-of-fusion limit near the build plate. A 70 µm hatch removes the risk."),
@@ -128,6 +130,7 @@ body.push(
   B("On the AM-Bench case-B track it reproduces the measured grain count (90–99 against 92) and size (11–14 µm against 10.1 µm).", 1),
   B("In 10-layer IN625 blocks it develops a <100> fibre along the build direction: 35 % of the volume at 90° rotation and 68 % at 67° with 1 µm cells (random: 10 %).", 1),
   B("In the CoCrFeMnNi gyroid, columnar grains grow to about 100 µm in 20 layers.", 1),
+  B("**Where twins or HCP could start under compression (Level 0 of the FCC → HCP question).** In a compressed CoCrFeMnNi gyroid, stacking faults (the precursor of both) can extend as soon as the walls yield, because the as-built yield stress (757 MPa) exceeds the measured twinning stress (720 MPa): 6 % of the lattice at 1 % strain and 13 % at 3 %, in the bending hinges of the walls. With a third lower fault energy (low-SFE variants, cryogenic loading) it is 28 % and 52 %."),
 );
 body.push(P("**What limits the results now** is compute. Three things need a GPU:"));
 body.push(
@@ -135,7 +138,7 @@ body.push(
   B("phase-field runs with D/V ≥ 10 W0 at the top of the pool (about 300 CPU-hours), and 3-D runs with a converged interface width, long enough for a steady spacing;"),
   B("textures on the lattice at ≤ 1 µm cells (about 700 million cells per window)."),
 );
-body.push(P("Several numerical problems were found and fixed along the way (Section 8); every result in this report was produced after the fixes."));
+body.push(P("Several numerical problems were found and fixed along the way (Section 9); every result in this report was produced after the fixes."));
 
 // 2 What was built
 body.push(H1("2. What was built"));
@@ -149,6 +152,8 @@ body.push(...table(["module / script", "purpose", "tests"], [
   ["process/phasefield3d.py", "3-D quantitative phase field of a dilute multicomponent alloy: one supersaturation per solute, cubic anisotropy in any orientation, anti-trapping and trapping per solute, solidified 3-D composition stored, numba and NumPy/CuPy kernels, checkpoints, watershed cell counting", "tests/test_phasefield3d.py (12)"],
   ["post/eds.py", "synthetic SEM-EDS (X-ray generation volume against beam voltage and line) and STEM-EDS (thin foil, beam broadening) maps with counting noise and overlays", "tests/test_eds.py (6)"],
   ["benchmarks/literature/pf3d_in625_eds.py", "3-D IN625 cells at the case-B mid-pool point and their EDS maps", "—"],
+  ["post/fcc_faults.py; benchmarks/literature/cantor_gyroid_faults.py", "Shockley-partial bookkeeping, shear stress on the leading partial (twinning / transformation systems) for any stress and orientation, the free-partials bound; the compressed gyroid study", "tests/test_fcc_faults.py (8)"],
+  ["process/phasefield3d.py, CUDA kernel (from a local GPU session)", "fused CUDA kernel for the 3-D phase field; the CuPy path passes the full test suite on an RTX 4070 SUPER", "tests/test_phasefield3d.py (on GPU)"],
   ["process/grain_ca.py", "3-D grain cellular automaton: decentred octahedra, KGT tip kinetics, nucleation, epitaxy, persistent state, scan-strategy events with rounded pool ends, optional heat-flow bias", "tests/test_grain_ca.py (6)"],
   ["nist_ambench2018_tracks_ca.py, ca_multilayer.py, cantor_gyroid_ca.py", "CA studies: case-B EBSD comparison, IN625 blocks, CoCrFeMnNi gyroid", "—"],
 ], [3.0, 5.2, 1.8]));
@@ -346,8 +351,40 @@ body.push(
   B("**The textures are lower bounds:** at 2.5 µm cells the fibre stays weak (up to 19 % in thin walls, random in thick ones), and the IN625 blocks show that coarse cells blunt it. Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs 1 µm cells on the lattice."),
 );
 
-// 8 Problems fixed
-body.push(H1("8. Problems found and fixed"));
+// 8 Stacking faults under compression (Level 0)
+body.push(H1("8. Where twins or HCP could start: a CoCrFeMnNi gyroid in compression (Level 0)"));
+body.push(P("**Question.** If the CoCrFeMnNi gyroid is compressed, can a stress-induced FCC → HCP transformation occur, and where? Twins and HCP both start from stacking faults that extend; Level 0 maps where, and at what applied strain, the local stress can extend them. Which of the two then forms is set by the FCC/HCP free-energy difference, the subject of Level 1."));
+body.push(H2("8.1 Criterion and calibration"));
+body.push(
+  B("**Criterion** (post/fcc_faults.py). For every element stress and grain orientation: the largest shear stress on the 12 {111}<112> systems of the leading Shockley partial (the twinning / transformation systems of crystal-plasticity models). A fault extends where it reaches τ_c. Each grain takes the stress of its element (a Sachs-type assumption), and only yielded material counts (nucleation needs dislocation sources)."),
+  B("**Calibration.** τ_c = 360 MPa: the best-oriented grains (Schmid factor 0.5) reach it at the measured twinning stress of CoCrFeMnNi, 720 MPa at 77 and 293 K (Laplanche et al. 2016). Lower thresholds stand for lower effective fault energies, in proportion."),
+  B("**A stricter bound** lets both partials move freely (Byun 2003): with the measured fault energy, 30 mJ/m² (Okamoto et al. 2016), it needs about twice the measured twinning stress."),
+  B("**Checks.** The Schmid factors reproduce the twinning asymmetry of FCC single crystals ([001]: 0.47 in compression, 0.24 in tension; [111]: 0.31 and 0.16), and the partials reproduce the stacking shift between {111} layers (8 tests)."),
+);
+body.push(H2("8.2 The gyroid column in compression"));
+body.push(P("The graded gyroid column of the study (4 × 4 × 8 mm, walls 0.2 → 0.6 mm), 0.1 mm voxels, relative density 0.29, compressed along the build direction between bonded platens with J2 plasticity (E = 203 GPa, as-built yield 757 MPa, hardening 1500 MPa assumed) and the grain-CA textures of the thin and thick walls; no residual stress."));
+body.push(tcap("Share of the lattice volume where faults can extend (yielded material, CA textures)."));
+body.push(...table(["nominal compressive strain", "0.4 %", "0.6 %", "1 %", "2 %", "3 %"], [
+  ["nominal stress [MPa]", "59", "70", "78", "85", "88"],
+  ["yielded volume", "8 %", "21 %", "39 %", "59 %", "69 %"],
+  ["**τ_c = 360 MPa (CoCrFeMnNi twinning onset)**", "**1.0 %**", "**3.1 %**", "**6.2 %**", "**10.4 %**", "**13.1 %**"],
+  ["τ_c = 300 MPa (fault energy × 0.83)", "3.1 %", "8.7 %", "16.6 %", "26.5 %", "31.9 %"],
+  ["τ_c = 240 MPa (× 0.67)", "5.4 %", "14.8 %", "27.8 %", "43.6 %", "51.7 %"],
+  ["τ_c = 120 MPa (× 0.33)", "8.2 %", "21.4 %", "38.6 %", "58.7 %", "68.5 %"],
+  ["free-partials bound, 30 mJ/m²", "0", "0", "0", "0", "0"],
+], [3.6, 1.2, 1.2, 1.2, 1.2, 1.2]));
+body.push(...figure("cantor_gyroid_faults.png", "Stacking-fault extension in the compressed CoCrFeMnNi gyroid column: (a) nominal stress and yielded volume; (b) lattice volume where faults can extend against strain for five thresholds (solid: CA texture; dashed: random); (c) leading-partial Schmid factors of the textures in compression along the build direction; (d–f) fraction of grains that can extend faults on an x–z section; (g) plastic strain."));
+body.push(H2("8.3 Findings and limits"));
+body.push(
+  B("**Faults can extend as soon as the walls yield.** The as-built yield stress is already above the measured twinning stress, so grains with a leading-partial Schmid factor ≥ 0.48 reach τ_c as their wall yields; hardening brings in more. The fault-prone material follows the plastic zones, the bending hinges of the inclined walls (plastic strain up to about 7 % at 3 % nominal strain)."),
+  B("**HCP or twins.** The equiatomic alloy forms HCP only at hydrostatic pressures of order 10–20 GPa (Tracy et al. 2017; Zhang et al. 2017), so at room temperature these faults would most likely become twins. With a third lower effective fault energy (lower-SFE variants, cryogenic loading, thick HCP embryos) the fault-prone volume is four times larger; below a third of the room-temperature value every yielded region qualifies, where a stress-induced FCC → HCP transformation becomes plausible."),
+  B("**Texture and wall thickness hardly matter:** the walls are inclined and each is loaded along its own direction, so the CA and random textures agree within 0.1 point, and the thin and thick halves within 0.2 point."),
+  B("**Resolution.** A 0.05 mm run (stopped after 2 % strain by a container restart) gives the stress within 2 %, 8–14 % more fault-prone volume at τ_c = 360 MPa and within 4–9 % at 240 MPa; its free-partials maximum reaches 28.7 mJ/m² against 22.5, so thin-wall stress peaks are under-resolved at 0.1 mm."),
+  B("**Limits.** Grain-to-grain stresses are not resolved (crystal plasticity, Level 2); the hardening is assumed; the threshold is calibrated on wrought, coarse-grained CoCrFeMnNi; room temperature, compression along the build direction, a column two cells tall. As-built residual stresses (median von Mises 584 MPa) are not included here; the compression from the simulated as-built state is running."),
+);
+
+// 9 Problems fixed
+body.push(H1("9. Problems found and fixed"));
 body.push(P("All results in this report were produced after these fixes; affected runs were repeated."));
 body.push(
   N("**Free surface:** walls seen as gas in the curvature (fixed with mirror walls); half the surface area in the surface forces (fixed with gas-face areas); energy created at the moving surface (fixed by carrying enthalpy with the mass); powder runs blowing up (solid–solid mass exchange, laser absorption, recoil cap and speed limiter)."),
@@ -365,8 +402,8 @@ body.push(N("**3-D phase field, cell counting:** a global (Otsu) threshold merge
 body.push(N("**EDS, SEM generation volume:** the first model (one Gaussian of the generation range) kept under 1 % of the Nb contrast at 15 kV. It was replaced by a depth-resolved volume, cusped as Monte Carlo volumes are and calibrated on the same 90 % diameter; the sensitivity is reported in Section 6.5."));
 body.push(N("**Withdrawn claims:** an explanation of the CA's point-wise agreement (too-strong selection) that a later test disproved, and an unsupported statement about the rotation dependence of published textures."));
 
-// 9 Next steps
-body.push(H1("9. Limits and next steps"));
+// 10 Next steps
+body.push(H1("10. Limits and next steps"));
 body.push(tcap("Open items, in order of value."));
 body.push(...table(["item", "needs", "what it would settle"], [
   ["calibrate the flow model on AM-Bench cases A–C", "GPU; ≤ 5 µm cells with a clean interface", "independent absorptivity; Marangoni model; pool shape over powder"],
@@ -377,13 +414,15 @@ body.push(...table(["item", "needs", "what it would settle"], [
   ["Mo (and minor-element) liquidus slopes from CALPHAD", "a thermodynamic database", "the Mo share of the freezing range"],
   ["preheating and part-scale heat in the CA thermal input", "couple the part-scale thermal model", "grain growth in hot, thin walls"],
   ["measured textures / EBSD of the gyroid builds", "experiment", "validation of §7.4"],
+  ["Level 1: HCP-fraction law (Olson–Cohen type) coupled to the plasticity", "the FCC/HCP free-energy difference; measured HCP fractions for calibration", "how much HCP forms, not only where it could start (Section 8)"],
+  ["in-situ diffraction during compression of a printed gyroid", "synchrotron or neutron beamtime", "HCP peaks and phase fractions against strain: validation of Section 8"],
 ], [3.6, 3.0, 3.4]));
-body.push(P("**Compute note.** This cloud machine is reclaimed when the session is idle, which interrupted long runs three times. Checkpointing and a restart script now make that cost at most one step, but multi-hour runs belong on a dedicated machine or GPU."));
+body.push(P("**Compute note.** This cloud machine is reclaimed when the session is idle, which interrupted long runs several times. Checkpointing and a restart script now make that cost at most one step, but multi-hour runs belong on a dedicated machine or GPU. The GPU path now runs: on an RTX 4070 SUPER the full test suite passes with CuPy, and a fused CUDA kernel runs the 3-D phase field 3.6× (float64) to 46× (float32) faster than 20 CPU cores."));
 
 // Appendix
 body.push(H1("Appendix A. Reproducing the results"));
 const cmds = [
-  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_phasefield3d.py tests/test_eds.py tests/test_grain_ca.py",
+  "pytest -q tests/test_freesurface.py tests/test_powder.py tests/test_defects.py tests/test_phasefield.py tests/test_phasefield3d.py tests/test_eds.py tests/test_fcc_faults.py tests/test_grain_ca.py",
   "python tools/lbm/freesurface_caseB.py marangoni 10",
   "python benchmarks/literature/porosity_maps.py run IN625 30 ; python benchmarks/literature/porosity_maps.py figure",
   "python benchmarks/literature/pf_path_trapping.py run <tag> ... ; ... report ; ... figure",
@@ -391,6 +430,7 @@ const cmds = [
   "python benchmarks/literature/nist_ambench2018_tracks_ca.py section ; ... run ; ... figure",
   "python benchmarks/literature/ca_multilayer.py run 90 480 1 ; ... run 67 480 1 ; ... figure",
   "python benchmarks/literature/cantor_gyroid_ca.py section ; ... run thin ; ... run thick ; ... run thin_a1 ; ... figure",
+  "python benchmarks/literature/cantor_gyroid_faults.py run ; FAULTS_VOX=0.05 python benchmarks/literature/cantor_gyroid_faults.py run",
 ];
 cmds.forEach((c) => body.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: c, font: "Consolas", size: 17 })] })));
 body.push(P("Results are stored as JSON and NPZ files in benchmarks/literature/results/; figures in docs/img/."));
