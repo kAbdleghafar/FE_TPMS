@@ -1,0 +1,72 @@
+{
+ "voxel_mm": 0.05,
+ "n_voxels": 298277,
+ "relative_density": 0.291,
+ "steps": [
+  {
+   "strain": 0.002,
+   "nominal_stress_MPa": 33.3,
+   "plastic_volume_frac": 0.001,
+   "frac_ca_360": 0.0001,
+   "frac_ca_240": 0.0004,
+   "byun_gamma_max": 18.2
+  },
+  {
+   "strain": 0.004,
+   "nominal_stress_MPa": 60.3,
+   "plastic_volume_frac": 0.07,
+   "frac_ca_360": 0.0108,
+   "frac_ca_240": 0.0493,
+   "byun_gamma_max": 19.6
+  },
+  {
+   "strain": 0.006,
+   "nominal_stress_MPa": 71.4,
+   "plastic_volume_frac": 0.193,
+   "frac_ca_360": 0.0353,
+   "frac_ca_240": 0.1417,
+   "byun_gamma_max": 21.4
+  },
+  {
+   "strain": 0.008,
+   "nominal_stress_MPa": 76.6,
+   "plastic_volume_frac": 0.281,
+   "frac_ca_360": 0.053899999999999997,
+   "frac_ca_240": 0.2109,
+   "byun_gamma_max": 22.5
+  },
+  {
+   "strain": 0.01,
+   "nominal_stress_MPa": 79.6,
+   "plastic_volume_frac": 0.35100000000000003,
+   "frac_ca_360": 0.0694,
+   "frac_ca_240": 0.2668,
+   "byun_gamma_max": 23.7
+  },
+  {
+   "strain": 0.0125,
+   "nominal_stress_MPa": 82.0,
+   "plastic_volume_frac": 0.42,
+   "frac_ca_360": 0.08529999999999999,
+   "frac_ca_240": 0.3226,
+   "byun_gamma_max": 24.9
+  },
+  {
+   "strain": 0.015,
+   "nominal_stress_MPa": 83.7,
+   "plastic_volume_frac": 0.47200000000000003,
+   "frac_ca_360": 0.0983,
+   "frac_ca_240": 0.36590000000000006,
+   "byun_gamma_max": 25.8
+  },
+  {
+   "strain": 0.02,
+   "nominal_stress_MPa": 86.0,
+   "plastic_volume_frac": 0.5479999999999999,
+   "frac_ca_360": 0.1189,
+   "frac_ca_240": 0.43,
+   "byun_gamma_max": 28.7
+  }
+ ],
+ "note": "Resolution check of cantor_gyroid_faults.py (FAULTS_VOX=0.05). The run was stopped by a container restart after the 2 % step; values transcribed from its log. Same model and orientations as the 0.1 mm run."
+}

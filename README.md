@@ -231,7 +231,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 
 * [docs/manual.md](docs/manual.md): **user manual**, how to perform every calculation, with tested examples
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
-* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping, 3-D multicomponent cells and synthetic EDS maps), surface roughness
+* [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping, 3-D multicomponent cells and synthetic EDS maps, where twins or HCP could start under compression), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/porosity_maps.md](docs/porosity_maps.md): porosity process maps (lack of fusion, keyhole) for IN625 (checked against Locatelli et al. 2026) and CoCrFeMnNi, and the risk through the gyroid

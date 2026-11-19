@@ -1246,3 +1246,115 @@ Random orientations give 10.2 %. The 20 µm starting grains give 22 µm.
     grain width where selection is strong.
   * Whether the CA reproduces the strong <001> fibre reported for LPBF CoCrFeMnNi needs 1 µm
     cells on the lattice: about 700 M cells per window, a GPU task.
+
+### 7.5 Under compression: where could twins or HCP start? (Level 0)
+
+**Question.** If the gyroid is compressed, where, and at what applied strain, can the local
+stress extend stacking faults? Extended faults are the common first step of deformation twins
+and of the stress-induced FCC → HCP transformation. This Level 0 says where either could
+start, not which one forms.
+
+**Method** (`benchmarks/literature/cantor_gyroid_faults.py`, `tpmsfem.post.fcc_faults`).
+* **Lattice.** The graded gyroid column of §7: 4 × 4 × 8 mm, walls 0.2 → 0.6 mm along x,
+  0.1 mm voxels, relative density 0.29. As designed: no build plate, no residual stress.
+* **Load.** Compression along the build direction between bonded platens, up to 3 % nominal
+  strain.
+* **Material.** As-built LPBF CoCrFeMnNi at room temperature, with J2 plasticity:
+  * E = 203 GPa (Laplanche et al. 2015);
+  * compressive yield 757 MPa (Kim et al. 2020);
+  * linear hardening 1500 MPa (assumed, as in the residual-stress study).
+* **Criterion.** In every element and for every grain orientation, the largest shear stress on
+  the 12 {111}⟨112⟩ systems of the leading Shockley partial (τ\*). A fault extends where τ\* ≥ τ_c.
+  * Each grain takes the stress of its element (a Sachs-type assumption).
+  * Only yielded elements count: nucleation needs active dislocation sources.
+* **Threshold.** τ_c = 360 MPa: the onset in the best-oriented grains (Schmid factor 0.5) at
+  the measured twinning stress of CoCrFeMnNi, 720 MPa at 77 K and 293 K (Laplanche et al.,
+  *Acta Mater.* 118 (2016) 152), with the same Sachs assumption.
+  * Lower thresholds stand for lower effective fault energies, in proportion: cryogenic
+    temperature, Mn/Fe-rich variants, or a thick HCP embryo (γ_SF − 2σ, Olson & Cohen 1976).
+  * A stricter bound lets both partials move freely (Byun 2003), with the measured γ_SF =
+    30 mJ/m² (Okamoto et al. 2016). It needs about twice the measured twinning stress.
+* **Orientations.** Volume-weighted samples (600 each) of the grain-CA textures of the thin-
+  and thick-wall windows (§7.4), compared with a random texture.
+* **Checks.**
+  * The criterion's Schmid factors reproduce the known twinning asymmetry of FCC single
+    crystals: [001] 0.47 in compression and 0.24 in tension; [111] 0.31 in tension and 0.16 in
+    compression (tests/test_fcc_faults.py).
+  * **Resolution.** A 0.05 mm run (298,000 voxels) was stopped by a container restart after the
+    2 % step. Up to 2 % it gives:
+    * the nominal stress within 2 %;
+    * 8–14 % more (relative) fault-prone volume at τ_c = 360 MPa: 6.9 % against 6.2 % at 1 %
+      strain, 11.9 % against 10.4 % at 2 %;
+    * at τ_c = 240 MPa, within 4–9 % and slightly lower: 43.0 % against 43.6 % at 2 %;
+    * a free-partials maximum of 28.7 mJ/m² against 22.5 at 2 %: thin-wall stress peaks are
+      under-resolved at 0.1 mm.
+    * Results in `results/cantor_gyroid_faults_vox0.05.json`.
+
+**Results** (0.1 mm voxels). Share of the lattice volume where faults can extend, counting
+only yielded material, with the CA textures:
+
+| nominal compressive strain | 0.4 % | 0.6 % | 1 % | 2 % | 3 % |
+|---|---:|---:|---:|---:|---:|
+| nominal stress [MPa] | 59 | 70 | 78 | 85 | 88 |
+| yielded volume | 8 % | 21 % | 39 % | 59 % | 69 % |
+| **τ_c = 360 MPa (CoCrFeMnNi twinning onset)** | **1.0 %** | **3.1 %** | **6.2 %** | **10.4 %** | **13.1 %** |
+| τ_c = 300 MPa (fault energy × 0.83) | 3.1 % | 8.7 % | 16.6 % | 26.5 % | 31.9 % |
+| τ_c = 240 MPa (× 0.67) | 5.4 % | 14.8 % | 27.8 % | 43.6 % | 51.7 % |
+| τ_c = 120 MPa (× 0.33) | 8.2 % | 21.4 % | 38.6 % | 58.7 % | 68.5 % |
+| free-partials bound, 30 mJ/m² | 0 | 0 | 0 | 0 | 0 |
+
+* **Free-partials bound.** The largest fault energy the stress overcomes under it is 18–24
+  mJ/m² at 0.1 mm, and 28.7 mJ/m² at 0.05 mm at 2 % strain.
+* **Texture.** The random texture gives the same fractions within 0.1 percentage points.
+* **Thin and thick walls.** Their halves differ by under 0.2 points.
+
+![Gyroid faults](img/cantor_gyroid_faults.png)
+
+**Reading the results.**
+* **Faults can extend as soon as the walls yield.**
+  * The as-built yield stress (757 MPa) is already above the measured twinning stress of wrought
+    CoCrFeMnNi (720 MPa). So grains with a leading-partial Schmid factor of at least 0.48 reach
+    τ_c as soon as their wall yields.
+  * Hardening then brings in less favourable grains.
+  * The fault-prone material follows the plastic zones: the bending hinges halfway along the
+    inclined wall segments, where plastic strain reaches about 7 % at 3 % nominal strain.
+  * At room temperature this predicts twinning-type faults in about 6 % of the lattice at 1 %
+    strain and 13 % at 3 %.
+* **What this says about HCP.** Level 0 does not decide between twins and HCP: that depends on
+  the FCC/HCP free-energy difference.
+  * The equiatomic alloy forms HCP only at hydrostatic pressures of order 10–20 GPa (Tracy et
+    al. 2017; Zhang et al. 2017), far above what a gyroid sees. So the faults here are most
+    likely twins.
+  * For an alloy or temperature with a third lower effective fault energy (a lower-SFE variant,
+    cryogenic loading, or a thick HCP embryo), the fault-prone volume rises four-fold: 28 % of
+    the lattice at 1 % strain, 52 % at 3 %.
+  * Below about a third of the room-temperature fault energy, every yielded region qualifies.
+    That is where a stress-induced FCC → HCP transformation in the gyroid becomes plausible.
+* **The strict free-partials bound gives almost no extended faults.**
+  * At 0.1 mm the local stresses never overcome more than 24 mJ/m², against the measured 30.
+  * At 0.05 mm the peaks reach 28.7 mJ/m² at 2 % strain, so a few hot spots may reach the bound
+    at finer resolution or larger strain.
+  * Either way the calibrated criterion, not this bound, matches the measured twinning stress.
+* **Texture and wall thickness hardly matter here.**
+  * In compression along the build direction, the thin-wall texture has more favourably
+    oriented grains: 28 % with a Schmid factor ≥ 0.45, against 25 % for random and 18 % for the
+    thick walls.
+  * But the walls are inclined and each is loaded along its own direction, so in the lattice the
+    texture effect averages out.
+  * The graded walls yield at the same nominal strains in both halves of the column.
+* **Limits.**
+  * Each grain takes the stress of its element: grain-to-grain stress differences need crystal
+    plasticity (Level 2).
+  * The hardening (1500 MPa) is assumed and controls how fast the fraction grows after onset.
+  * As-built residual stresses (median von Mises 584 MPa after removal from the plate, §7.2)
+    are not included. They would move the onset to lower applied strain where they add to
+    the load.
+  * The threshold is calibrated on wrought, coarse-grained CoCrFeMnNi. The LPBF cell structure,
+    dislocation density and Mn/Ni segregation may shift it.
+  * Room temperature only; compression along the build direction only; a column two cells tall
+    between bonded platens.
+* **Next.**
+  * Level 1: an Olson–Cohen kinetic law for the HCP fraction, coupled to the plasticity.
+  * The as-built residual state as the starting point.
+  * Measurement: in-situ synchrotron or neutron diffraction during compression, to look for HCP
+    peaks, with EBSD/TEM of interrupted samples.
