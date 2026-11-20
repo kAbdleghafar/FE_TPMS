@@ -152,8 +152,10 @@ def test_energy_conserved_with_flow_and_mass_carried_heat():
     assert abs(res.energy_residual) < 1e-2
 
 
-def test_numba_kernel_matches_array_version():
-    """The fused numba step gives the array version's result (to round-off)."""
+@pytest.mark.parametrize("cs", [0.0, 0.15])
+def test_numba_kernel_matches_array_version(cs):
+    """The fused numba step gives the array version's result (to round-off), with and without
+    the Smagorinsky sub-grid viscosity."""
     from tpmsfem.process import freesurface_kernels as K
 
     if not K.available():
@@ -163,7 +165,8 @@ def test_numba_kernel_matches_array_version():
     flag, fill = _droplet(n=20, r=5.0)
     out = {}
     for kern in ("array", "numba"):
-        s = FreeSurfaceLBM(flag, fill, tau=0.7, sigma=0.01, gravity=(0.0, 0.0, -1e-5))
+        s = FreeSurfaceLBM(flag, fill, tau=0.7 if cs == 0 else 0.502, sigma=0.01, gravity=(0.0, 0.0, -1e-4))
+        s.smagorinsky = cs
         s.kernel = kern
         s.h = np.where(fill > 0, 1.0 + np.arange(fill.size).reshape(fill.shape) % 7, 0.0)
         for _ in range(60):
@@ -174,3 +177,29 @@ def test_numba_kernel_matches_array_version():
     np.testing.assert_allclose(b.mass, a.mass, atol=1e-10)
     np.testing.assert_allclose(b.u, a.u, atol=1e-12)
     np.testing.assert_allclose(b.h, a.h, atol=1e-9)
+
+
+def test_smagorinsky_damps_an_underresolved_shear_layer():
+    """A shear wave four cells long at tau = 0.5005: the sub-grid viscosity damps this
+    unresolved scale strongly; a smooth, resolved wave hardly feels it; a resting fluid stays
+    at rest."""
+    def wave(cs, length, steps):
+        n = 16
+        s = FreeSurfaceLBM(np.full((n, 4, 4), LIQUID, np.int8), None, tau=0.5005)
+        s.smagorinsky = cs
+        x = np.arange(n) + 0.5
+        u = np.zeros((3, n, 4, 4))
+        u[1] = 0.05 * np.sin(2 * np.pi * x / length)[:, None, None]
+        s.u = u
+        s.f = s._feq(s.rho, s.u)
+        for _ in range(steps):
+            s.step()
+        return float(np.abs(asnumpy(s.u)[1]).max())
+
+    assert wave(0.17, 4, 300) < 0.5 * wave(0.0, 4, 300)                 # unresolved: damped
+    assert wave(0.17, 16, 100) > 0.97 * wave(0.0, 16, 100)              # resolved: nearly untouched
+    rest = FreeSurfaceLBM(np.full((8, 4, 4), LIQUID, np.int8), None, tau=0.5005)
+    rest.smagorinsky = 0.17
+    for _ in range(20):
+        rest.step()
+    assert float(np.abs(asnumpy(rest.u)).max()) < 1e-14

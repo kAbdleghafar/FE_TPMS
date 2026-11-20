@@ -36,7 +36,7 @@ if HAVE_NUMBA:
 
     @nb.njit(parallel=True, cache=True, fastmath=False)
     def stream_collide(f, flag, mass, eps, rho_g, u_prev, h, solid, Fext, K, g, wp, wm, u_limit, carry,
-                       C, W, OPP, f_out, rho_out, u_out, mass_out, E_in, M_in, M_out):
+                       C, W, OPP, f_out, rho_out, u_out, mass_out, E_in, M_in, M_out, itype, tau0, magic, cs):
         nx, ny, nz = flag.shape
         Q = C.shape[0]
         limited = 0
@@ -97,6 +97,15 @@ if HAVE_NUMBA:
                                 wgt = 0.5 * (ex_ + eps[ii, jj, kk])
                                 if sol and solid[ii, jj, kk]:
                                     wgt = 0.0
+                                # exchange rules after Thuerey: between cells of different type the
+                                # exchange runs one way only (no stray cells)
+                                a_t = itype[i, j, k]
+                                b_t = itype[ii, jj, kk]
+                                if a_t != b_t:
+                                    if a_t == 1 or b_t == 2:
+                                        ex = min(ex, 0.0)
+                                    else:
+                                        ex = max(ex, 0.0)
                             else:
                                 wgt = 0.0
                             dm += wgt * ex
@@ -145,6 +154,27 @@ if HAVE_NUMBA:
                     for q in range(Q):
                         cu = C[q, 0] * ux + C[q, 1] * uy + C[q, 2] * uz
                         feq[q] = W[q] * rho * (1.0 + 3.0 * cu + 4.5 * cu * cu - 1.5 * usq)
+                    wpc, wmc = wp, wm
+                    if cs > 0.0:
+                        # Smagorinsky: relaxation time from the non-equilibrium momentum flux
+                        pxx = 0.0
+                        pyy = 0.0
+                        pzz = 0.0
+                        pxy = 0.0
+                        pxz = 0.0
+                        pyz = 0.0
+                        for q in range(Q):
+                            nq = fs[q] - feq[q]
+                            pxx += C[q, 0] * C[q, 0] * nq
+                            pyy += C[q, 1] * C[q, 1] * nq
+                            pzz += C[q, 2] * C[q, 2] * nq
+                            pxy += C[q, 0] * C[q, 1] * nq
+                            pxz += C[q, 0] * C[q, 2] * nq
+                            pyz += C[q, 1] * C[q, 2] * nq
+                        pn = np.sqrt(pxx * pxx + pyy * pyy + pzz * pzz + 2.0 * (pxy * pxy + pxz * pxz + pyz * pyz))
+                        te = 0.5 * (tau0 + np.sqrt(tau0 * tau0 + 18.0 * np.sqrt(2.0) * cs * cs * pn / rho))
+                        wpc = 1.0 / te
+                        wmc = 1.0 / (magic / (te - 0.5) + 0.5)
                     for q in range(Q):
                         o = OPP[q]
                         fp = 0.5 * (fs[q] + fs[o])
@@ -155,8 +185,8 @@ if HAVE_NUMBA:
                         cu = C[q, 0] * ux + C[q, 1] * uy + C[q, 2] * uz
                         Sp = W[q] * (9.0 * cu * cF - 3.0 * uF)
                         Sm = W[q] * 3.0 * cF
-                        f_out[q, i, j, k] = (fs[q] - wp * (fp - ep) - wm * (fm - em)
-                                             + (1.0 - 0.5 * wp) * Sp + (1.0 - 0.5 * wm) * Sm)
+                        f_out[q, i, j, k] = (fs[q] - wpc * (fp - ep) - wmc * (fm - em)
+                                             + (1.0 - 0.5 * wpc) * Sp + (1.0 - 0.5 * wmc) * Sm)
                     rho_out[i, j, k] = rho
                     u_out[0, i, j, k] = ux
                     u_out[1, i, j, k] = uy

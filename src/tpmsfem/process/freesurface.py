@@ -111,11 +111,27 @@ class FreeSurfaceLBM:
         self.curvature_method = "gradient"
         self.hf_smooth = False             # average the height-function curvature over neighbouring interface cells (experimental)
         self.rebuild_normal = False    # also rebuild populations arriving from the gas side (Koerner); off: no gain here
+        # one-way mass exchange between interface cells of different type, after Thuerey (PhD
+        # thesis, Erlangen 2007, Table 4.1): a cell with no liquid neighbour may only lose mass to
+        # a standard one, a cell with no gas neighbour may only gain. Thuerey moves the whole
+        # population; here the usual exchange is clipped to that direction, which stays
+        # conservative and bounded (the full drain overdraws nearly empty cells and breaks the
+        # bounded heat transport). It keeps stray, nearly empty cells from growing (they spray
+        # off a keyhole wall under recoil). False: plain symmetric exchange.
+        self.interface_rules = True
+        # Smagorinsky constant of a sub-grid (LES) viscosity: the relaxation time of each cell
+        # grows with its non-equilibrium stress, tau = (tau0 + sqrt(tau0^2 + 18 sqrt(2) Cs^2
+        # |Pi_neq| / rho)) / 2 (Hou et al. 1996; Malaspinas & Sagaut 2012), TRT's odd rate
+        # following the magic parameter. Needed when the cell Reynolds number u dx / nu is far
+        # above ~10 (liquid Ti-6Al-4V at 20 m/s and 5 um: ~150), where the bare TRT blows up in
+        # the bulk melt. 0: off (default).
+        self.smagorinsky = 0.0
         self.steps = 0
 
     # ------------------------------------------------------------------ basics
     def set_tau(self, tau, magic=3.0 / 16.0):
         self.tau = float(tau)
+        self.magic = float(magic)
         self.w_plus = 1.0 / self.tau
         lam = magic / (self.tau - 0.5)
         self.w_minus = 1.0 / (lam + 0.5)
@@ -262,6 +278,7 @@ class FreeSurfaceLBM:
             return
         u = self.u
         eps = self.fill
+        itype = self._itype(flag, itf)
         # streaming (pull), wall bounce-back, gas reconstruction, mass exchange
         fs = xp.empty_like(f)
         dm = xp.zeros(self.shape, dtype=self.dtype)
@@ -282,6 +299,14 @@ class FreeSurfaceLBM:
             o = OPP[i]
             fi = xp.where(src == WALL, f[o], fi)
             ex = fi - f[o]                                   # mass exchange uses the streamed values
+            if self.interface_rules:
+                # between interface cells of different types: drain-only / fill-only (Thuerey)
+                a_t, b_t = itype, _roll(xp, itype, c)
+                one_way = (src == INTERFACE) & (a_t != b_t)
+                loss = (a_t == 1) | (b_t == 2)
+                ex_itf = xp.where(one_way, xp.where(loss, xp.minimum(ex, 0.0), xp.maximum(ex, 0.0)), ex)
+            else:
+                ex_itf = ex
             # rebuild what comes from the gas, and (Koerner 2005) everything arriving from the
             # gas side of the interface, so the gas pressure acts evenly on a staircase surface
             cn = C[i, 0] * nrm[0] + C[i, 1] * nrm[1] + C[i, 2] * nrm[2]
@@ -295,10 +320,10 @@ class FreeSurfaceLBM:
             wgt = xp.where(src == LIQUID, 1.0, xp.where(src == INTERFACE, 0.5 * (eps + src_eps), 0.0))
             if self.solid is not None:                 # touching solid interface cells (cold powder): nothing
                 wgt = xp.where(self.solid & _roll(xp, self.solid, c) & (src == INTERFACE), 0.0, wgt)
-            dm += xp.where(itf, wgt * ex, 0.0)
+            dm += xp.where(itf, wgt * ex_itf, 0.0)
             if carry:
                 # mass through this link: weighted for interface cells, full for liquid cells
-                J = xp.where(itf, wgt * ex, xp.where(liq & ((src == LIQUID) | (src == INTERFACE)), ex, 0.0))
+                J = xp.where(itf, wgt * ex_itf, xp.where(liq & ((src == LIQUID) | (src == INTERFACE)), ex, 0.0))
                 Jp = xp.maximum(J, 0.0)
                 M_in += Jp
                 E_in += Jp * _roll(xp, self.h, c)
@@ -330,6 +355,18 @@ class FreeSurfaceLBM:
         # TRT collision with Guo forcing
         feq = self._feq(rho, u)
         wp, wm = self.w_plus, self.w_minus
+        if self.smagorinsky > 0.0:
+            # non-equilibrium momentum flux, its norm, and the cell's relaxation rates
+            neq = fs - feq
+            P = {}
+            for a in range(3):
+                for b in range(a, 3):
+                    P[a, b] = sum(float(C[i, a] * C[i, b]) * neq[i] for i in range(Q) if C[i, a] * C[i, b] != 0)
+            Pn = xp.sqrt(P[0, 0] ** 2 + P[1, 1] ** 2 + P[2, 2] ** 2 + 2.0 * (P[0, 1] ** 2 + P[0, 2] ** 2 + P[1, 2] ** 2))
+            t0 = self.tau
+            te = 0.5 * (t0 + xp.sqrt(t0 * t0 + 18.0 * np.sqrt(2.0) * self.smagorinsky ** 2 * Pn / rho))
+            wp = 1.0 / te
+            wm = 1.0 / (self.magic / (te - 0.5) + 0.5)
         uF = u[0] * F[0] + u[1] * F[1] + u[2] * F[2]
         out = xp.empty_like(fs)
         for i in range(Q):
@@ -349,6 +386,16 @@ class FreeSurfaceLBM:
         self._convert()
         self.steps += 1
 
+    def _itype(self, flag, itf):
+        """Interface cell type for the exchange rules: 0 standard, 1 no liquid neighbour,
+        2 no gas neighbour (int8; zero everywhere when the rules are off)."""
+        xp = self.xp
+        if not self.interface_rules:
+            return xp.zeros(self.shape, dtype=np.int8)
+        no_liq = itf & ~self._any_nb(flag == LIQUID)
+        no_gas = itf & ~self._any_nb(flag == GAS)
+        return xp.where(no_liq, 1, xp.where(no_gas, 2, 0)).astype(np.int8)
+
     def _step_numba(self, flag, fluid, itf, rho_g):
         """The same step as the array version, fused into one numba pass per cell."""
         from .freesurface_kernels import stream_collide
@@ -367,7 +414,8 @@ class FreeSurfaceLBM:
                                np.ascontiguousarray(rho_g), self.u, h, np.ascontiguousarray(solid),
                                np.ascontiguousarray(force), np.ascontiguousarray(damp), self.g.astype(np.float64),
                                self.w_plus, self.w_minus, float(self.u_limit or 0.0), carry, C, W, OPP,
-                               f_out, rho, u, mass, E_in, M_in, M_out)
+                               f_out, rho, u, mass, E_in, M_in, M_out, np.ascontiguousarray(self._itype(flag, itf)),
+                               self.tau, self.magic, float(self.smagorinsky))
         self.limited = max(self.limited, int(n_lim))
         self.f, self.rho, self.u, self.mass = f_out, rho, u, mass
         if carry:

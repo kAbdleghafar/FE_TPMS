@@ -83,6 +83,7 @@ def build(args):
         md.bubble_every = args.bubble_every
     if args.recoil_cap is not None:
         md.recoil_cap = args.recoil_cap
+    md.lbm.smagorinsky = args.smagorinsky
     y = dx + 0.5 * ly
     path = [ScanVector(dx + args.lead, y, dx + args.lead + args.track, y, v)]
     z_surf = (npl + 1) * dx
@@ -111,6 +112,7 @@ def main():
     ap.add_argument("--bubble-every", type=int, default=10)
     ap.add_argument("--k-over-n", type=float, default=1.0)
     ap.add_argument("--recoil-cap", type=float, default=None)
+    ap.add_argument("--smagorinsky", type=float, default=0.15, help="sub-grid (LES) constant; 0: off")
     ap.add_argument("--no-bubbles", action="store_true")
     ap.add_argument("--checkpoint", type=float, default=20.0, help="minutes between checkpoints")
     ap.add_argument("--backend", default=None)
