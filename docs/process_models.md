@@ -889,7 +889,10 @@ The phase field is 15–22 % below the measured mean. Candidate causes:
 * **No keyhole physics.** With a 70 µm spot at 200 W the absorbed intensity is about
   36 kW/mm², and the conduction model caps the surface only at about 5400 °C. It has no
   keyhole, recoil pressure or Marangoni flow, so peak temperatures are not physical. The
-  fusion-boundary G and R follow from the overall energy balance.
+  fusion-boundary G and R follow from the overall energy balance. The keyhole scaling laws
+  of Gan et al., checked on X-ray data ([keyhole.md](keyhole.md)), put this point in keyhole
+  mode: about 190 µm deep (Ke 14.8), against the 54 µm conduction pool. The cells and
+  segregation here describe the upper pool; the pool root needs the keyhole flow model.
 * **Uncalibrated inputs.** Absorptivity, layer thickness and the property data are not
   calibrated for CoCrFeMnNi.
 * **Simplified solidification model.** The phase field is 2-D, and the alloy is treated as

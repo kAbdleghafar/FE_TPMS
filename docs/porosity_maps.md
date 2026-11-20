@@ -26,7 +26,11 @@ TPMS lattice?
    * keyhole above 6;
    * keyhole fluctuations small and almost no porosity below Ke ≈ 16; chaotic above ≈ 30.
 
-   Properties are taken at 700 °C.
+   Properties are taken at 700 °C, with the fixed absorptivity of the melt-pool model. Gan et
+   al. fitted their thresholds with liquid properties at the liquidus and a process
+   absorptivity that rises in the keyhole. The analysis on that consistent scale is in
+   [keyhole.md](keyhole.md). It supersedes the Ke values below and puts this machine's spot
+   radius at 40–46 µm.
 
 Tests: `tests/test_defects.py`. They check the criterion, the limits of the unfused fraction
 (for very wide pools it is exactly (L − D)/L), and the scaling of Ke.

@@ -835,21 +835,39 @@ From melt-pool width W and depth D (D measured from the top of the powder layer)
 and layer L:
 * **Lack of fusion.** The criterion of Tang et al. (2017), (h/W)² + (L/D)² ≤ 1 for full
   fusion, and the geometric unfused fraction.
-* **Keyholes.** The keyhole number Ke of Gan et al. (2021): conduction below ~1.4, keyhole
-  above ~6, pores likely above ~16–30.
+* **Keyholes.** The scaling laws of Gan et al. (2021), checked on 71 X-ray keyhole depths in
+  Ti-6Al-4V (RMSE 17 µm): the keyhole number Ke, the process absorptivity, the keyhole depth
+  and its fluctuation, the regime (conduction ≤ 1.4 < transition ≤ 6 < keyhole) and the
+  stability (stable ≤ 16 < intermediate ≤ 30 < chaotic). Use liquid properties at the liquidus
+  and the flat-melt absorptivity η_m (Ti-6Al-4V 0.26, SS316 0.33); the thresholds hold only
+  with that convention.
 
 ```python
-from tpmsfem.process.defects import keyhole_number, lof_criterion, lof_porosity, volumetric_energy_density
+from tpmsfem.process.defects import lof_criterion, lof_porosity, volumetric_energy_density
 
 W, D, hatch, layer = 97.0, 54.0, 85.0, 30.0           # um (W, D from a melt-pool run with powder)
 print(f"criterion {lof_criterion(W, D, hatch, layer):.2f}, unfused {100 * lof_porosity(W, D, hatch, layer, cv=0.1, samples=4):.2f} %")
-Ke = keyhole_number(P=200.0, v=0.75, absorptivity=0.35, radius=35e-6, rho=7980.0, cp=600.0,
-                    T_l=1340.0, T0=80.0, alpha=5e-6)   # SI
-print(f"Ke = {Ke:.1f}; VED = {volumetric_energy_density(200.0, 0.75, 85e-6, 30e-6) / 1e9:.0f} J/mm^3")
+print(f"VED = {volumetric_energy_density(200.0, 0.75, 85e-6, 30e-6) / 1e9:.0f} J/mm^3")
 ```
 
-Full process maps over power and speed come from `benchmarks/literature/porosity_maps.py`.
-Validation against Locatelli et al. (2026) is in [porosity_maps.md](porosity_maps.md).
+Keyhole depth and stability over power and speed (SI units; liquid properties at the liquidus):
+
+```python
+import numpy as np
+from tpmsfem.process.defects import keyhole_state
+
+P, v = np.meshgrid([150.0, 200.0, 300.0], [0.5, 1.0], indexing="ij")     # W, m/s
+st = keyhole_state(P, v, 35e-6, eta_min=0.33, rho=7980.0, cp=642.0, alpha=26.9 / (7980.0 * 642.0),
+                   T_l=1340.0, T0=80.0)                                    # CoCrFeMnNi, r0 35 um
+print(np.round(st["Ke"], 1))                  # keyhole number with the process absorptivity st["eta"]
+print(np.round(1e6 * st["depth"]))            # keyhole depth [um]; st["depth_min"], st["depth_max"]: fluctuation
+print(st["regime"], st["stability"], sep="\n")
+```
+
+Full process maps over power and speed come from `benchmarks/literature/porosity_maps.py`
+(lack of fusion) and `benchmarks/literature/keyhole_maps.py` (keyholes). Validation against
+Locatelli et al. (2026) is in [porosity_maps.md](porosity_maps.md); against X-ray keyhole
+depths, and the maps for IN625 and the gyroid, in [keyhole.md](keyhole.md).
 
 ---
 

@@ -163,6 +163,13 @@ four independent groups and compares them:
   stresses bring the onset forward: 6.5 times the fault-prone volume at 0.4 % strain, 1.25 times at 3 %. How much HCP forms (§7.6, Level 1a): in a gyroid of the
   metastable Fe50Mn30Co10Cr10, an Olson–Cohen law fitted to LPBF EBSD data gives 2–3.5 % HCP on average at 5 %
   compression (0.94 % as built), but 8–12 % in the bending hinges.
+* **Gan et al. 2021** (Nat. Commun., keyhole scaling laws; operando X-ray data): from power, speed and spot
+  alone, the keyhole depths of 71 Ti-6Al-4V tracks (15–445 µm) are predicted with RMSE 17 µm (R² 0.98).
+  The law fitted to Al6061 and SS316 only predicts Ti-6Al-4V just as well. Applied to IN625, the Ke 16 pore
+  threshold reproduces all 10 outcomes of Locatelli et al. 2026 for a spot radius of 40–46 µm. The
+  CoCrFeMnNi gyroid's 200 W, 0.75 m/s point runs in keyhole mode, about 190 µm deep (Ke 14.8). Heat
+  accumulation pushes it past Ke 16 near 155 °C (about 11 mm up); a 45 µm spot keeps it stable
+  ([docs/keyhole.md](docs/keyhole.md)).
 * **Kasperovich et al. 2021** (LPBF IN718 roughness vs build angle): the surface model reproduces the
   upskin, vertical and downskin Sa after fitting three powder-adhesion parameters. It then predicts
   26 µm area-weighted Sa for a gyroid implant cell, dominated by its 30 % downskin area.
@@ -238,6 +245,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/porosity_maps.md](docs/porosity_maps.md): porosity process maps (lack of fusion, keyhole) for IN625 (checked against Locatelli et al. 2026) and CoCrFeMnNi, and the risk through the gyroid
+* [docs/keyhole.md](docs/keyhole.md): keyhole depth, fluctuation and stability (Gan et al. 2021 laws checked on 71 X-ray keyhole depths in Ti-6Al-4V), maps for IN625 and the CoCrFeMnNi gyroid, and the plan for keyhole dynamics
 * [docs/freesurface_lbm.md](docs/freesurface_lbm.md): our free-surface lattice Boltzmann melt pool (powder-scale LPBF, GPU-ready): method, verification, AM-Bench case B
 * [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
 
