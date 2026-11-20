@@ -134,7 +134,7 @@ def main():
         row["open_below"], row["open_below_cells"] = open_gas_reaches(m.lbm.flag, k_slab)
         b = m.bubbles
         row["bubbles"] = [dict(volume_um3=x["volume"] * (dx * 1e6) ** 3, centroid_um=[c * dx * 1e6 for c in x["centroid"]],
-                               frozen=x["frozen"], pressure=x["pressure"]) for x in b.bubbles]
+                               frozen=x["frozen"], pore=x["pore"], pressure=x["pressure"]) for x in b.bubbles]
         row["formed"], row["released"] = b.formed, b.released
         row.update(T_max=float(m.T.max()), limited=int(m.lbm.limited), recoil_clipped=int(m.recoil_clipped),
                    mass=float(m.lbm.total_mass()), wall_s=time.time() - t_wall[0])
@@ -143,7 +143,7 @@ def main():
         if len(log) % 10 == 0:
             print(f"t {t * 1e6:7.1f} us  depth {row.get('depth', float('nan')) * 1e6:6.1f} um  "
                   f"open below {row.get('open_below')} ({row.get('open_below_cells', 0)} cells)  "
-                  f"pores {len(row['bubbles'])} (frozen {sum(x['frozen'] for x in row['bubbles'])})  "
+                  f"bubbles {len(row['bubbles'])} (pores {sum(x['pore'] for x in row['bubbles'])})  "
                   f"T_max {row['T_max']:6.0f} C  lim {row['limited']}  ({row['wall_s']:.0f} s)", flush=True)
         if time.time() - t_wall[1] > 60.0 * a.checkpoint:
             md.save_state(ck)

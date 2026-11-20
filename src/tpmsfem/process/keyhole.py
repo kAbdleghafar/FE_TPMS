@@ -20,7 +20,9 @@
   overlap: merging bubbles add their gas, a splitting bubble shares it by volume, a bubble
   that reopens to the ambient gas releases it. The pressure difference to ambient acts on the
   interface cells around each bubble, so a collapsing keyhole tip leaves a gas pore that
-  resists closing and can be frozen in.
+  resists closing and can be frozen in. Each bubble keeps the hottest wall temperature it has
+  seen (``T_wall_hist``); ``pore`` marks a frozen bubble whose walls were molten at some time:
+  a pore made by the melt, not a void sealed between cold powder particles.
 * **Diagnostics** (:func:`keyhole_metrics`): depression depth below the original surface,
   front-wall angle and opening on the beam axis, and the bubbles (pores) with their sizes.
 
@@ -317,6 +319,7 @@ class BubbleModel:
         self.bubbles = []             # list of dicts: id, volume [cells], V0, pressure [Pa], centroid [cells]
         self.released = 0             # bubbles that reopened to the ambient gas
         self.formed = 0
+        self.hot = {}                 # id -> hottest metal ever seen around it (inherited through merges/splits)
 
     def update(self, flag, fill, T=None, T_solidus=None):
         """Relabel the gas, follow the bubbles and return the pressure difference to ambient on
@@ -367,12 +370,16 @@ class BubbleModel:
             for b, n in zip(B, cnt):
                 tot[b] = tot.get(b, 0) + n
             seen = set()
+            hot_new = np.full(nlab + 1, -np.inf)
             for l_, b, n in zip(L, B, cnt):
                 if b in self.content:
                     content_new[l_] += self.content[b] * n / tot[b]
+                    hot_new[l_] = max(hot_new[l_], self.hot.get(int(b), -np.inf))
                     seen.add(b)
                     if amb_h[l_]:
                         self.released += 1
+        else:
+            hot_new = np.full(nlab + 1, -np.inf)
         # new bubbles (no gas from an old one): born at ambient pressure
         enclosed = ~amb_h & (ncell_h >= self.min_cells)
         born = enclosed & (content_new <= 0.0)
@@ -397,6 +404,8 @@ class BubbleModel:
             lab_w, T_w = asnumpy(nb_lab[sel]), asnumpy(T[sel])
             T_wall = np.full(nlab + 1, -np.inf)
             np.maximum.at(T_wall, lab_w, T_w)
+            hot_new = np.maximum(hot_new, np.where(np.isfinite(T_wall), T_wall, -np.inf))
+        self.hot = {int(ids_reg[i]): float(hot_new[i]) for i in idx}
         # bubble list with centroids
         self.bubbles = []
         if idx.size:
@@ -405,11 +414,15 @@ class BubbleModel:
             cen = [asnumpy(xp.bincount(lr, weights=coords[a].ravel().astype(float), minlength=nlab + 1)) for a in range(3)]
             for i in idx:
                 tw = float(T_wall[i])
+                th = float(hot_new[i])
+                frozen = bool(T_solidus is not None and np.isfinite(tw) and tw < T_solidus)
                 self.bubbles.append(dict(id=int(ids_reg[i]), volume=float(vol_h[i]), V0=float(content_new[i]),
                                          pressure=float(p[i]), cells=int(ncell_h[i]),
                                          centroid=[float(cen[a][i] / max(ncell_h[i], 1)) + 0.5 for a in range(3)],
-                                         T_wall_max=tw,
-                                         frozen=bool(T_solidus is not None and np.isfinite(tw) and tw < T_solidus)))
+                                         T_wall_max=tw, T_wall_hist=th, frozen=frozen,
+                                         # a pore: frozen in after its walls were molten (not a sealed void
+                                         # between cold powder particles)
+                                         pore=bool(frozen and T_solidus is not None and th >= T_solidus)))
         # pressure difference on the interface cells around each bubble
         dpr = xp.asarray(dp_reg)
         dp_gas = dpr[lab]

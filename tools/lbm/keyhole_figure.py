@@ -32,7 +32,7 @@ def summarise(path):
     ft = np.array([r.get("front_tan", np.nan) for r in log])
     last = d["log"][-1]
     pores = last.get("bubbles", [])
-    frozen = [b for b in pores if b.get("frozen")]
+    frozen = [b for b in pores if b.get("pore", b.get("frozen"))]       # frozen in after being molten
     track_mm = 1e3 * float(x.max() - x.min()) if x.size else float("nan")
     from tpmsfem.process import defects as DF
     import ti64_material as TM
@@ -246,7 +246,7 @@ def closure_summary(path):
     formed = np.array([r.get("bubbles_formed", r.get("formed", 0)) for r in log])
     events = t[1:][np.diff(formed) > 0] - t_ref
     last = log[-1].get("bubbles", [])
-    frozen = [b for b in last if b.get("frozen")]
+    frozen = [b for b in last if b.get("pore", b.get("frozen"))]
     return dict(path=path, case=d["case"] if "case" in d else "overhang", scenario=scen, P=d["P"], v=d["v"],
                 t=t - t_ref, depth=dep, events=events, formed=int(formed[-1]) if formed.size else 0,
                 pores=len(last), frozen=len(frozen),
@@ -272,7 +272,7 @@ def closure_figure(paths, out=None, sections_of=None, times=(0.0, 10e-6, 25e-6, 
                           top=0.8, bottom=0.14)
     ax = fig.add_subplot(gs[0])
     for r, c in zip(runs, cols):
-        lab = f"{r['case']} {r['scenario']}: {r['frozen']} frozen pore(s)"
+        lab = f"{r['case']} {r['scenario']}: {r['frozen']} pore(s)"
         ax.plot(1e6 * r["t"], 1e6 * r["depth"], color=c, lw=1.4, label=lab)
         for e in r["events"]:
             ax.axvline(1e6 * e, color=c, lw=0.6, ls=":")
@@ -316,7 +316,74 @@ def closure_figure(paths, out=None, sections_of=None, times=(0.0, 10e-6, 25e-6, 
                for k, v in r.items() if k not in ("t", "depth")})
 
 
+def overhang_figure(path, times=(60e-6, 95e-6, 110e-6, 150e-6), out=None):
+    """A keyhole in a slab over powder: centreline sections before, at and after the
+    break-through, the depth and the opening into the powder over time, and the melt-pool
+    boundary (peak temperature at the liquidus) reaching into the powder."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    MUTED, GRID, BLUE, ORANGE = "#52514e", "#e4e3df", "#2a78d6", "#eb6834"
+    d = json.load(open(path))
+    z = np.load(path.replace(".json", "_sections.npz"))
+    fin = np.load(path.replace(".json", "_final.npz"))
+    dx, zs, zb = d["dx"], d["z_surface"], d["z_slab_bottom"]
+    log = d["log"]
+    t = np.array([r["t"] for r in log])
+    n = len(times)
+    fig = plt.figure(figsize=(4.0 * n + 5.0, 4.4))
+    gs = fig.add_gridspec(1, n + 1, width_ratios=[1] * n + [1.35], wspace=0.28, left=0.035, right=0.97, top=0.8,
+                          bottom=0.14)
+    jc = int(round(d["y"] / dx))
+    for k, tw in enumerate(times):
+        i = int(np.argmin(np.abs(z["t"] - tw)))
+        ax = fig.add_subplot(gs[k])
+        f = z["fill"][i].astype(float).T
+        T = z["T"][i].astype(float).T
+        ext = [0, f.shape[1] * dx * 1e6, 0, f.shape[0] * dx * 1e6]
+        ax.imshow(np.where(f > 0.01, T, np.nan), origin="lower", cmap="inferno", vmin=25, vmax=4000, extent=ext,
+                  interpolation="nearest")
+        ax.contour((np.arange(f.shape[1]) + 0.5) * dx * 1e6, (np.arange(f.shape[0]) + 0.5) * dx * 1e6, f, [0.5],
+                   colors=["#4fd1e8"], linewidths=0.8)
+        ax.axhline(zb * 1e6, color="white", lw=0.8, ls="--")
+        r = log[int(np.argmin(np.abs(t - z["t"][i])))]
+        st = "open into the powder" if r.get("open_below") else "closed"
+        ax.set_title(f"({'abcdef'[k]}) {z['t'][i] * 1e6:.0f} µs: {r.get('depth', 0) * 1e6:.0f} µm, {st}", fontsize=9,
+                     loc="left")
+        ax.set_xlabel("x [µm] (dashed: slab bottom)", fontsize=8)
+        ax.set_ylabel("z [µm]", fontsize=8)
+        ax.tick_params(labelsize=7, colors=MUTED)
+    ax = fig.add_subplot(gs[n])
+    ax.plot(1e6 * t, [1e6 * r.get("depth", np.nan) for r in log], color=BLUE, lw=1.5, label="keyhole depth")
+    ax.axhline(1e6 * (zs - zb), color=BLUE, lw=0.8, ls="--", label=f"slab thickness {1e6 * (zs - zb):.0f} µm")
+    ax.set_xlabel("time [µs]", fontsize=8.5)
+    ax.set_ylabel("depth [µm]", fontsize=8.5, color=BLUE)
+    ax.grid(True, color=GRID, lw=0.6)
+    ax.tick_params(labelsize=7.5, colors=MUTED)
+    ax2 = ax.twinx()
+    ax2.semilogy(1e6 * t, [max(r.get("open_below_cells", 0), 0.5) for r in log], color=ORANGE, lw=1.0,
+                 label="open gas cells under the slab")
+    ax2.set_ylim(0.5, 2e4)
+    ax2.set_ylabel("keyhole gas under the slab [cells]", fontsize=8.5, color=ORANGE)
+    ax2.tick_params(labelsize=7.5, colors=ORANGE)
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=7, frameon=False, loc="upper left")
+    ax.set_title(f"({'abcdef'[n]}) break-through; melted powder {d['dross_um3'] / 1e3:.0f}e3 µm³, "
+                 f"{d['dross_depth_um']:.0f} µm deep", fontsize=9, loc="left")
+    fig.suptitle(f"Open keyhole: CoCrFeMnNi slab {1e6 * d['slab']:.0f} µm thick over powder, gyroid settings "
+                 f"({d['P']:.0f} W, {d['v']} m/s, r0 {1e6 * d['r0']:.0f} µm, {1e6 * dx:g} µm cells); centreline sections, "
+                 f"cyan: metal surface", fontsize=10, x=0.02, ha="left")
+    out = out or os.path.join(HERE, "..", "..", "docs", "img", "keyhole_overhang.png")
+    fig.savefig(out, dpi=140)
+    print("wrote", out)
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "overhang":
+        overhang_figure(sys.argv[2])
+        sys.exit()
     if len(sys.argv) > 2 and sys.argv[1] == "closure":
         closure_figure(sys.argv[2:])
         sys.exit()

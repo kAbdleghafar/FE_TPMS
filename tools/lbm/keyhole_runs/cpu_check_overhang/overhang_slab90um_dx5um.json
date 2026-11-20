@@ -1,0 +1,7329 @@
+{
+ "P": 200.0,
+ "v": 0.75,
+ "r0": 3.5e-05,
+ "eta_m": 0.33,
+ "dx": 5e-06,
+ "dt": 2e-08,
+ "shape": [
+  42,
+  32,
+  52
+ ],
+ "slab": 9e-05,
+ "powder": 8e-05,
+ "base": 3e-05,
+ "T0": 80.0,
+ "z_slab_bottom": 0.000115,
+ "z_surface": 0.000205,
+ "y": 7.999999999999999e-05,
+ "powder_packing": 0.45855266182800597,
+ "particles": 101,
+ "melt": {
+  "sigma": 1.8,
+  "dsigma_dT": -0.00011,
+  "viscosity": 0.005
+ },
+ "log": [
+  {
+   "t": 1.0000000000000006e-06,
+   "x_l": 5.5742500000000004e-05,
+   "laser_on": true,
+   "depth": 3.431833331510488e-10,
+   "x_bottom": 4.675750000000001e-05,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 2.223376898986395e-10,
+   "n_bubbles": 4,
+   "bubble_volume": 8.033836572045827e-15,
+   "bubble_d_eq": [
+    1.5048121066680756e-05,
+    1.3727254344975864e-05,
+    1.9066931355104702e-05,
+    1.3421010394605696e-05
+   ],
+   "ray_absorbed": 0.3293280668322865,
+   "ray_escaped_top": 0.6678401531439414,
+   "ray_escaped_side": 0.0028317800237720424,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9979541735763684,
+   "ray_first_cos": 0.9998181984673921,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1784.207875728442,
+     "centroid_um": [
+      102.50000000000001,
+      127.50000000000001,
+      59.16666666666668
+     ],
+     "frozen": true,
+     "pressure": 96784.41562981438
+    },
+    {
+     "volume_um3": 1354.4084792832728,
+     "centroid_um": [
+      140.00000000000003,
+      132.50000000000003,
+      80.0
+     ],
+     "frozen": true,
+     "pressure": 101265.25577868067
+    },
+    {
+     "volume_um3": 3629.451784381803,
+     "centroid_um": [
+      157.5,
+      79.64285714285715,
+      86.78571428571429
+     ],
+     "frozen": true,
+     "pressure": 109428.29445941983
+    },
+    {
+     "volume_um3": 1265.768432652307,
+     "centroid_um": [
+      182.50000000000003,
+      34.166666666666664,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101260.34516694414
+    }
+   ],
+   "formed": 6,
+   "released": 2,
+   "T_max": 1269.7671367326095,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518505,
+   "wall_s": 6.879964351654053
+  },
+  {
+   "t": 2.0000000000000008e-06,
+   "x_l": 5.64925e-05,
+   "laser_on": true,
+   "depth": 5.931069111048733e-09,
+   "x_bottom": 1.0075e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 5.931069111048733e-09,
+   "n_bubbles": 3,
+   "bubble_volume": 7.206903184975356e-15,
+   "bubble_d_eq": [
+    1.4987475786924677e-05,
+    1.4198426826440554e-05,
+    1.9604984086924614e-05
+   ],
+   "ray_absorbed": 0.3294740911189157,
+   "ray_escaped_top": 0.6678401719262651,
+   "ray_escaped_side": 0.00268573695481914,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9983860728372139,
+   "ray_first_cos": 0.9997628680406931,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1762.7231401697195,
+     "centroid_um": [
+      102.50000000000001,
+      130.00000000000003,
+      60.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 97964.06065098988
+    },
+    {
+     "volume_um3": 1498.7158664745843,
+     "centroid_um": [
+      140.83333333333337,
+      132.50000000000003,
+      80.83333333333333
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 3945.4641783310494,
+     "centroid_um": [
+      156.25,
+      80.0,
+      85.62500000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 12,
+   "released": 9,
+   "T_max": 2057.6131830132294,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518488,
+   "wall_s": 13.804442882537842
+  },
+  {
+   "t": 2.999999999999991e-06,
+   "x_l": 5.724249999999999e-05,
+   "laser_on": true,
+   "depth": 1.657993978591561e-07,
+   "x_bottom": 2.5750000000000897e-07,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 1.657993978591561e-07,
+   "n_bubbles": 2,
+   "bubble_volume": 8.56728825460424e-15,
+   "bubble_d_eq": [
+    2.0191036282857002e-05,
+    2.0108473191721498e-05
+   ],
+   "ray_absorbed": 0.32959544242456706,
+   "ray_escaped_top": 0.6678401724539657,
+   "ray_escaped_side": 0.0025643851214670428,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9987359918719111,
+   "ray_first_cos": 0.9997036247227346,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4309.972011676862,
+     "centroid_um": [
+      108.86363636363637,
+      45.227272727272734,
+      67.04545454545455
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 4257.316242927374,
+     "centroid_um": [
+      153.33333333333337,
+      79.16666666666667,
+      86.66666666666667
+     ],
+     "frozen": true,
+     "pressure": 95962.95100703236
+    }
+   ],
+   "formed": 18,
+   "released": 15,
+   "T_max": 2926.8606229629568,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851847,
+   "wall_s": 20.69569420814514
+  },
+  {
+   "t": 3.999999999999982e-06,
+   "x_l": 5.799249999999999e-05,
+   "laser_on": true,
+   "depth": 1.81793665754608e-06,
+   "x_bottom": -4.924999999999889e-07,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 1.803052098894246e-06,
+   "n_bubbles": 3,
+   "bubble_volume": 6.519135235176953e-15,
+   "bubble_d_eq": [
+    1.563990521550549e-05,
+    1.402281648411598e-05,
+    1.8036519078902957e-05
+   ],
+   "ray_absorbed": 0.32958696117091585,
+   "ray_escaped_top": 0.6682733771317179,
+   "ray_escaped_side": 0.002139661697366278,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9987359918719111,
+   "ray_first_cos": 0.9985726689915377,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2003.092350609955,
+     "centroid_um": [
+      105.50000000000001,
+      126.50000000000001,
+      57.5
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 1443.7911445661305,
+     "centroid_um": [
+      120.00000000000001,
+      30.000000000000004,
+      92.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 3072.2517400008664,
+     "centroid_um": [
+      153.21428571428572,
+      118.92857142857143,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 24,
+   "released": 19,
+   "T_max": 3692.4653569080515,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518454,
+   "wall_s": 27.46405792236328
+  },
+  {
+   "t": 4.9999999999999725e-06,
+   "x_l": 5.874249999999998e-05,
+   "laser_on": true,
+   "depth": 4.757639583482322e-06,
+   "x_bottom": -1.24249999999998e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 4.757639583482322e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 2.0209064088607916e-15,
+   "bubble_d_eq": [
+    1.5686131794413604e-05
+   ],
+   "ray_absorbed": 0.3298026745470339,
+   "ray_escaped_top": 0.668509113762213,
+   "ray_escaped_side": 0.001688211690752906,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9990174278530773,
+   "ray_first_cos": 0.9802714906572313,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2020.906408860791,
+     "centroid_um": [
+      45.0,
+      77.5,
+      60.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 29,
+   "released": 26,
+   "T_max": 3414.184618321021,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185184375,
+   "wall_s": 34.46453285217285
+  },
+  {
+   "t": 5.999999999999963e-06,
+   "x_l": 5.949249999999997e-05,
+   "laser_on": true,
+   "depth": 4.9331632286527774e-06,
+   "x_bottom": 3.0075000000000284e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 4.919464445283622e-06,
+   "n_bubbles": 2,
+   "bubble_volume": 6.05321717726925e-15,
+   "bubble_d_eq": [
+    1.8910707135766792e-05,
+    1.6866361241723377e-05
+   ],
+   "ray_absorbed": 0.33004087181849273,
+   "ray_escaped_top": 0.6682658753365228,
+   "ray_escaped_side": 0.0016932528449843615,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9990174278530773,
+   "ray_first_cos": 0.9609850039066794,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 3540.96740467388,
+     "centroid_um": [
+      93.50000000000001,
+      31.5,
+      107.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2512.249772595368,
+     "centroid_um": [
+      146.5,
+      31.5,
+      85.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 133406.64740495585
+    }
+   ],
+   "formed": 34,
+   "released": 29,
+   "T_max": 3379.119572392205,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518421,
+   "wall_s": 41.61201620101929
+  },
+  {
+   "t": 6.999999999999953e-06,
+   "x_l": 6.0242499999999964e-05,
+   "laser_on": true,
+   "depth": 4.873492755301046e-06,
+   "x_bottom": 7.257500000000037e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 4.873492755301046e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 4.375902038019941e-15,
+   "bubble_d_eq": [
+    2.0293470424605117e-05
+   ],
+   "ray_absorbed": 0.33025514239353754,
+   "ray_escaped_top": 0.6684171896165826,
+   "ray_escaped_side": 0.0013276679898798177,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9992429013206169,
+   "ray_first_cos": 0.9521733284697209,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4375.90203801994,
+     "centroid_um": [
+      133.92857142857144,
+      44.64285714285715,
+      73.92857142857144
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 39,
+   "released": 35,
+   "T_max": 3379.119572392205,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518403,
+   "wall_s": 48.74272179603577
+  },
+  {
+   "t": 7.999999999999944e-06,
+   "x_l": 6.099249999999996e-05,
+   "laser_on": true,
+   "depth": 4.832740676370819e-06,
+   "x_bottom": 1.1507500000000038e-05,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 4.8276579980454e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 1.561650279141766e-15,
+   "bubble_d_eq": [
+    1.4394449274739952e-05
+   ],
+   "ray_absorbed": 0.33046013471287866,
+   "ray_escaped_top": 0.6595675392697639,
+   "ray_escaped_side": 0.009972326017357418,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9994225383545182,
+   "ray_first_cos": 0.9477394999320522,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1561.6502791417656,
+     "centroid_um": [
+      105.0,
+      126.25,
+      58.75000000000001
+     ],
+     "frozen": true,
+     "pressure": 106479.74967854582
+    }
+   ],
+   "formed": 45,
+   "released": 41,
+   "T_max": 3539.51866830338,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518387,
+   "wall_s": 55.69230103492737
+  },
+  {
+   "t": 8.999999999999934e-06,
+   "x_l": 6.174249999999995e-05,
+   "laser_on": true,
+   "depth": 4.7228251732289814e-06,
+   "x_bottom": -4.2424999999999446e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 4.677704818482247e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 1.6738315409873087e-15,
+   "bubble_d_eq": [
+    1.4731185838834879e-05
+   ],
+   "ray_absorbed": 0.3303060163413637,
+   "ray_escaped_top": 0.6686583008905166,
+   "ray_escaped_side": 0.0010356827681197959,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 0.9994225383545182,
+   "ray_first_cos": 0.9533405041573859,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1673.831540987308,
+     "centroid_um": [
+      103.33333333333334,
+      125.83333333333334,
+      58.333333333333336
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 49,
+   "released": 45,
+   "T_max": 3940.6567126967248,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185183705,
+   "wall_s": 62.96806263923645
+  },
+  {
+   "t": 9.999999999999925e-06,
+   "x_l": 6.249249999999995e-05,
+   "laser_on": true,
+   "depth": 9.6695539884726e-06,
+   "x_bottom": -4.992499999999949e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 9.6695539884726e-06,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.33192410105287434,
+   "ray_escaped_top": 0.6632476630991055,
+   "ray_escaped_side": 0.004828235848020107,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.005997663996906,
+   "ray_first_cos": 0.9482357415437832,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 52,
+   "released": 48,
+   "T_max": 3955.89332291193,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518354,
+   "wall_s": 69.96046900749207
+  },
+  {
+   "t": 1.0999999999999915e-05,
+   "x_l": 6.324249999999994e-05,
+   "laser_on": true,
+   "depth": 9.793695174432958e-06,
+   "x_bottom": -7.424999999999408e-07,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 9.793695174432958e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 1.6673682601457066e-15,
+   "bubble_d_eq": [
+    1.4712200534415481e-05
+   ],
+   "ray_absorbed": 0.33969827365000227,
+   "ray_escaped_top": 0.6201627628229978,
+   "ray_escaped_side": 0.040138963526999964,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.0343426906486255,
+   "ray_first_cos": 0.9219118810906887,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1667.368260145706,
+     "centroid_um": [
+      102.50000000000001,
+      126.25,
+      58.75000000000001
+     ],
+     "frozen": true,
+     "pressure": 92980.07897561506
+    }
+   ],
+   "formed": 54,
+   "released": 49,
+   "T_max": 3955.89332291193,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518337,
+   "wall_s": 76.91756010055542
+  },
+  {
+   "t": 1.1999999999999905e-05,
+   "x_l": 6.399249999999993e-05,
+   "laser_on": true,
+   "depth": 9.423879853826564e-06,
+   "x_bottom": 3.5075000000000676e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 9.278079544525333e-06,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.3496756964600275,
+   "ray_escaped_top": 0.6133167652603013,
+   "ray_escaped_side": 0.03700753827967106,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.0764090262537387,
+   "ray_first_cos": 0.9079722483836719,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 57,
+   "released": 53,
+   "T_max": 3955.89332291193,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851832,
+   "wall_s": 83.95167422294617
+  },
+  {
+   "t": 1.2999999999999896e-05,
+   "x_l": 6.474249999999992e-05,
+   "laser_on": true,
+   "depth": 9.41314639627054e-06,
+   "x_bottom": 7.757500000000076e-06,
+   "front_tan": NaN,
+   "opening": NaN,
+   "centre_depth": 9.41314639627054e-06,
+   "n_bubbles": 1,
+   "bubble_volume": 4.3733373778533776e-15,
+   "bubble_d_eq": [
+    2.028950506874613e-05
+   ],
+   "ray_absorbed": 0.36150687484546706,
+   "ray_escaped_top": 0.5960531467939458,
+   "ray_escaped_side": 0.04243997836058695,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.1268787670804628,
+   "ray_first_cos": 0.89311509248364,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4373.337377853376,
+     "centroid_um": [
+      106.25000000000001,
+      27.5,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 63,
+   "released": 58,
+   "T_max": 4252.181979175936,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185183036,
+   "wall_s": 90.99516892433167
+  },
+  {
+   "t": 1.3999999999999886e-05,
+   "x_l": 6.549249999999992e-05,
+   "laser_on": true,
+   "depth": 1.0828982780725289e-05,
+   "x_bottom": -7.992499999999914e-06,
+   "front_tan": 0.773239964845605,
+   "opening": 5.5e-05,
+   "centre_depth": 1.0828982780725289e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.327299391114415e-15,
+   "bubble_d_eq": [
+    2.166886484422625e-05
+   ],
+   "ray_absorbed": 0.3440905306833907,
+   "ray_escaped_top": 0.6088962148379639,
+   "ray_escaped_side": 0.04701325447864546,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.0525933496227053,
+   "ray_first_cos": 0.90860260534819,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5327.299391114414,
+     "centroid_um": [
+      135.5769230769231,
+      75.57692307692308,
+      72.5
+     ],
+     "frozen": true,
+     "pressure": 96100.07621827125
+    }
+   ],
+   "formed": 69,
+   "released": 64,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518287,
+   "wall_s": 98.07939338684082
+  },
+  {
+   "t": 1.4999999999999877e-05,
+   "x_l": 6.62424999999999e-05,
+   "laser_on": true,
+   "depth": 1.4762616500580436e-05,
+   "x_bottom": -3.7424999999999053e-06,
+   "front_tan": 0.4276046066615459,
+   "opening": 5.5e-05,
+   "centre_depth": 1.4762616500580436e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.33985683025461566,
+   "ray_escaped_top": 0.6402985357528719,
+   "ray_escaped_side": 0.019844633992512378,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.032578270569898,
+   "ray_first_cos": 0.8893201112774253,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 72,
+   "released": 68,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518271,
+   "wall_s": 105.29632019996643
+  },
+  {
+   "t": 1.5999999999999867e-05,
+   "x_l": 6.699249999999991e-05,
+   "laser_on": true,
+   "depth": 1.4823143939808413e-05,
+   "x_bottom": -4.49249999999991e-06,
+   "front_tan": 0.9561764896810563,
+   "opening": 5e-05,
+   "centre_depth": 1.4768729364000014e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 2.294652961621717e-15,
+   "bubble_d_eq": [
+    1.6364627731032713e-05
+   ],
+   "ray_absorbed": 0.37025399293790046,
+   "ray_escaped_top": 0.5696020824270888,
+   "ray_escaped_side": 0.060143924635010795,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.1539153773196311,
+   "ray_first_cos": 0.870061190542274,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2294.6529616217167,
+     "centroid_um": [
+      45.0,
+      75.0,
+      62.5
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 78,
+   "released": 73,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518255,
+   "wall_s": 112.28951692581177
+  },
+  {
+   "t": 1.6999999999999858e-05,
+   "x_l": 6.77424999999999e-05,
+   "laser_on": true,
+   "depth": 1.4972768235378583e-05,
+   "x_bottom": 4.757500000000098e-06,
+   "front_tan": NaN,
+   "opening": 5.5e-05,
+   "centre_depth": 1.4958343733998e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 6.878756530783357e-15,
+   "bubble_d_eq": [
+    1.488103443573618e-05,
+    2.143036697781347e-05
+   ],
+   "ray_absorbed": 0.4048599786882272,
+   "ray_escaped_top": 0.5712322105788193,
+   "ray_escaped_side": 0.02390781073295348,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.3136249690299637,
+   "ray_first_cos": 0.8614573527157816,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1725.4325526296204,
+     "centroid_um": [
+      102.50000000000001,
+      125.50000000000001,
+      58.5
+     ],
+     "frozen": true,
+     "pressure": 102610.08496477501
+    },
+    {
+     "volume_um3": 5153.323978153734,
+     "centroid_um": [
+      137.8571428571429,
+      76.42857142857143,
+      71.42857142857143
+     ],
+     "frozen": true,
+     "pressure": 103225.6143251719
+    }
+   ],
+   "formed": 83,
+   "released": 76,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185182374,
+   "wall_s": 118.70838236808777
+  },
+  {
+   "t": 1.7999999999999848e-05,
+   "x_l": 6.84924999999999e-05,
+   "laser_on": true,
+   "depth": 1.55575159580433e-05,
+   "x_bottom": 4.007500000000107e-06,
+   "front_tan": 1.0515812282004262,
+   "opening": 5.5e-05,
+   "centre_depth": 1.55575159580433e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 4.459794522105101e-15,
+   "bubble_d_eq": [
+    1.4864216248052475e-05,
+    1.7361803495129703e-05
+   ],
+   "ray_absorbed": 0.4106818820116944,
+   "ray_escaped_top": 0.5694180223375755,
+   "ray_escaped_side": 0.019900095650730202,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.335639076889018,
+   "ray_first_cos": 0.8555137308640406,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1719.5890345315006,
+     "centroid_um": [
+      100.83333333333334,
+      127.50000000000001,
+      59.16666666666668
+     ],
+     "frozen": true,
+     "pressure": 101879.3883635368
+    },
+    {
+     "volume_um3": 2740.2054875736,
+     "centroid_um": [
+      154.16666666666669,
+      117.50000000000001,
+      89.16666666666667
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 86,
+   "released": 79,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185182214,
+   "wall_s": 125.7885890007019
+  },
+  {
+   "t": 1.899999999999984e-05,
+   "x_l": 6.924249999999988e-05,
+   "laser_on": true,
+   "depth": 1.8491728972617224e-05,
+   "x_bottom": -6.742499999999883e-06,
+   "front_tan": 0.6144737717368803,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 1.7803829641832954e-05,
+   "n_bubbles": 3,
+   "bubble_volume": 5.887546416744597e-15,
+   "bubble_d_eq": [
+    1.48816144124301e-05,
+    1.3320652716435429e-05,
+    1.7742266364205734e-05
+   ],
+   "ray_absorbed": 0.39564136607245337,
+   "ray_escaped_top": 0.5628824315334174,
+   "ray_escaped_side": 0.041476202394129115,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.2693424936484743,
+   "ray_first_cos": 0.8526715081406089,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1725.634302650602,
+     "centroid_um": [
+      102.50000000000001,
+      126.25,
+      57.5
+     ],
+     "frozen": true,
+     "pressure": 101522.48295343824
+    },
+    {
+     "volume_um3": 1237.5852940623197,
+     "centroid_um": [
+      140.00000000000003,
+      135.0,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2924.326820031674,
+     "centroid_um": [
+      155.5,
+      117.50000000000001,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 89,
+   "released": 81,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518204,
+   "wall_s": 132.71553111076355
+  },
+  {
+   "t": 1.999999999999983e-05,
+   "x_l": 6.999249999999988e-05,
+   "laser_on": true,
+   "depth": 2.0201849564977875e-05,
+   "x_bottom": -7.4924999999998745e-06,
+   "front_tan": 0.5714671120131141,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.0181795809975375e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 6.885779916483459e-15,
+   "bubble_d_eq": [
+    2.1624353960425303e-05,
+    1.448480172003172e-05
+   ],
+   "ray_absorbed": 0.42632426059828094,
+   "ray_escaped_top": 0.5065724729767028,
+   "ray_escaped_side": 0.06710326642501623,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.3865068142648778,
+   "ray_first_cos": 0.8266515460756587,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5294.537722804406,
+     "centroid_um": [
+      135.71428571428572,
+      76.42857142857143,
+      72.14285714285715
+     ],
+     "frozen": true,
+     "pressure": 104205.9515782359
+    },
+    {
+     "volume_um3": 1591.2421936790504,
+     "centroid_um": [
+      139.5,
+      135.5,
+      84.5
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 93,
+   "released": 86,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518188,
+   "wall_s": 139.58233904838562
+  },
+  {
+   "t": 2.099999999999982e-05,
+   "x_l": 7.074249999999987e-05,
+   "laser_on": true,
+   "depth": 1.9605229502725946e-05,
+   "x_bottom": -1.3242499999999865e-05,
+   "front_tan": 0.9286514506812662,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 1.957430540107952e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.42740365178063167,
+   "ray_escaped_top": 0.4920024378154711,
+   "ray_escaped_side": 0.08059391040389714,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.399242687805416,
+   "ray_first_cos": 0.819570260962999,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 93,
+   "released": 88,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518171,
+   "wall_s": 146.216623544693
+  },
+  {
+   "t": 2.199999999999981e-05,
+   "x_l": 7.149249999999986e-05,
+   "laser_on": true,
+   "depth": 2.08250968860906e-05,
+   "x_bottom": 1.0075000000001424e-06,
+   "front_tan": 1.1419484191645484,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.08250968860906e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.1438089564322555e-15,
+   "bubble_d_eq": [
+    2.1417169280164954e-05
+   ],
+   "ray_absorbed": 0.4431743902750324,
+   "ray_escaped_top": 0.5291073223522004,
+   "ray_escaped_side": 0.0277182873727672,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.4873315094085189,
+   "ray_first_cos": 0.8142554009712248,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5143.8089564322545,
+     "centroid_um": [
+      138.33333333333334,
+      77.5,
+      70.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 95,
+   "released": 89,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185181545,
+   "wall_s": 152.99636673927307
+  },
+  {
+   "t": 2.29999999999998e-05,
+   "x_l": 7.224249999999985e-05,
+   "laser_on": true,
+   "depth": 2.3132129191884846e-05,
+   "x_bottom": -4.742499999999848e-06,
+   "front_tan": 1.144324718083835,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.3132129191884846e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.7511690723383945e-15,
+   "bubble_d_eq": [
+    1.4954657994757626e-05
+   ],
+   "ray_absorbed": 0.4372073138257056,
+   "ray_escaped_top": 0.5379884584661554,
+   "ray_escaped_side": 0.024804227708138987,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.4570773931291903,
+   "ray_first_cos": 0.8092527150067986,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1751.1690723383942,
+     "centroid_um": [
+      102.50000000000001,
+      127.50000000000001,
+      58.75000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 101,
+   "released": 95,
+   "T_max": 4883.692900787064,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185181384,
+   "wall_s": 160.0547387599945
+  },
+  {
+   "t": 2.399999999999979e-05,
+   "x_l": 7.299249999999984e-05,
+   "laser_on": true,
+   "depth": 2.5182406346816415e-05,
+   "x_bottom": -1.0492499999999839e-05,
+   "front_tan": 1.060342351925306,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.495061936041797e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.7925867224421524e-15,
+   "bubble_d_eq": [
+    1.5071640194965235e-05
+   ],
+   "ray_absorbed": 0.47593669132226435,
+   "ray_escaped_top": 0.5039990552755226,
+   "ray_escaped_side": 0.02006425340221303,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.6103035186351113,
+   "ray_first_cos": 0.7815638504907254,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1792.5867224421522,
+     "centroid_um": [
+      103.21428571428572,
+      126.78571428571429,
+      58.214285714285715
+     ],
+     "frozen": true,
+     "pressure": 99238.90377960699
+    }
+   ],
+   "formed": 103,
+   "released": 97,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518122,
+   "wall_s": 167.08135104179382
+  },
+  {
+   "t": 2.499999999999978e-05,
+   "x_l": 7.374249999999984e-05,
+   "laser_on": true,
+   "depth": 2.476921497913457e-05,
+   "x_bottom": -1.1242499999999844e-05,
+   "front_tan": 0.9683749273348593,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.4624333797942493e-05,
+   "n_bubbles": 3,
+   "bubble_volume": 6.567765029675102e-15,
+   "bubble_d_eq": [
+    1.5574820836055593e-05,
+    1.4736941079750734e-05,
+    1.772091472468389e-05
+   ],
+   "ray_absorbed": 0.48876961112148604,
+   "ray_escaped_top": 0.49060167945017846,
+   "ray_escaped_side": 0.020628709428335532,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.6761430366693966,
+   "ray_first_cos": 0.7734195972139415,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1978.1890827965967,
+     "centroid_um": [
+      119.16666666666667,
+      92.50000000000001,
+      84.16666666666666
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 1675.794125930365,
+     "centroid_um": [
+      139.16666666666666,
+      134.16666666666669,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 101378.29641357104
+    },
+    {
+     "volume_um3": 2913.7818209481384,
+     "centroid_um": [
+      155.5,
+      115.50000000000001,
+      88.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 108,
+   "released": 100,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518105,
+   "wall_s": 174.07297825813293
+  },
+  {
+   "t": 2.599999999999977e-05,
+   "x_l": 7.449249999999984e-05,
+   "laser_on": true,
+   "depth": 2.5046578079131117e-05,
+   "x_bottom": -6.992499999999835e-06,
+   "front_tan": 1.0941866253538843,
+   "opening": 6.000000000000001e-05,
+   "centre_depth": 2.448758477363911e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 1.0752968862523167e-14,
+   "bubble_d_eq": [
+    2.187324033386495e-05,
+    2.1595682687482506e-05
+   ],
+   "ray_absorbed": 0.4864382415610054,
+   "ray_escaped_top": 0.4786194366887795,
+   "ray_escaped_side": 0.03494232175021515,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.6789074840556473,
+   "ray_first_cos": 0.7734789679998635,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5479.462975695302,
+     "centroid_um": [
+      103.65384615384616,
+      25.961538461538463,
+      84.03846153846153
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 5273.505886827862,
+     "centroid_um": [
+      136.0,
+      79.50000000000001,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 99317.99749327653
+    }
+   ],
+   "formed": 113,
+   "released": 106,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518089,
+   "wall_s": 180.93811464309692
+  },
+  {
+   "t": 2.6999999999999762e-05,
+   "x_l": 7.524249999999983e-05,
+   "laser_on": true,
+   "depth": 2.7384808100121657e-05,
+   "x_bottom": -7.742499999999826e-06,
+   "front_tan": 1.1776537783409633,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 2.7384808100121657e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 7.412672924154951e-15,
+   "bubble_d_eq": [
+    1.51474056294734e-05,
+    2.202317301203918e-05
+   ],
+   "ray_absorbed": 0.4793139344881007,
+   "ray_escaped_top": 0.48426841455483527,
+   "ray_escaped_side": 0.0364176509570639,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.6511262205569057,
+   "ray_first_cos": 0.7738008476876073,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1819.7569582979693,
+     "centroid_um": [
+      102.50000000000001,
+      125.0,
+      57.5
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 5592.91596585698,
+     "centroid_um": [
+      156.73076923076925,
+      121.73076923076924,
+      80.96153846153847
+     ],
+     "frozen": true,
+     "pressure": 44593.97025034454
+    }
+   ],
+   "formed": 117,
+   "released": 110,
+   "T_max": 5023.135069983641,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518073,
+   "wall_s": 187.78354287147522
+  },
+  {
+   "t": 2.7999999999999752e-05,
+   "x_l": 7.599249999999982e-05,
+   "laser_on": true,
+   "depth": 2.9612529687540723e-05,
+   "x_bottom": -1.3492499999999817e-05,
+   "front_tan": 1.181794325150967,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 2.9612529687540723e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.7975308057247235e-15,
+   "bubble_d_eq": [
+    1.5085483698667298e-05
+   ],
+   "ray_absorbed": 0.5066860346239894,
+   "ray_escaped_top": 0.4747289878796465,
+   "ray_escaped_side": 0.018584977496363977,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.745321169818319,
+   "ray_first_cos": 0.7526737463168509,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1797.5308057247228,
+     "centroid_um": [
+      103.33333333333334,
+      125.83333333333334,
+      58.333333333333336
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 122,
+   "released": 116,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518056,
+   "wall_s": 194.80728435516357
+  },
+  {
+   "t": 2.8999999999999743e-05,
+   "x_l": 7.674249999999981e-05,
+   "laser_on": true,
+   "depth": 2.8620509154340414e-05,
+   "x_bottom": -1.4242499999999808e-05,
+   "front_tan": 1.3030607939284347,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 2.8620509154340414e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.6775571730736493e-15,
+   "bubble_d_eq": [
+    1.4742107349922785e-05
+   ],
+   "ray_absorbed": 0.4985988542206693,
+   "ray_escaped_top": 0.4888701351798168,
+   "ray_escaped_side": 0.012531010599513883,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.7144054142155867,
+   "ray_first_cos": 0.7482978694741226,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1677.557173073649,
+     "centroid_um": [
+      139.16666666666666,
+      134.16666666666669,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 100059.08176666372
+    }
+   ],
+   "formed": 126,
+   "released": 120,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185180395,
+   "wall_s": 201.78932452201843
+  },
+  {
+   "t": 2.9999999999999733e-05,
+   "x_l": 7.74924999999998e-05,
+   "laser_on": true,
+   "depth": 2.9275135433501077e-05,
+   "x_bottom": -4.9924999999998e-06,
+   "front_tan": 1.0729078297367083,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 2.9104071085430712e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.6214248964384393e-15,
+   "bubble_d_eq": [
+    1.4575811335131415e-05
+   ],
+   "ray_absorbed": 0.5066558359050205,
+   "ray_escaped_top": 0.4803297450473211,
+   "ray_escaped_side": 0.013014419047658458,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.768355543762538,
+   "ray_first_cos": 0.7456251126134652,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1621.4248964384387,
+     "centroid_um": [
+      138.5,
+      134.50000000000003,
+      85.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 130,
+   "released": 124,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185180235,
+   "wall_s": 208.66675186157227
+  },
+  {
+   "t": 3.0999999999999805e-05,
+   "x_l": 7.824249999999986e-05,
+   "laser_on": true,
+   "depth": 3.188881515530452e-05,
+   "x_bottom": -1.0742499999999859e-05,
+   "front_tan": 1.1818811382576955,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 3.188881515530452e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.98158100953656e-15,
+   "bubble_d_eq": [
+    1.5583717607015887e-05
+   ],
+   "ray_absorbed": 0.5073363829352922,
+   "ray_escaped_top": 0.45987612528422583,
+   "ray_escaped_side": 0.03278749178048201,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.7833009812732126,
+   "ray_first_cos": 0.7415044439926106,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1981.5810095365596,
+     "centroid_um": [
+      102.50000000000001,
+      127.50000000000001,
+      55.833333333333336
+     ],
+     "frozen": true,
+     "pressure": 101236.66627889205
+    }
+   ],
+   "formed": 134,
+   "released": 128,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518518007,
+   "wall_s": 215.6669671535492
+  },
+  {
+   "t": 3.1999999999999965e-05,
+   "x_l": 7.899249999999997e-05,
+   "laser_on": true,
+   "depth": 3.446453428561708e-05,
+   "x_bottom": -1.649249999999997e-05,
+   "front_tan": 1.2601585852650716,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 3.4299887767643935e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.099320904092325e-15,
+   "bubble_d_eq": [
+    2.1355245756778553e-05
+   ],
+   "ray_absorbed": 0.5345933064269094,
+   "ray_escaped_top": 0.4270859259329367,
+   "ray_escaped_side": 0.03832076764015374,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.8936537264474143,
+   "ray_first_cos": 0.727053140666624,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5099.320904092323,
+     "centroid_um": [
+      138.0263157894737,
+      78.81578947368422,
+      69.86842105263158
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 139,
+   "released": 133,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517991,
+   "wall_s": 222.46727871894836
+  },
+  {
+   "t": 3.3000000000000125e-05,
+   "x_l": 7.97425000000001e-05,
+   "laser_on": true,
+   "depth": 3.437059613753797e-05,
+   "x_bottom": -1.2242500000000098e-05,
+   "front_tan": 1.6513320116804298,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 3.357064511491802e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.5222306212538496,
+   "ray_escaped_top": 0.43509894323941595,
+   "ray_escaped_side": 0.042670435506734584,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.848699268943329,
+   "ray_first_cos": 0.7195208806191573,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 144,
+   "released": 139,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517974,
+   "wall_s": 229.2537980079651
+  },
+  {
+   "t": 3.4000000000000284e-05,
+   "x_l": 8.049250000000021e-05,
+   "laser_on": true,
+   "depth": 3.491226767792549e-05,
+   "x_bottom": -7.992500000000212e-06,
+   "front_tan": 1.4825922127318347,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 3.490661544174934e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.746592040051749e-15,
+   "bubble_d_eq": [
+    2.085104192082169e-05
+   ],
+   "ray_absorbed": 0.5287860297210183,
+   "ray_escaped_top": 0.44576645605451276,
+   "ray_escaped_side": 0.025447514224468826,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.8813267907667477,
+   "ray_first_cos": 0.7084322244718245,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4746.592040051748,
+     "centroid_um": [
+      105.22727272727275,
+      27.954545454545457,
+      86.13636363636364
+     ],
+     "frozen": true,
+     "pressure": 106888.43262358624
+    }
+   ],
+   "formed": 148,
+   "released": 142,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517957,
+   "wall_s": 236.29211950302124
+  },
+  {
+   "t": 3.5000000000000444e-05,
+   "x_l": 8.124250000000034e-05,
+   "laser_on": true,
+   "depth": 3.8142175236545044e-05,
+   "x_bottom": -1.3742500000000338e-05,
+   "front_tan": 1.4345173317668027,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 3.8142175236545044e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.7218155319146436e-15,
+   "bubble_d_eq": [
+    1.4870628800603964e-05
+   ],
+   "ray_absorbed": 0.5266120054400462,
+   "ray_escaped_top": 0.4591352572331674,
+   "ray_escaped_side": 0.014252737326786384,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.8714440828710661,
+   "ray_first_cos": 0.7007104537844517,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 1721.815531914643,
+     "centroid_um": [
+      102.50000000000001,
+      125.83333333333334,
+      59.16666666666668
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 151,
+   "released": 145,
+   "T_max": 5065.481882393778,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517941,
+   "wall_s": 243.30571818351746
+  },
+  {
+   "t": 3.6000000000000604e-05,
+   "x_l": 8.199250000000047e-05,
+   "laser_on": true,
+   "depth": 4.0192871559639845e-05,
+   "x_bottom": -1.9492500000000464e-05,
+   "front_tan": 1.3962874190019685,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 4.014083910181744e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.5491321195049711,
+   "ray_escaped_top": 0.4371228980923071,
+   "ray_escaped_side": 0.01374498240272168,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 1.9550519669751594,
+   "ray_first_cos": 0.681046463481086,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 154,
+   "released": 149,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185179245,
+   "wall_s": 250.5890989303589
+  },
+  {
+   "t": 3.7000000000000764e-05,
+   "x_l": 8.274250000000058e-05,
+   "laser_on": true,
+   "depth": 4.068350213541584e-05,
+   "x_bottom": -2.0242500000000577e-05,
+   "front_tan": 1.1261225817450513,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 4.01319696628701e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.7741816158765676e-15,
+   "bubble_d_eq": [
+    2.0891362807458776e-05
+   ],
+   "ray_absorbed": 0.5643822247141916,
+   "ray_escaped_top": 0.4199524158435881,
+   "ray_escaped_side": 0.01566535944222026,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.067579578892219,
+   "ray_first_cos": 0.6769217752759434,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4774.181615876566,
+     "centroid_um": [
+      105.83333333333334,
+      27.5,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 107752.10029065449
+    }
+   ],
+   "formed": 156,
+   "released": 150,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185179085,
+   "wall_s": 257.20914244651794
+  },
+  {
+   "t": 3.8000000000000924e-05,
+   "x_l": 8.349250000000069e-05,
+   "laser_on": true,
+   "depth": 4.320274767157325e-05,
+   "x_bottom": -2.099250000000069e-05,
+   "front_tan": 1.1308865462116593,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 4.216811104679828e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.5729700301769962,
+   "ray_escaped_top": 0.41230678101382834,
+   "ray_escaped_side": 0.014723188809175367,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.1286323237269387,
+   "ray_first_cos": 0.6740192818270946,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 157,
+   "released": 152,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185178925,
+   "wall_s": 263.77419900894165
+  },
+  {
+   "t": 3.9000000000001083e-05,
+   "x_l": 8.424250000000082e-05,
+   "laser_on": true,
+   "depth": 4.445647008769263e-05,
+   "x_bottom": -1.6742500000000818e-05,
+   "front_tan": 1.101075686515366,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 4.445647008769263e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.349811037313422e-15,
+   "bubble_d_eq": [
+    2.169934409759243e-05
+   ],
+   "ray_absorbed": 0.5744716694244381,
+   "ray_escaped_top": 0.40114362783118696,
+   "ray_escaped_side": 0.02438470274437496,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.122500019823601,
+   "ray_first_cos": 0.6668271033819831,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5349.8110373134205,
+     "centroid_um": [
+      137.76315789473688,
+      78.55263157894737,
+      69.60526315789474
+     ],
+     "frozen": true,
+     "pressure": 100362.25675079938
+    }
+   ],
+   "formed": 162,
+   "released": 156,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517876,
+   "wall_s": 270.7275764942169
+  },
+  {
+   "t": 4.000000000000124e-05,
+   "x_l": 8.499250000000095e-05,
+   "laser_on": true,
+   "depth": 4.4069720722707305e-05,
+   "x_bottom": -1.7492500000000944e-05,
+   "front_tan": 1.5441331130057845,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 4.4069720722707305e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 7.283246828006346e-15,
+   "bubble_d_eq": [
+    2.404965230642717e-05
+   ],
+   "ray_absorbed": 0.5705920535811886,
+   "ray_escaped_top": 0.4083333117222702,
+   "ray_escaped_side": 0.021074634696541267,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.1073817297832362,
+   "ray_first_cos": 0.6687312359631634,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 7283.246828006344,
+     "centroid_um": [
+      119.64285714285714,
+      131.7857142857143,
+      80.71428571428571
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 166,
+   "released": 160,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851786,
+   "wall_s": 277.7219789028168
+  },
+  {
+   "t": 4.10000000000014e-05,
+   "x_l": 8.574250000000104e-05,
+   "laser_on": true,
+   "depth": 4.31581224416943e-05,
+   "x_bottom": -1.8242500000001044e-05,
+   "front_tan": 2.0703136274374714,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 4.2298760418035824e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.5868793334513639,
+   "ray_escaped_top": 0.38862106406077473,
+   "ray_escaped_side": 0.024499602487861254,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.2402170579466083,
+   "ray_first_cos": 0.6767055541173719,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 169,
+   "released": 164,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517843,
+   "wall_s": 284.9123270511627
+  },
+  {
+   "t": 4.200000000000156e-05,
+   "x_l": 8.649250000000117e-05,
+   "laser_on": true,
+   "depth": 4.5311911423489795e-05,
+   "x_bottom": -1.899250000000117e-05,
+   "front_tan": 1.7149394601929457,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 4.5311911423489795e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.0096991864052274e-15,
+   "bubble_d_eq": [
+    2.1229397825787713e-05
+   ],
+   "ray_absorbed": 0.5774265481244949,
+   "ray_escaped_top": 0.4015644501840103,
+   "ray_escaped_side": 0.021009001691494684,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.1695760047383605,
+   "ray_first_cos": 0.6675909997912131,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5009.699186405226,
+     "centroid_um": [
+      103.05555555555556,
+      27.5,
+      84.16666666666666
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 173,
+   "released": 167,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517827,
+   "wall_s": 291.88570189476013
+  },
+  {
+   "t": 4.300000000000172e-05,
+   "x_l": 8.72425000000013e-05,
+   "laser_on": true,
+   "depth": 4.861762216180004e-05,
+   "x_bottom": -1.9742500000001297e-05,
+   "front_tan": 1.6941700780037454,
+   "opening": 7.500000000000001e-05,
+   "centre_depth": 4.861762216180004e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 1.017215417474872e-14,
+   "bubble_d_eq": [
+    2.1251224034525988e-05,
+    2.142157984215547e-05
+   ],
+   "ray_absorbed": 0.5848123073833247,
+   "ray_escaped_top": 0.386625915431986,
+   "ray_escaped_side": 0.02856177718468936,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.2013625237348307,
+   "ray_first_cos": 0.6635969144137607,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5025.166680521287,
+     "centroid_um": [
+      102.85714285714288,
+      28.92857142857143,
+      86.07142857142858
+     ],
+     "frozen": true,
+     "pressure": 101129.78262275114
+    },
+    {
+     "volume_um3": 5146.987494227429,
+     "centroid_um": [
+      137.5,
+      78.65384615384616,
+      70.19230769230771
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 176,
+   "released": 169,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517811,
+   "wall_s": 298.6000487804413
+  },
+  {
+   "t": 4.400000000000188e-05,
+   "x_l": 8.799250000000142e-05,
+   "laser_on": true,
+   "depth": 4.9361665896272005e-05,
+   "x_bottom": -2.0492500000001424e-05,
+   "front_tan": 1.937594287575993,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 4.9353834824745465e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.5840768783915558,
+   "ray_escaped_top": 0.3828024412360751,
+   "ray_escaped_side": 0.03312068037236907,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.2503977366990817,
+   "ray_first_cos": 0.6681443523014349,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 178,
+   "released": 173,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517794,
+   "wall_s": 305.7948577404022
+  },
+  {
+   "t": 4.500000000000204e-05,
+   "x_l": 8.874250000000152e-05,
+   "laser_on": true,
+   "depth": 4.935998089531144e-05,
+   "x_bottom": -1.6242500000001524e-05,
+   "front_tan": 1.9418447372560903,
+   "opening": 6.500000000000001e-05,
+   "centre_depth": 4.889797432426076e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.942360782848062e-15,
+   "bubble_d_eq": [
+    2.113384936171898e-05
+   ],
+   "ray_absorbed": 0.5892536757862605,
+   "ray_escaped_top": 0.37980754143108636,
+   "ray_escaped_side": 0.030938782782653104,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.297183138649317,
+   "ray_first_cos": 0.6647330800987971,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4942.360782848061,
+     "centroid_um": [
+      103.75000000000001,
+      27.916666666666668,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 102182.49946736016
+    }
+   ],
+   "formed": 182,
+   "released": 176,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517778,
+   "wall_s": 312.9819002151489
+  },
+  {
+   "t": 4.60000000000022e-05,
+   "x_l": 8.949250000000165e-05,
+   "laser_on": true,
+   "depth": 5.022248140015354e-05,
+   "x_bottom": -1.199250000000165e-05,
+   "front_tan": 1.5532671933699107,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 4.948749374240324e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6018086429332766,
+   "ray_escaped_top": 0.371780667772378,
+   "ray_escaped_side": 0.026410689294345292,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.3453014699075703,
+   "ray_first_cos": 0.6476735968353224,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 184,
+   "released": 179,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185177615,
+   "wall_s": 319.9830276966095
+  },
+  {
+   "t": 4.700000000000236e-05,
+   "x_l": 9.024250000000178e-05,
+   "laser_on": true,
+   "depth": 5.2756740919105035e-05,
+   "x_bottom": -1.7742500000001777e-05,
+   "front_tan": 1.3398808853637378,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 5.121134222701816e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6200191706925154,
+   "ray_escaped_top": 0.35605059741780365,
+   "ray_escaped_side": 0.023930231889680798,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.4866367942706336,
+   "ray_first_cos": 0.6449610449661465,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 187,
+   "released": 182,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185177455,
+   "wall_s": 327.1112017631531
+  },
+  {
+   "t": 4.800000000000252e-05,
+   "x_l": 9.09925000000019e-05,
+   "laser_on": true,
+   "depth": 5.4379914990596e-05,
+   "x_bottom": -2.3492500000001903e-05,
+   "front_tan": 1.5148554688039018,
+   "opening": 8e-05,
+   "centre_depth": 5.4342855968449795e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.619753762217378,
+   "ray_escaped_top": 0.3611914667815168,
+   "ray_escaped_side": 0.0190547710011051,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.473953514111922,
+   "ray_first_cos": 0.6369387078887141,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 189,
+   "released": 184,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185177295,
+   "wall_s": 334.0314974784851
+  },
+  {
+   "t": 4.900000000000268e-05,
+   "x_l": 9.174250000000202e-05,
+   "laser_on": true,
+   "depth": 5.4784524655787723e-05,
+   "x_bottom": -2.4242500000002016e-05,
+   "front_tan": 1.366253564364155,
+   "opening": 8e-05,
+   "centre_depth": 5.4784524655787723e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6289226710456995,
+   "ray_escaped_top": 0.35218415141253956,
+   "ray_escaped_side": 0.01889317754176085,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.519070161296645,
+   "ray_first_cos": 0.6258318252879732,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 191,
+   "released": 186,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517713,
+   "wall_s": 340.80762243270874
+  },
+  {
+   "t": 5.000000000000284e-05,
+   "x_l": 9.249250000000213e-05,
+   "laser_on": true,
+   "depth": 5.364637044578819e-05,
+   "x_bottom": -2.499250000000213e-05,
+   "front_tan": 1.289124349376162,
+   "opening": 7.500000000000001e-05,
+   "centre_depth": 5.364637044578819e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6365998237133291,
+   "ray_escaped_top": 0.33883621133603925,
+   "ray_escaped_side": 0.02456396495063145,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.5939672423915163,
+   "ray_first_cos": 0.6378753342341775,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 192,
+   "released": 187,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517697,
+   "wall_s": 347.88235664367676
+  },
+  {
+   "t": 5.1000000000003e-05,
+   "x_l": 9.324250000000226e-05,
+   "laser_on": true,
+   "depth": 5.222139813093954e-05,
+   "x_bottom": -2.5742500000002256e-05,
+   "front_tan": 1.505128492949967,
+   "opening": 7.500000000000001e-05,
+   "centre_depth": 5.197775146442295e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 2.8800031857371693e-15,
+   "bubble_d_eq": [
+    1.7652170568833722e-05
+   ],
+   "ray_absorbed": 0.639058344855012,
+   "ray_escaped_top": 0.3371403819872093,
+   "ray_escaped_side": 0.023801273157778673,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.6620571653600997,
+   "ray_first_cos": 0.6504570070524259,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2880.0031857371687,
+     "centroid_um": [
+      179.0,
+      53.0,
+      81.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 197,
+   "released": 190,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851768,
+   "wall_s": 355.1195237636566
+  },
+  {
+   "t": 5.200000000000316e-05,
+   "x_l": 9.399250000000238e-05,
+   "laser_on": true,
+   "depth": 5.4401239876980594e-05,
+   "x_bottom": -2.6492500000002383e-05,
+   "front_tan": 1.7009022127237767,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 5.4401239876980594e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 3.1224948315816853e-15,
+   "bubble_d_eq": [
+    1.8134309988191606e-05
+   ],
+   "ray_absorbed": 0.6106769864574163,
+   "ray_escaped_top": 0.35550280955664576,
+   "ray_escaped_side": 0.03382020398593784,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.4069287234725807,
+   "ray_first_cos": 0.6465073448142306,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 3122.4948315816846,
+     "centroid_um": [
+      177.5,
+      53.12500000000001,
+      81.87500000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 199,
+   "released": 192,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517664,
+   "wall_s": 362.0089223384857
+  },
+  {
+   "t": 5.300000000000332e-05,
+   "x_l": 9.47425000000025e-05,
+   "laser_on": true,
+   "depth": 5.5775375186928983e-05,
+   "x_bottom": -2.2242500000002496e-05,
+   "front_tan": 2.1735152750655353,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 5.565560867240804e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.992021458804277e-15,
+   "bubble_d_eq": [
+    2.120439766835601e-05
+   ],
+   "ray_absorbed": 0.6156517418971656,
+   "ray_escaped_top": 0.3536497175931356,
+   "ray_escaped_side": 0.030698540509698873,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.485738281204273,
+   "ray_first_cos": 0.6422481394042601,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4992.021458804275,
+     "centroid_um": [
+      103.16666666666667,
+      28.5,
+      86.16666666666669
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 203,
+   "released": 196,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517648,
+   "wall_s": 368.6241989135742
+  },
+  {
+   "t": 5.400000000000348e-05,
+   "x_l": 9.549250000000261e-05,
+   "laser_on": true,
+   "depth": 5.998482419848343e-05,
+   "x_bottom": -2.299250000000261e-05,
+   "front_tan": 1.900515945469652,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 5.998482419848343e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.928276553855861e-15,
+   "bubble_d_eq": [
+    2.1113755242286078e-05
+   ],
+   "ray_absorbed": 0.610806605852,
+   "ray_escaped_top": 0.35613928336002565,
+   "ray_escaped_side": 0.03305411078797446,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.4409719401463006,
+   "ray_first_cos": 0.621996160219186,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4928.27655385586,
+     "centroid_um": [
+      103.50000000000001,
+      28.5,
+      85.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 102091.75610740407
+    }
+   ],
+   "formed": 206,
+   "released": 199,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517632,
+   "wall_s": 375.48007559776306
+  },
+  {
+   "t": 5.500000000000364e-05,
+   "x_l": 9.624250000000274e-05,
+   "laser_on": true,
+   "depth": 6.134537212053458e-05,
+   "x_bottom": -2.3742500000002736e-05,
+   "front_tan": 2.054386805189646,
+   "opening": 7.000000000000001e-05,
+   "centre_depth": 6.134537212053458e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.62537287450307,
+   "ray_escaped_top": 0.34191917017495277,
+   "ray_escaped_side": 0.0327079553219771,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.5664186138578913,
+   "ray_first_cos": 0.6148150588752742,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 208,
+   "released": 202,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517615,
+   "wall_s": 382.37784337997437
+  },
+  {
+   "t": 5.60000000000038e-05,
+   "x_l": 9.699250000000286e-05,
+   "laser_on": true,
+   "depth": 6.361443901522208e-05,
+   "x_bottom": -2.4492500000002863e-05,
+   "front_tan": 1.8666791366023898,
+   "opening": 7.500000000000001e-05,
+   "centre_depth": 6.361443901522208e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.9502383318525476e-15,
+   "bubble_d_eq": [
+    2.1145071701815463e-05
+   ],
+   "ray_absorbed": 0.633212908660957,
+   "ray_escaped_top": 0.33161152541817684,
+   "ray_escaped_side": 0.03517556592086602,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.6090926775429866,
+   "ray_first_cos": 0.61975386427371,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4950.238331852546,
+     "centroid_um": [
+      101.91176470588236,
+      29.558823529411768,
+      85.73529411764707
+     ],
+     "frozen": true,
+     "pressure": 100738.07771444945
+    }
+   ],
+   "formed": 213,
+   "released": 206,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175986,
+   "wall_s": 389.4443564414978
+  },
+  {
+   "t": 5.700000000000396e-05,
+   "x_l": 9.774250000000298e-05,
+   "laser_on": true,
+   "depth": 6.41414142462375e-05,
+   "x_bottom": -2.5242500000002976e-05,
+   "front_tan": 1.7495060536045584,
+   "opening": 8e-05,
+   "centre_depth": 6.41414142462375e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.960399198667872e-15,
+   "bubble_d_eq": [
+    2.1159529283339628e-05
+   ],
+   "ray_absorbed": 0.6565930075976244,
+   "ray_escaped_top": 0.3119357349530008,
+   "ray_escaped_side": 0.031471257449374554,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.763559637995809,
+   "ray_first_cos": 0.6132622196850379,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4960.39919866787,
+     "centroid_um": [
+      103.61111111111111,
+      28.611111111111114,
+      86.3888888888889
+     ],
+     "frozen": true,
+     "pressure": 100531.72613872077
+    }
+   ],
+   "formed": 214,
+   "released": 207,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175826,
+   "wall_s": 396.5931704044342
+  },
+  {
+   "t": 5.800000000000412e-05,
+   "x_l": 9.849250000000309e-05,
+   "laser_on": true,
+   "depth": 6.441978515975868e-05,
+   "x_bottom": -2.599250000000309e-05,
+   "front_tan": 1.669463100760185,
+   "opening": 8.5e-05,
+   "centre_depth": 6.439865574439741e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 1.0204067273773653e-14,
+   "bubble_d_eq": [
+    2.118310345079901e-05,
+    2.153210905050806e-05
+   ],
+   "ray_absorbed": 0.6654120515772648,
+   "ray_escaped_top": 0.3065960689149263,
+   "ray_escaped_side": 0.027991879507808837,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.8451830621875502,
+   "ray_first_cos": 0.6099361676753765,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4976.997055341084,
+     "centroid_um": [
+      102.88461538461539,
+      29.80769230769231,
+      87.88461538461539
+     ],
+     "frozen": true,
+     "pressure": 100196.4614875652
+    },
+    {
+     "volume_um3": 5227.070218432566,
+     "centroid_um": [
+      137.75000000000003,
+      78.0,
+      71.5
+     ],
+     "frozen": true,
+     "pressure": 102307.50616797547
+    }
+   ],
+   "formed": 216,
+   "released": 208,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175666,
+   "wall_s": 403.6215269565582
+  },
+  {
+   "t": 5.900000000000428e-05,
+   "x_l": 9.924250000000322e-05,
+   "laser_on": true,
+   "depth": 6.4283923517513e-05,
+   "x_bottom": -2.6742500000003216e-05,
+   "front_tan": 1.738302794595016,
+   "opening": 8e-05,
+   "centre_depth": 6.4283923517513e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.96028179894642e-15,
+   "bubble_d_eq": [
+    2.1159362351718318e-05
+   ],
+   "ray_absorbed": 0.664551920292023,
+   "ray_escaped_top": 0.3013573712591955,
+   "ray_escaped_side": 0.03409070844878135,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.8324521886080243,
+   "ray_first_cos": 0.6097008982237793,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4960.281798946418,
+     "centroid_um": [
+      101.87500000000001,
+      28.437500000000004,
+      86.25000000000001
+     ],
+     "frozen": true,
+     "pressure": 100534.10551899072
+    }
+   ],
+   "formed": 217,
+   "released": 210,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175505,
+   "wall_s": 410.9444499015808
+  },
+  {
+   "t": 6.000000000000444e-05,
+   "x_l": 9.999250000000334e-05,
+   "laser_on": true,
+   "depth": 6.484209372183551e-05,
+   "x_bottom": -2.7492500000003342e-05,
+   "front_tan": 1.6010118199947858,
+   "opening": 8e-05,
+   "centre_depth": 6.484209372183551e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 9.902774853629888e-15,
+   "bubble_d_eq": [
+    2.1163683656585147e-05,
+    2.1129704453783522e-05
+   ],
+   "ray_absorbed": 0.663671209649142,
+   "ray_escaped_top": 0.3051298828014897,
+   "ray_escaped_side": 0.031198907549368188,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.832806095546742,
+   "ray_first_cos": 0.6087295504960532,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4963.321484272735,
+     "centroid_um": [
+      103.21428571428572,
+      30.000000000000004,
+      86.42857142857143
+     ],
+     "frozen": true,
+     "pressure": 100472.53545017517
+    },
+    {
+     "volume_um3": 4939.453369357151,
+     "centroid_um": [
+      136.0294117647059,
+      78.67647058823529,
+      72.5
+     ],
+     "frozen": true,
+     "pressure": 106812.02191757491
+    }
+   ],
+   "formed": 218,
+   "released": 210,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175345,
+   "wall_s": 417.73908376693726
+  },
+  {
+   "t": 6.10000000000046e-05,
+   "x_l": 0.00010074250000000346,
+   "laser_on": true,
+   "depth": 6.800880499795603e-05,
+   "x_bottom": -2.8242500000003455e-05,
+   "front_tan": 1.560157455640061,
+   "opening": 8e-05,
+   "centre_depth": 6.800880499795603e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.96541205594379e-15,
+   "bubble_d_eq": [
+    2.1166654650045494e-05
+   ],
+   "ray_absorbed": 0.6826937598584262,
+   "ray_escaped_top": 0.276071763824137,
+   "ray_escaped_side": 0.041234476317436784,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.9713268241720017,
+   "ray_first_cos": 0.6041488376410564,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4965.412055943789,
+     "centroid_um": [
+      102.08333333333336,
+      30.416666666666668,
+      86.66666666666667
+     ],
+     "frozen": true,
+     "pressure": 100430.23381760881
+    }
+   ],
+   "formed": 219,
+   "released": 212,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185175185,
+   "wall_s": 424.88084149360657
+  },
+  {
+   "t": 6.200000000000476e-05,
+   "x_l": 0.00010149250000000357,
+   "laser_on": true,
+   "depth": 6.943238701262829e-05,
+   "x_bottom": -2.899250000000357e-05,
+   "front_tan": 1.542428288019785,
+   "opening": 8e-05,
+   "centre_depth": 6.943238701262829e-05,
+   "n_bubbles": 3,
+   "bubble_volume": 1.298658539263524e-14,
+   "bubble_d_eq": [
+    2.123294554970874e-05,
+    2.1433240203583677e-05,
+    1.752659887087585e-05
+   ],
+   "ray_absorbed": 0.6896447338912046,
+   "ray_escaped_top": 0.2722555011351343,
+   "ray_escaped_side": 0.03809976497366107,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.005258680967094,
+   "ray_first_cos": 0.5981709120023999,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5012.211174743673,
+     "centroid_um": [
+      102.22222222222221,
+      29.444444444444446,
+      86.66666666666667
+     ],
+     "frozen": true,
+     "pressure": 99492.514659403
+    },
+    {
+     "volume_um3": 5155.397015241059,
+     "centroid_um": [
+      136.5,
+      76.16666666666667,
+      70.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2818.9772026505066,
+     "centroid_um": [
+      152.50000000000003,
+      117.50000000000001,
+      89.31818181818183
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 222,
+   "released": 213,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517502,
+   "wall_s": 432.40097546577454
+  },
+  {
+   "t": 6.300000000000492e-05,
+   "x_l": 0.0001022425000000037,
+   "laser_on": true,
+   "depth": 6.890826918915809e-05,
+   "x_bottom": -2.9742500000003695e-05,
+   "front_tan": 1.7106441539310464,
+   "opening": 8.5e-05,
+   "centre_depth": 6.890826918915809e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.848487699373562e-15,
+   "bubble_d_eq": [
+    2.0999190752267297e-05
+   ],
+   "ray_absorbed": 0.6813186809349568,
+   "ray_escaped_top": 0.28183278270896867,
+   "ray_escaped_side": 0.03684853635607441,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.9058983265596514,
+   "ray_first_cos": 0.5955099759822222,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4848.487699373561,
+     "centroid_um": [
+      103.86363636363637,
+      28.863636363636363,
+      85.68181818181819
+     ],
+     "frozen": true,
+     "pressure": 102852.17261531654
+    }
+   ],
+   "formed": 222,
+   "released": 215,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517485,
+   "wall_s": 439.6840167045593
+  },
+  {
+   "t": 6.400000000000508e-05,
+   "x_l": 0.00010299250000000381,
+   "laser_on": true,
+   "depth": 6.817795403309972e-05,
+   "x_bottom": -3.0492500000003808e-05,
+   "front_tan": 1.7715459944096033,
+   "opening": 8.5e-05,
+   "centre_depth": 6.655969616316514e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 1.0228731575025684e-14,
+   "bubble_d_eq": [
+    2.1200665454115525e-05,
+    2.154895139910095e-05
+   ],
+   "ray_absorbed": 0.6677113466641825,
+   "ray_escaped_top": 0.29260011830850197,
+   "ray_escaped_side": 0.03968853502731553,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.744556464625978,
+   "ray_first_cos": 0.596240288063304,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4989.385965722744,
+     "centroid_um": [
+      103.50000000000001,
+      29.83333333333334,
+      86.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 99947.6683514044
+    },
+    {
+     "volume_um3": 5239.345609302937,
+     "centroid_um": [
+      136.54761904761907,
+      80.11904761904763,
+      72.26190476190476
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 223,
+   "released": 215,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517469,
+   "wall_s": 447.08445954322815
+  },
+  {
+   "t": 6.500000000000524e-05,
+   "x_l": 0.00010374250000000392,
+   "laser_on": true,
+   "depth": 6.912878349902744e-05,
+   "x_bottom": -2.624250000000392e-05,
+   "front_tan": 1.8617955032633997,
+   "opening": 8e-05,
+   "centre_depth": 6.860342983858501e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 9.851964774422277e-15,
+   "bubble_d_eq": [
+    2.0971748386217966e-05,
+    2.124740883937584e-05
+   ],
+   "ray_absorbed": 0.655781146211001,
+   "ray_escaped_top": 0.3067643766657777,
+   "ray_escaped_side": 0.03745447712322119,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.687816639931408,
+   "ray_first_cos": 0.6033951749223759,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4829.504086244139,
+     "centroid_um": [
+      103.00000000000001,
+      28.5,
+      84.5
+     ],
+     "frozen": true,
+     "pressure": 103256.45964346315
+    },
+    {
+     "volume_um3": 5022.4606881781365,
+     "centroid_um": [
+      136.73076923076925,
+      77.88461538461539,
+      70.96153846153847
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 224,
+   "released": 216,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517453,
+   "wall_s": 453.96640849113464
+  },
+  {
+   "t": 6.60000000000054e-05,
+   "x_l": 0.00010449250000000405,
+   "laser_on": true,
+   "depth": 6.991715232037248e-05,
+   "x_bottom": -2.6992500000004048e-05,
+   "front_tan": 1.898148146236103,
+   "opening": 8e-05,
+   "centre_depth": 6.991715232037248e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 7.883727900051902e-15,
+   "bubble_d_eq": [
+    2.1107208824499325e-05,
+    1.7814187833257024e-05
+   ],
+   "ray_absorbed": 0.6608213748250662,
+   "ray_escaped_top": 0.2901365258848184,
+   "ray_escaped_side": 0.0490420992901152,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.773205564821379,
+   "ray_first_cos": 0.6076589915679986,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4923.6938699895845,
+     "centroid_um": [
+      103.50000000000001,
+      29.500000000000007,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101281.17363646397
+    },
+    {
+     "volume_um3": 2960.0340300623157,
+     "centroid_um": [
+      152.50000000000003,
+      117.50000000000001,
+      85.68181818181819
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 228,
+   "released": 220,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517437,
+   "wall_s": 461.13352942466736
+  },
+  {
+   "t": 6.700000000000556e-05,
+   "x_l": 0.00010524250000000417,
+   "laser_on": true,
+   "depth": 7.065705627817451e-05,
+   "x_bottom": -2.7742500000004175e-05,
+   "front_tan": 1.8935288421691774,
+   "opening": 8e-05,
+   "centre_depth": 7.065705627817451e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.8996119085901805e-15,
+   "bubble_d_eq": [
+    2.1072740532325928e-05
+   ],
+   "ray_absorbed": 0.6599275634247536,
+   "ray_escaped_top": 0.28996267364407907,
+   "ray_escaped_side": 0.05010976293116732,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.824998662382319,
+   "ray_first_cos": 0.634853320246108,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4899.611908590179,
+     "centroid_um": [
+      104.42307692307693,
+      29.03846153846154,
+      85.5769230769231
+     ],
+     "frozen": true,
+     "pressure": 101778.97822986933
+    }
+   ],
+   "formed": 231,
+   "released": 224,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851742,
+   "wall_s": 468.0779891014099
+  },
+  {
+   "t": 6.800000000000572e-05,
+   "x_l": 0.00010599250000000429,
+   "laser_on": true,
+   "depth": 7.17092170144173e-05,
+   "x_bottom": -2.8492500000004288e-05,
+   "front_tan": 1.873009916357498,
+   "opening": 8e-05,
+   "centre_depth": 7.17092170144173e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.897716739321163e-15,
+   "bubble_d_eq": [
+    2.1070023204147313e-05
+   ],
+   "ray_absorbed": 0.6572755557464696,
+   "ray_escaped_top": 0.29458852482145753,
+   "ray_escaped_side": 0.04813591943207286,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.824043797728085,
+   "ray_first_cos": 0.6433219071882523,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4897.716739321161,
+     "centroid_um": [
+      102.16666666666669,
+      29.166666666666668,
+      84.5
+     ],
+     "frozen": true,
+     "pressure": 101818.36155929396
+    }
+   ],
+   "formed": 234,
+   "released": 227,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517404,
+   "wall_s": 475.2290599346161
+  },
+  {
+   "t": 6.900000000000588e-05,
+   "x_l": 0.0001067425000000044,
+   "laser_on": true,
+   "depth": 7.017245890130261e-05,
+   "x_bottom": -3.42425000000044e-05,
+   "front_tan": 1.7619118695276228,
+   "opening": 8e-05,
+   "centre_depth": 7.014303934100856e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6480859683509482,
+   "ray_escaped_top": 0.3038360711331214,
+   "ray_escaped_side": 0.04807796051593034,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.741640706252639,
+   "ray_first_cos": 0.6459489534654981,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 238,
+   "released": 232,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173876,
+   "wall_s": 482.2629363536835
+  },
+  {
+   "t": 7.000000000000604e-05,
+   "x_l": 0.00010749250000000453,
+   "laser_on": true,
+   "depth": 6.941251418913591e-05,
+   "x_bottom": -2.4992500000004515e-05,
+   "front_tan": 1.5599284304909546,
+   "opening": 8.5e-05,
+   "centre_depth": 6.941251418913591e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 5.0745110723910574e-15,
+   "bubble_d_eq": [
+    2.1320556063688136e-05
+   ],
+   "ray_absorbed": 0.6457031843618931,
+   "ray_escaped_top": 0.3066728991399746,
+   "ray_escaped_side": 0.047623916498132225,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.751466164228169,
+   "ray_first_cos": 0.6457741935579254,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 5074.511072391056,
+     "centroid_um": [
+      136.16666666666669,
+      77.5,
+      70.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 105168.89344322162
+    }
+   ],
+   "formed": 239,
+   "released": 232,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173716,
+   "wall_s": 489.3409233093262
+  },
+  {
+   "t": 7.10000000000062e-05,
+   "x_l": 0.00010824250000000465,
+   "laser_on": true,
+   "depth": 7.174989560105826e-05,
+   "x_bottom": -2.574250000000464e-05,
+   "front_tan": 1.4008873879342671,
+   "opening": 8.5e-05,
+   "centre_depth": 7.09109310177437e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 2.36860986602435e-15,
+   "bubble_d_eq": [
+    1.653858325646808e-05
+   ],
+   "ray_absorbed": 0.6476440961565811,
+   "ray_escaped_top": 0.2986251820709559,
+   "ray_escaped_side": 0.05373072177246302,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.755957554550296,
+   "ray_first_cos": 0.6405397014156494,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2368.6098660243492,
+     "centroid_um": [
+      147.5,
+      30.000000000000004,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 242,
+   "released": 235,
+   "T_max": 4874.604305342231,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173556,
+   "wall_s": 496.3944215774536
+  },
+  {
+   "t": 7.200000000000636e-05,
+   "x_l": 0.00010899250000000477,
+   "laser_on": true,
+   "depth": 7.401379671026812e-05,
+   "x_bottom": -3.149250000000477e-05,
+   "front_tan": 1.6025163122578576,
+   "opening": 8.5e-05,
+   "centre_depth": 7.37634265894271e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6567350442800722,
+   "ray_escaped_top": 0.2950015004349033,
+   "ray_escaped_side": 0.04826345528502441,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.812057673763251,
+   "ray_first_cos": 0.6161519590467954,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 243,
+   "released": 237,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173395,
+   "wall_s": 503.3712577819824
+  },
+  {
+   "t": 7.300000000000652e-05,
+   "x_l": 0.00010974250000000488,
+   "laser_on": true,
+   "depth": 7.474061247396687e-05,
+   "x_bottom": -3.224250000000488e-05,
+   "front_tan": 1.908157078932952,
+   "opening": 9e-05,
+   "centre_depth": 7.461958054993955e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6614453055775931,
+   "ray_escaped_top": 0.28712037418716885,
+   "ray_escaped_side": 0.05143432023523792,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.8139297897788924,
+   "ray_first_cos": 0.6090871902847433,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 244,
+   "released": 238,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173235,
+   "wall_s": 510.6295163631439
+  },
+  {
+   "t": 7.400000000000668e-05,
+   "x_l": 0.00011049250000000501,
+   "laser_on": true,
+   "depth": 7.372135771471837e-05,
+   "x_bottom": -3.299250000000501e-05,
+   "front_tan": 1.9913642631387365,
+   "opening": 9e-05,
+   "centre_depth": 7.372135771471837e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6660363643657103,
+   "ray_escaped_top": 0.28735268497368405,
+   "ray_escaped_side": 0.04661095066060554,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.8516116302639403,
+   "ray_first_cos": 0.6108910968568599,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 248,
+   "released": 242,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185173075,
+   "wall_s": 517.8563244342804
+  },
+  {
+   "t": 7.500000000000684e-05,
+   "x_l": 0.00011124250000000513,
+   "laser_on": true,
+   "depth": 7.360244779301822e-05,
+   "x_bottom": -2.874250000000512e-05,
+   "front_tan": 2.0407759650712585,
+   "opening": 9e-05,
+   "centre_depth": 7.360244779301822e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.666247777991913,
+   "ray_escaped_top": 0.28639159055115315,
+   "ray_escaped_side": 0.04736063145693389,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.8058538147906598,
+   "ray_first_cos": 0.6106347857270105,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 249,
+   "released": 243,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851729,
+   "wall_s": 524.9485847949982
+  },
+  {
+   "t": 7.6000000000007e-05,
+   "x_l": 0.00011199250000000525,
+   "laser_on": true,
+   "depth": 7.533954278625713e-05,
+   "x_bottom": -2.9492500000005234e-05,
+   "front_tan": 1.5999429870905924,
+   "opening": 9.5e-05,
+   "centre_depth": 7.52796309410595e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6491575803247116,
+   "ray_escaped_top": 0.3129585520511845,
+   "ray_escaped_side": 0.037883867624103805,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.675690897616355,
+   "ray_first_cos": 0.612284843530277,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 251,
+   "released": 245,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517274,
+   "wall_s": 532.1381237506866
+  },
+  {
+   "t": 7.700000000000716e-05,
+   "x_l": 0.00011274250000000536,
+   "laser_on": true,
+   "depth": 7.650227072110514e-05,
+   "x_bottom": -3.0242500000005347e-05,
+   "front_tan": 1.5089001215030622,
+   "opening": 9.5e-05,
+   "centre_depth": 7.568795896696084e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6516275935705741,
+   "ray_escaped_top": 0.310302670409265,
+   "ray_escaped_side": 0.038069736020160914,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.708793015222139,
+   "ray_first_cos": 0.618850013834872,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 253,
+   "released": 247,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517258,
+   "wall_s": 539.305668592453
+  },
+  {
+   "t": 7.800000000000732e-05,
+   "x_l": 0.00011349250000000549,
+   "laser_on": true,
+   "depth": 7.666706790525484e-05,
+   "x_bottom": -3.0992500000005474e-05,
+   "front_tan": 1.4107532733062722,
+   "opening": 9e-05,
+   "centre_depth": 7.599430905982002e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6515423432009471,
+   "ray_escaped_top": 0.3140887019936753,
+   "ray_escaped_side": 0.034368954805377744,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.7930424979275936,
+   "ray_first_cos": 0.622353430704324,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 253,
+   "released": 247,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517242,
+   "wall_s": 546.3354775905609
+  },
+  {
+   "t": 7.900000000000748e-05,
+   "x_l": 0.00011424250000000561,
+   "laser_on": true,
+   "depth": 7.684787851242256e-05,
+   "x_bottom": -3.17425000000056e-05,
+   "front_tan": 1.6842106083999915,
+   "opening": 8.5e-05,
+   "centre_depth": 7.670359692231994e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6548344462248682,
+   "ray_escaped_top": 0.3141520301556766,
+   "ray_escaped_side": 0.031013523619455294,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.812707352040085,
+   "ray_first_cos": 0.6166520863321291,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 256,
+   "released": 250,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517225,
+   "wall_s": 553.2280430793762
+  },
+  {
+   "t": 8.000000000000764e-05,
+   "x_l": 0.00011499250000000573,
+   "laser_on": true,
+   "depth": 7.654575887837566e-05,
+   "x_bottom": -3.7492500000005727e-05,
+   "front_tan": 1.98351883717508,
+   "opening": 8e-05,
+   "centre_depth": 7.599469886816038e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6716472796424199,
+   "ray_escaped_top": 0.30021535204357763,
+   "ray_escaped_side": 0.028137368314002594,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.916020205554373,
+   "ray_first_cos": 0.5971666064642799,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 258,
+   "released": 252,
+   "T_max": 4909.83347616408,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851721,
+   "wall_s": 560.3042306900024
+  },
+  {
+   "t": 8.10000000000078e-05,
+   "x_l": 0.00011574250000000584,
+   "laser_on": true,
+   "depth": 7.405709689184024e-05,
+   "x_bottom": -3.824250000000584e-05,
+   "front_tan": 2.015429390594647,
+   "opening": 8.5e-05,
+   "centre_depth": 7.405709689184024e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6761876190830622,
+   "ray_escaped_top": 0.3011194448735005,
+   "ray_escaped_side": 0.022692936043437077,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.93610691426761,
+   "ray_first_cos": 0.589772422187634,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 259,
+   "released": 253,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185171926,
+   "wall_s": 567.3389139175415
+  },
+  {
+   "t": 8.200000000000796e-05,
+   "x_l": 0.00011649250000000597,
+   "laser_on": true,
+   "depth": 7.714572676011916e-05,
+   "x_bottom": -2.8992500000005954e-05,
+   "front_tan": 1.9584214073064792,
+   "opening": 8.5e-05,
+   "centre_depth": 7.714572676011916e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6841276423848197,
+   "ray_escaped_top": 0.28395790763388523,
+   "ray_escaped_side": 0.03191444998129505,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.006251753116278,
+   "ray_first_cos": 0.5973582005262457,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 260,
+   "released": 254,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185171766,
+   "wall_s": 574.4317927360535
+  },
+  {
+   "t": 8.300000000000812e-05,
+   "x_l": 0.00011724250000000609,
+   "laser_on": true,
+   "depth": 8.033343335074123e-05,
+   "x_bottom": -2.974250000000608e-05,
+   "front_tan": 1.772745261662847,
+   "opening": 8.5e-05,
+   "centre_depth": 8.033343335074123e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6755866883815911,
+   "ray_escaped_top": 0.2871227825331612,
+   "ray_escaped_side": 0.037290529085247576,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.933902577738115,
+   "ray_first_cos": 0.5964282684515299,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 261,
+   "released": 255,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517161,
+   "wall_s": 581.4055397510529
+  },
+  {
+   "t": 8.400000000000828e-05,
+   "x_l": 0.00011799250000000622,
+   "laser_on": true,
+   "depth": 8.328785780531558e-05,
+   "x_bottom": -3.0492500000006207e-05,
+   "front_tan": 1.5852425410740159,
+   "opening": 9e-05,
+   "centre_depth": 8.178833641636019e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6815779287984374,
+   "ray_escaped_top": 0.27789251120108655,
+   "ray_escaped_side": 0.040529560000476215,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 2.991838756588153,
+   "ray_first_cos": 0.5878821380172833,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 262,
+   "released": 256,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185171445,
+   "wall_s": 588.7709453105927
+  },
+  {
+   "t": 8.500000000000844e-05,
+   "x_l": 0.00011874250000000632,
+   "laser_on": true,
+   "depth": 8.723183213774531e-05,
+   "x_bottom": -3.6242500000006306e-05,
+   "front_tan": 1.5226094280669031,
+   "opening": 9e-05,
+   "centre_depth": 8.505817952505115e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.742316653717309e-15,
+   "bubble_d_eq": [
+    2.0844779670781075e-05
+   ],
+   "ray_absorbed": 0.695917415604406,
+   "ray_escaped_top": 0.2566429564424217,
+   "ray_escaped_side": 0.04743962795317223,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.165804917936792,
+   "ray_first_cos": 0.6028522822922604,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4742.316653717307,
+     "centroid_um": [
+      101.0,
+      31.5,
+      86.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 265,
+   "released": 258,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185171285,
+   "wall_s": 596.064178943634
+  },
+  {
+   "t": 8.60000000000086e-05,
+   "x_l": 0.00011949250000000645,
+   "laser_on": true,
+   "depth": 0.00010462789800705609,
+   "x_bottom": -3.699250000000643e-05,
+   "front_tan": 1.4085524397563023,
+   "opening": 9e-05,
+   "centre_depth": 8.63880674727772e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.6943051482630348,
+   "ray_escaped_top": 0.2519698478406878,
+   "ray_escaped_side": 0.05372137639758758,
+   "ray_stopped": 3.6274986897659946e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.2285511914415554,
+   "ray_first_cos": 0.6076080927797574,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 266,
+   "released": 260,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185171125,
+   "wall_s": 603.0740442276001
+  },
+  {
+   "t": 8.700000000000876e-05,
+   "x_l": 0.00012024250000000657,
+   "laser_on": true,
+   "depth": 0.00010463292885779912,
+   "x_bottom": -3.774250000000656e-05,
+   "front_tan": 1.8627268513687614,
+   "opening": 9e-05,
+   "centre_depth": 8.617507791797534e-05,
+   "n_bubbles": 3,
+   "bubble_volume": 9.73446740633867e-15,
+   "bubble_d_eq": [
+    1.6136607000714347e-05,
+    2.087028316849071e-05,
+    1.7434265809964933e-05
+   ],
+   "ray_absorbed": 0.6995963802829095,
+   "ray_escaped_top": 0.25504862222058705,
+   "ray_escaped_side": 0.04535024210530345,
+   "ray_stopped": 4.7553911997970235e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.2967269614353323,
+   "ray_first_cos": 0.5943298382505948,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 2200.063868001275,
+     "centroid_um": [
+      95.0,
+      130.00000000000003,
+      112.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 4759.74457101925,
+     "centroid_um": [
+      102.14285714285714,
+      29.642857142857146,
+      87.14285714285714
+     ],
+     "frozen": true,
+     "pressure": 101465.41565413222
+    },
+    {
+     "volume_um3": 2774.6589673181415,
+     "centroid_um": [
+      150.0,
+      31.25,
+      88.125
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 270,
+   "released": 261,
+   "T_max": 4731.852781583745,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517096,
+   "wall_s": 610.3413059711456
+  },
+  {
+   "t": 8.800000000000892e-05,
+   "x_l": 0.0001209925000000067,
+   "laser_on": true,
+   "depth": 0.00010518711559009531,
+   "x_bottom": -3.8492500000006686e-05,
+   "front_tan": 1.7795278278082378,
+   "opening": 9e-05,
+   "centre_depth": 8.426793878697808e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.740227632791452e-15,
+   "bubble_d_eq": [
+    2.0841718468162906e-05
+   ],
+   "ray_absorbed": 0.6950130828202586,
+   "ray_escaped_top": 0.2623332368975721,
+   "ray_escaped_side": 0.042649237819044956,
+   "ray_stopped": 4.442463124332371e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.2747841024867195,
+   "ray_first_cos": 0.5963644800744339,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4740.227632791451,
+     "centroid_um": [
+      102.50000000000001,
+      28.33333333333334,
+      87.91666666666667
+     ],
+     "frozen": true,
+     "pressure": 101883.17918849937
+    }
+   ],
+   "formed": 271,
+   "released": 264,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851708,
+   "wall_s": 617.7476744651794
+  },
+  {
+   "t": 8.900000000000908e-05,
+   "x_l": 0.0001217425000000068,
+   "laser_on": true,
+   "depth": 8.39520314606478e-05,
+   "x_bottom": -3.9242500000006786e-05,
+   "front_tan": 1.3614115798296529,
+   "opening": 9e-05,
+   "centre_depth": 8.237483763149316e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 7.0693654811939086e-15,
+   "bubble_d_eq": [
+    2.083463754992983e-05,
+    1.6457558331462086e-05
+   ],
+   "ray_absorbed": 0.7080351336011202,
+   "ray_escaped_top": 0.25624451326097547,
+   "ray_escaped_side": 0.03572035313790427,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.3484378124625676,
+   "ray_first_cos": 0.5977995323412729,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4735.3978350074985,
+     "centroid_um": [
+      101.66666666666667,
+      30.000000000000004,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101379.4485829249
+    },
+    {
+     "volume_um3": 2333.9676461864087,
+     "centroid_um": [
+      145.0,
+      30.000000000000004,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 274,
+   "released": 266,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517063,
+   "wall_s": 625.0133485794067
+  },
+  {
+   "t": 9.000000000000923e-05,
+   "x_l": 0.00012249250000000693,
+   "laser_on": true,
+   "depth": 8.713721140764898e-05,
+   "x_bottom": -3.499250000000691e-05,
+   "front_tan": 1.4751023609942788,
+   "opening": 9e-05,
+   "centre_depth": 8.66783807177589e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7030032095599381,
+   "ray_escaped_top": 0.2581470038201206,
+   "ray_escaped_side": 0.0388497866199413,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.2418547710525103,
+   "ray_first_cos": 0.5789317201335762,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [],
+   "formed": 275,
+   "released": 269,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517047,
+   "wall_s": 632.7574808597565
+  },
+  {
+   "t": 9.10000000000094e-05,
+   "x_l": 0.00012324250000000705,
+   "laser_on": true,
+   "depth": 0.0001042031528616771,
+   "x_bottom": -3.574250000000704e-05,
+   "front_tan": 1.5385365127113424,
+   "opening": 8.5e-05,
+   "centre_depth": 9.090827723500622e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 7.44695399328448e-15,
+   "bubble_d_eq": [
+    2.068573286235943e-05,
+    1.7512881734929185e-05
+   ],
+   "ray_absorbed": 0.7061719365134208,
+   "ray_escaped_top": 0.2592259582346832,
+   "ray_escaped_side": 0.03459647349150991,
+   "ray_stopped": 5.631760386261476e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.3406764749073634,
+   "ray_first_cos": 0.5766053117280676,
+   "ray_rays": 9856,
+   "open_below": false,
+   "open_below_cells": 0,
+   "bubbles": [
+    {
+     "volume_um3": 4634.590401994217,
+     "centroid_um": [
+      104.64285714285714,
+      28.92857142857143,
+      85.35714285714286
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2812.3635912902605,
+     "centroid_um": [
+      153.05555555555554,
+      117.50000000000001,
+      88.05555555555556
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 280,
+   "released": 272,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517031,
+   "wall_s": 640.1899797916412
+  },
+  {
+   "t": 9.200000000000955e-05,
+   "x_l": 0.00012399250000000718,
+   "laser_on": true,
+   "depth": 0.00010323221944506614,
+   "x_bottom": -4.1492500000007165e-05,
+   "front_tan": 1.541869063726483,
+   "opening": 8.5e-05,
+   "centre_depth": 9.623551747676168e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 6.550020458616479e-15,
+   "bubble_d_eq": [
+    1.5215766282346518e-05,
+    2.0790718195601144e-05
+   ],
+   "ray_absorbed": 0.7151347345118688,
+   "ray_escaped_top": 0.24529682266339875,
+   "ray_escaped_side": 0.03956026599202003,
+   "ray_stopped": 8.176832712307905e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.465669138681919,
+   "ray_first_cos": 0.5689022059629621,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 1,
+   "bubbles": [
+    {
+     "volume_um3": 1844.50615448115,
+     "centroid_um": [
+      82.50000000000001,
+      80.83333333333333,
+      102.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 131714.18907545944
+    },
+    {
+     "volume_um3": 4705.514304135327,
+     "centroid_um": [
+      101.25000000000001,
+      28.75,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 282,
+   "released": 274,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518517015,
+   "wall_s": 647.4441890716553
+  },
+  {
+   "t": 9.300000000000971e-05,
+   "x_l": 0.00012474250000000728,
+   "laser_on": true,
+   "depth": 0.00010329672226794074,
+   "x_bottom": -4.2242500000007265e-05,
+   "front_tan": 1.7321845979671726,
+   "opening": 9.5e-05,
+   "centre_depth": 9.764910181689598e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7173189019247386,
+   "ray_escaped_top": 0.24586966482820397,
+   "ray_escaped_side": 0.03680515797480205,
+   "ray_stopped": 6.2752722554183865e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.4545559738703906,
+   "ray_first_cos": 0.5632375917257171,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 4,
+   "bubbles": [],
+   "formed": 286,
+   "released": 280,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516998,
+   "wall_s": 654.8159215450287
+  },
+  {
+   "t": 9.400000000000987e-05,
+   "x_l": 0.0001254925000000074,
+   "laser_on": true,
+   "depth": 0.00013747061089510989,
+   "x_bottom": -4.299250000000739e-05,
+   "front_tan": 2.0021180388689355,
+   "opening": 9.5e-05,
+   "centre_depth": 9.839620276734436e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 7.0169015593137105e-15,
+   "bubble_d_eq": [
+    1.6521447300782473e-05,
+    2.071701243905274e-05
+   ],
+   "ray_absorbed": 0.708564912708336,
+   "ray_escaped_top": 0.2580321200617359,
+   "ray_escaped_side": 0.03340239660066095,
+   "ray_stopped": 5.706292670074253e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.2433164851654315,
+   "ray_first_cos": 0.5695591826395341,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 6,
+   "bubbles": [
+    {
+     "volume_um3": 2361.2550001656123,
+     "centroid_um": [
+      81.25000000000001,
+      85.0,
+      102.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 4655.6465591480965,
+     "centroid_um": [
+      101.50000000000001,
+      28.5,
+      86.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101147.38645074358
+    }
+   ],
+   "formed": 290,
+   "released": 282,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516982,
+   "wall_s": 661.9309868812561
+  },
+  {
+   "t": 9.500000000001003e-05,
+   "x_l": 0.00012624250000000753,
+   "laser_on": true,
+   "depth": 0.00010371003209731101,
+   "x_bottom": -4.374250000000752e-05,
+   "front_tan": 1.8432969613854977,
+   "opening": 0.0001,
+   "centre_depth": 9.665819629845578e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7047478013308183,
+   "ray_escaped_top": 0.2545347487663856,
+   "ray_escaped_side": 0.04071717195063516,
+   "ray_stopped": 2.7795216097367784e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.1713342144030254,
+   "ray_first_cos": 0.5751557855915719,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 1,
+   "bubbles": [],
+   "formed": 294,
+   "released": 286,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185169656,
+   "wall_s": 669.2733790874481
+  },
+  {
+   "t": 9.60000000000102e-05,
+   "x_l": 0.00012699250000000766,
+   "laser_on": true,
+   "depth": 0.00010643566016296242,
+   "x_bottom": -4.949250000000766e-05,
+   "front_tan": 1.6476868316216722,
+   "opening": 9.5e-05,
+   "centre_depth": 9.872202301421526e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 6.939227391695058e-15,
+   "bubble_d_eq": [
+    2.0691859566724926e-05,
+    1.6378557709635823e-05
+   ],
+   "ray_absorbed": 0.7165139093833249,
+   "ray_escaped_top": 0.23943606082903718,
+   "ray_escaped_side": 0.044037389936861786,
+   "ray_stopped": 1.2639850776116236e-05,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5451565890857237,
+   "ray_first_cos": 0.5735158512751803,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5855,
+   "bubbles": [
+    {
+     "volume_um3": 4638.709643439692,
+     "centroid_um": [
+      102.50000000000001,
+      30.000000000000004,
+      87.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2300.517748255365,
+     "centroid_um": [
+      149.16666666666666,
+      30.833333333333336,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101368.63071165816
+    }
+   ],
+   "formed": 302,
+   "released": 291,
+   "T_max": 5120.983550135493,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185169496,
+   "wall_s": 676.5725798606873
+  },
+  {
+   "t": 9.700000000001035e-05,
+   "x_l": 0.00012774250000000776,
+   "laser_on": true,
+   "depth": 0.000105527502623571,
+   "x_bottom": -5.024250000000776e-05,
+   "front_tan": 1.4543991490911166,
+   "opening": 9.5e-05,
+   "centre_depth": 9.924165852176531e-05,
+   "n_bubbles": 2,
+   "bubble_volume": 3.7696685234226875e-15,
+   "bubble_d_eq": [
+    1.4121846174715963e-05,
+    1.6365625054056663e-05
+   ],
+   "ray_absorbed": 0.7115739019356301,
+   "ray_escaped_top": 0.2461234940192459,
+   "ray_escaped_side": 0.0422895474948059,
+   "ray_stopped": 1.3056550318256587e-05,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5266770448925424,
+   "ray_first_cos": 0.5783616156514618,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 17,
+   "bubbles": [
+    {
+     "volume_um3": 1474.596001440365,
+     "centroid_um": [
+      77.5,
+      85.0,
+      102.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 107123.40089232921
+    },
+    {
+     "volume_um3": 2295.0725219823216,
+     "centroid_um": [
+      149.16666666666666,
+      30.833333333333336,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101191.44069397295
+    }
+   ],
+   "formed": 308,
+   "released": 297,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185169335,
+   "wall_s": 683.7746939659119
+  },
+  {
+   "t": 9.800000000001051e-05,
+   "x_l": 0.00012849250000000788,
+   "laser_on": true,
+   "depth": 0.00010339722827916627,
+   "x_bottom": -2.0992500000007873e-05,
+   "front_tan": 1.3168964647223262,
+   "opening": 9.5e-05,
+   "centre_depth": 9.94907427119305e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.610138036439788e-15,
+   "bubble_d_eq": [
+    2.064928898819566e-05
+   ],
+   "ray_absorbed": 0.7261480814236785,
+   "ray_escaped_top": 0.23758112793748978,
+   "ray_escaped_side": 0.03625752142761805,
+   "ray_stopped": 1.3269211213660583e-05,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.775286529350706,
+   "ray_first_cos": 0.5816581600136126,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 30,
+   "bubbles": [
+    {
+     "volume_um3": 4610.138036439786,
+     "centroid_um": [
+      101.66666666666667,
+      29.166666666666668,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 312,
+   "released": 302,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516917,
+   "wall_s": 691.0266361236572
+  },
+  {
+   "t": 9.900000000001067e-05,
+   "x_l": 0.000129242500000008,
+   "laser_on": true,
+   "depth": 0.0001033284637080882,
+   "x_bottom": -4.6742500000008e-05,
+   "front_tan": 1.4281108204552082,
+   "opening": 9.5e-05,
+   "centre_depth": 0.00010014351692774396,
+   "n_bubbles": 2,
+   "bubble_volume": 6.8625821989356e-15,
+   "bubble_d_eq": [
+    2.0585098766175634e-05,
+    1.6366174700169416e-05
+   ],
+   "ray_absorbed": 0.7327454921889762,
+   "ray_escaped_top": 0.22427355545718938,
+   "ray_escaped_side": 0.04297092977004519,
+   "ray_stopped": 1.0022583789128455e-05,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.8314737917667365,
+   "ray_first_cos": 0.580065793479249,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5984,
+   "bubbles": [
+    {
+     "volume_um3": 4567.278426380126,
+     "centroid_um": [
+      102.95454545454545,
+      28.40909090909091,
+      85.68181818181819
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2295.3037725554723,
+     "centroid_um": [
+      147.5,
+      29.166666666666668,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 316,
+   "released": 305,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185169015,
+   "wall_s": 698.2999494075775
+  },
+  {
+   "t": 0.00010000000000001083,
+   "x_l": 0.00012999250000000814,
+   "laser_on": true,
+   "depth": 0.00010370651612229651,
+   "x_bottom": -4.7492500000008124e-05,
+   "front_tan": 1.4671101322777405,
+   "opening": 0.0001,
+   "centre_depth": 0.00010010988416097471,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7259970372530574,
+   "ray_escaped_top": 0.2363648003243844,
+   "ray_escaped_side": 0.037632671361580376,
+   "ray_stopped": 5.491060977766244e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5707295666700984,
+   "ray_first_cos": 0.5634980830216496,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5912,
+   "bubbles": [],
+   "formed": 319,
+   "released": 310,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516884,
+   "wall_s": 705.4924495220184
+  },
+  {
+   "t": 0.00010100000000001099,
+   "x_l": 0.00013074250000000824,
+   "laser_on": true,
+   "depth": 0.00010414007471456439,
+   "x_bottom": -3.8242500000008225e-05,
+   "front_tan": 2.146664388743402,
+   "opening": 0.0001,
+   "centre_depth": 9.97128311044474e-05,
+   "n_bubbles": 3,
+   "bubble_volume": 8.913877734849492e-15,
+   "bubble_d_eq": [
+    1.4523692081909649e-05,
+    2.0548454439005558e-05,
+    1.741790203227785e-05
+   ],
+   "ray_absorbed": 0.7283511712120179,
+   "ray_escaped_top": 0.23794148242516083,
+   "ray_escaped_side": 0.03370625013083872,
+   "ray_stopped": 1.0962319825308018e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.469224418324727,
+   "ray_first_cos": 0.5550101584598667,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 6342,
+   "bubbles": [
+    {
+     "volume_um3": 1604.0936542918284,
+     "centroid_um": [
+      80.0,
+      65.00000000000001,
+      107.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 4542.930655546783,
+     "centroid_um": [
+      104.16666666666667,
+      27.5,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2766.8534250108773,
+     "centroid_um": [
+      151.7857142857143,
+      117.50000000000001,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 326,
+   "released": 314,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516868,
+   "wall_s": 712.7229509353638
+  },
+  {
+   "t": 0.00010200000000001115,
+   "x_l": 0.00013149250000000836,
+   "laser_on": true,
+   "depth": 0.00010833294594980951,
+   "x_bottom": -1.8992500000008353e-05,
+   "front_tan": 2.087329418371965,
+   "opening": 0.0001,
+   "centre_depth": 9.75592946085912e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 4.569672149017548e-15,
+   "bubble_d_eq": [
+    2.0588694372897173e-05
+   ],
+   "ray_absorbed": 0.7390540436033411,
+   "ray_escaped_top": 0.222680662089975,
+   "ray_escaped_side": 0.03825884622478534,
+   "ray_stopped": 6.4480818984217135e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.663696700020274,
+   "ray_first_cos": 0.5485266740654303,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 22,
+   "bubbles": [
+    {
+     "volume_um3": 4569.672149017548,
+     "centroid_um": [
+      102.95454545454545,
+      30.227272727272734,
+      86.5909090909091
+     ],
+     "frozen": true,
+     "pressure": 101604.08815942054
+    }
+   ],
+   "formed": 329,
+   "released": 319,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516852,
+   "wall_s": 720.4106252193451
+  },
+  {
+   "t": 0.00010300000000001131,
+   "x_l": 0.0001322425000000085,
+   "laser_on": true,
+   "depth": 0.00010775742462316091,
+   "x_bottom": -1.974250000000848e-05,
+   "front_tan": 1.9917083101864028,
+   "opening": 0.0001,
+   "centre_depth": 9.93368325512031e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 1.0184029112090723e-15,
+   "bubble_d_eq": [
+    1.2482656028274532e-05
+   ],
+   "ray_absorbed": 0.7235893206145586,
+   "ray_escaped_top": 0.23347494885553086,
+   "ray_escaped_side": 0.04293279215401932,
+   "ray_stopped": 2.9383758912570864e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.4566823431428504,
+   "ray_first_cos": 0.5636356268853312,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5918,
+   "bubbles": [
+    {
+     "volume_um3": 1018.402911209072,
+     "centroid_um": [
+      75.0,
+      65.00000000000001,
+      107.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 332,
+   "released": 322,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516835,
+   "wall_s": 727.9875838756561
+  },
+  {
+   "t": 0.00010400000000001147,
+   "x_l": 0.00013299250000000862,
+   "laser_on": true,
+   "depth": 0.00010372830113335898,
+   "x_bottom": -2.0492500000008607e-05,
+   "front_tan": 1.5580301298225658,
+   "opening": 0.000105,
+   "centre_depth": 0.0001010075924915892,
+   "n_bubbles": 2,
+   "bubble_volume": 6.788051853536296e-15,
+   "bubble_d_eq": [
+    2.0503270079767134e-05,
+    1.631783169900772e-05
+   ],
+   "ray_absorbed": 0.710456881248831,
+   "ray_escaped_top": 0.2487909704246551,
+   "ray_escaped_side": 0.04075073988273093,
+   "ray_stopped": 1.4084437830924698e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.3020719792990407,
+   "ray_first_cos": 0.5796320433220034,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5749,
+   "bubbles": [
+    {
+     "volume_um3": 4513.027914444607,
+     "centroid_um": [
+      102.50000000000001,
+      28.75,
+      82.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2275.023939091688,
+     "centroid_um": [
+      150.0,
+      30.000000000000004,
+      86.25000000000001
+     ],
+     "frozen": true,
+     "pressure": 101540.40344000646
+    }
+   ],
+   "formed": 336,
+   "released": 324,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516819,
+   "wall_s": 735.2406783103943
+  },
+  {
+   "t": 0.00010500000000001163,
+   "x_l": 0.00013374250000000872,
+   "laser_on": true,
+   "depth": 0.00010400420759783504,
+   "x_bottom": -3.1242500000008705e-05,
+   "front_tan": 1.4526723051539365,
+   "opening": 0.000105,
+   "centre_depth": 0.00010252190698024185,
+   "n_bubbles": 2,
+   "bubble_volume": 6.793678877667451e-15,
+   "bubble_d_eq": [
+    2.0555469701884784e-05,
+    1.624836821609463e-05
+   ],
+   "ray_absorbed": 0.7086696764987523,
+   "ray_escaped_top": 0.24352125500430583,
+   "ray_escaped_side": 0.04780685835457285,
+   "ray_stopped": 2.210142368901684e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.3657143336723947,
+   "ray_first_cos": 0.5822739298165887,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5871,
+   "bubbles": [
+    {
+     "volume_um3": 4547.585127422979,
+     "centroid_um": [
+      102.95454545454545,
+      29.772727272727273,
+      84.77272727272728
+     ],
+     "frozen": true,
+     "pressure": 101344.87278873943
+    },
+    {
+     "volume_um3": 2246.093750244471,
+     "centroid_um": [
+      147.5,
+      34.166666666666664,
+      89.16666666666667
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 338,
+   "released": 326,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516803,
+   "wall_s": 742.8124847412109
+  },
+  {
+   "t": 0.00010600000000001179,
+   "x_l": 0.00013449250000000884,
+   "laser_on": true,
+   "depth": 0.00010445456375341739,
+   "x_bottom": -3.199250000000883e-05,
+   "front_tan": 1.3078237768765966,
+   "opening": 0.000105,
+   "centre_depth": 0.00010337691878480591,
+   "n_bubbles": 1,
+   "bubble_volume": 2.2782213189094617e-15,
+   "bubble_d_eq": [
+    1.6325472627017892e-05
+   ],
+   "ray_absorbed": 0.7181736730889683,
+   "ray_escaped_top": 0.2336611077307354,
+   "ray_escaped_side": 0.04816457341818796,
+   "ray_stopped": 6.457621084697246e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.465675631919066,
+   "ray_first_cos": 0.5772599229234817,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 42,
+   "bubbles": [
+    {
+     "volume_um3": 2278.221318909461,
+     "centroid_um": [
+      147.5,
+      28.75,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 342,
+   "released": 331,
+   "T_max": 5148.262368442125,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185167866,
+   "wall_s": 749.7585124969482
+  },
+  {
+   "t": 0.00010700000000001195,
+   "x_l": 0.00013524250000000897,
+   "laser_on": true,
+   "depth": 0.00010444239062527497,
+   "x_bottom": -3.774250000000896e-05,
+   "front_tan": 1.4244509029478083,
+   "opening": 0.000105,
+   "centre_depth": 0.00010344420123786732,
+   "n_bubbles": 1,
+   "bubble_volume": 1.9595978851996687e-15,
+   "bubble_d_eq": [
+    1.5525875999467224e-05
+   ],
+   "ray_absorbed": 0.7198940232013006,
+   "ray_escaped_top": 0.23612180872131117,
+   "ray_escaped_side": 0.04398415568181663,
+   "ray_stopped": 1.2395571505611861e-08,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.416676106510564,
+   "ray_first_cos": 0.5698204625602368,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 38,
+   "bubbles": [
+    {
+     "volume_um3": 1959.597885199668,
+     "centroid_um": [
+      56.25000000000001,
+      57.5,
+      97.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 345,
+   "released": 334,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185167706,
+   "wall_s": 756.9135642051697
+  },
+  {
+   "t": 0.00010800000000001211,
+   "x_l": 0.0001359925000000091,
+   "laser_on": true,
+   "depth": 0.0001039918456639692,
+   "x_bottom": -3.3492500000009085e-05,
+   "front_tan": 2.015675062693824,
+   "opening": 0.000105,
+   "centre_depth": 0.00010272887116464554,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7316587942127959,
+   "ray_escaped_top": 0.22381366514115608,
+   "ray_escaped_side": 0.044527540646047914,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5323649351724886,
+   "ray_first_cos": 0.5628805708091158,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 29,
+   "bubbles": [],
+   "formed": 347,
+   "released": 337,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185167546,
+   "wall_s": 764.1212975978851
+  },
+  {
+   "t": 0.00010900000000001227,
+   "x_l": 0.0001367425000000092,
+   "laser_on": true,
+   "depth": 0.0001033903912992685,
+   "x_bottom": -3.9242500000009184e-05,
+   "front_tan": 2.134384318947531,
+   "opening": 0.000105,
+   "centre_depth": 0.00010112339506251542,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7345498243153011,
+   "ray_escaped_top": 0.22698398545970214,
+   "ray_escaped_side": 0.03846619022499675,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5150318076615297,
+   "ray_first_cos": 0.5487297331384319,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 23,
+   "bubbles": [],
+   "formed": 349,
+   "released": 338,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516737,
+   "wall_s": 771.1942534446716
+  },
+  {
+   "t": 0.00011000000000001243,
+   "x_l": 0.00013749250000000932,
+   "laser_on": true,
+   "depth": 0.00010255282369354823,
+   "x_bottom": -6.499250000000932e-05,
+   "front_tan": 2.092659543905614,
+   "opening": 0.000105,
+   "centre_depth": 0.0001020381775070415,
+   "n_bubbles": 1,
+   "bubble_volume": 2.9647668617369183e-15,
+   "bubble_d_eq": [
+    1.7823677212533174e-05
+   ],
+   "ray_absorbed": 0.7354260580325751,
+   "ray_escaped_top": 0.2307431963034668,
+   "ray_escaped_side": 0.03383074566395799,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.5230574662458127,
+   "ray_first_cos": 0.5543081312827797,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 22,
+   "bubbles": [
+    {
+     "volume_um3": 2964.7668617369172,
+     "centroid_um": [
+      152.50000000000003,
+      116.87500000000001,
+      88.125
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 352,
+   "released": 340,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516721,
+   "wall_s": 778.1691746711731
+  },
+  {
+   "t": 0.00011100000000001259,
+   "x_l": 0.00013824250000000945,
+   "laser_on": true,
+   "depth": 0.00010390711968503732,
+   "x_bottom": -6.574250000000945e-05,
+   "front_tan": 2.0855219393169055,
+   "opening": 0.00011,
+   "centre_depth": 0.00010124737094443644,
+   "n_bubbles": 1,
+   "bubble_volume": 3.0949384242455268e-15,
+   "bubble_d_eq": [
+    1.808080643523231e-05
+   ],
+   "ray_absorbed": 0.720749550560067,
+   "ray_escaped_top": 0.24043745422828167,
+   "ray_escaped_side": 0.038812995211651255,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.3785023831339958,
+   "ray_first_cos": 0.5619080395752113,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 26,
+   "bubbles": [
+    {
+     "volume_um3": 3094.9384242455258,
+     "centroid_um": [
+      153.61111111111111,
+      117.50000000000001,
+      86.94444444444444
+     ],
+     "frozen": true,
+     "pressure": 100502.21457273776
+    }
+   ],
+   "formed": 357,
+   "released": 345,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516705,
+   "wall_s": 785.5086781978607
+  },
+  {
+   "t": 0.00011200000000001275,
+   "x_l": 0.00013899250000000958,
+   "laser_on": true,
+   "depth": 0.00010353090780680036,
+   "x_bottom": -3.6492500000009565e-05,
+   "front_tan": 1.9506085565064584,
+   "opening": 0.00011,
+   "centre_depth": 0.00010293313467017841,
+   "n_bubbles": 1,
+   "bubble_volume": 4.4503729063170436e-15,
+   "bubble_d_eq": [
+    2.0407944297676924e-05
+   ],
+   "ray_absorbed": 0.7073122088584821,
+   "ray_escaped_top": 0.2543327058621486,
+   "ray_escaped_side": 0.038355085279369205,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.254541933448089,
+   "ray_first_cos": 0.5614068741164185,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 31,
+   "bubbles": [
+    {
+     "volume_um3": 4450.372906317042,
+     "centroid_um": [
+      103.92857142857144,
+      26.785714285714285,
+      84.64285714285715
+     ],
+     "frozen": true,
+     "pressure": 101342.40968296284
+    }
+   ],
+   "formed": 360,
+   "released": 347,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516688,
+   "wall_s": 792.7495679855347
+  },
+  {
+   "t": 0.00011300000000001291,
+   "x_l": 0.00013974250000000968,
+   "laser_on": true,
+   "depth": 0.00010525976171261862,
+   "x_bottom": -3.7242500000009664e-05,
+   "front_tan": 1.6769946487475673,
+   "opening": 0.000105,
+   "centre_depth": 0.00010454110825969761,
+   "n_bubbles": 1,
+   "bubble_volume": 4.4402692608925985e-15,
+   "bubble_d_eq": [
+    2.0392488598784272e-05
+   ],
+   "ray_absorbed": 0.7022056588687184,
+   "ray_escaped_top": 0.25854509037167134,
+   "ray_escaped_side": 0.039249209492216275,
+   "ray_stopped": 4.126739384561908e-08,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.1932936292678527,
+   "ray_first_cos": 0.5695641869223249,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 50,
+   "bubbles": [
+    {
+     "volume_um3": 4440.269260892597,
+     "centroid_um": [
+      103.21428571428572,
+      27.5,
+      85.35714285714286
+     ],
+     "frozen": true,
+     "pressure": 101922.94365857297
+    }
+   ],
+   "formed": 365,
+   "released": 350,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185166716,
+   "wall_s": 800.0726635456085
+  },
+  {
+   "t": 0.00011400000000001307,
+   "x_l": 0.0001404925000000098,
+   "laser_on": true,
+   "depth": 0.00010524560428639004,
+   "x_bottom": -3.799250000000979e-05,
+   "front_tan": 1.4634263335533273,
+   "opening": 0.000105,
+   "centre_depth": 0.00010483694366031352,
+   "n_bubbles": 2,
+   "bubble_volume": 6.794283923666444e-15,
+   "bubble_d_eq": [
+    2.0407836152807522e-05,
+    1.6481062345251757e-05
+   ],
+   "ray_absorbed": 0.69871298061447,
+   "ray_escaped_top": 0.2616046104294615,
+   "ray_escaped_side": 0.03968233759380611,
+   "ray_stopped": 7.136226239813775e-08,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.166613849185936,
+   "ray_first_cos": 0.5706431326284188,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 56,
+   "bubbles": [
+    {
+     "volume_um3": 4450.302157038332,
+     "centroid_um": [
+      104.16666666666667,
+      29.166666666666668,
+      85.0
+     ],
+     "frozen": true,
+     "pressure": 100792.49095385366
+    },
+    {
+     "volume_um3": 2343.9817666281106,
+     "centroid_um": [
+      157.5,
+      125.0,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 370,
+   "released": 352,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185166556,
+   "wall_s": 807.7584500312805
+  },
+  {
+   "t": 0.00011500000000001323,
+   "x_l": 0.00014124250000000993,
+   "laser_on": true,
+   "depth": 0.00011571061693401244,
+   "x_bottom": -2.874250000000992e-05,
+   "front_tan": 1.541939644248277,
+   "opening": 0.00011,
+   "centre_depth": 0.00010521253579044118,
+   "n_bubbles": 2,
+   "bubble_volume": 6.598150007667638e-15,
+   "bubble_d_eq": [
+    1.6091913695822455e-05,
+    2.0355753021548268e-05
+   ],
+   "ray_absorbed": 0.7097258331543068,
+   "ray_escaped_top": 0.25105035310852797,
+   "ray_escaped_side": 0.039222501141969845,
+   "ray_stopped": 1.31259519521484e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.283044617462149,
+   "ray_first_cos": 0.5625884727023636,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 65,
+   "bubbles": [
+    {
+     "volume_um3": 2181.834006145863,
+     "centroid_um": [
+      55.0,
+      88.75,
+      90.0
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 4416.316001521773,
+     "centroid_um": [
+      103.05555555555556,
+      29.166666666666668,
+      84.16666666666666
+     ],
+     "frozen": true,
+     "pressure": 101219.03546648845
+    }
+   ],
+   "formed": 374,
+   "released": 355,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185166396,
+   "wall_s": 814.9615120887756
+  },
+  {
+   "t": 0.00011600000000001339,
+   "x_l": 0.00014199250000001006,
+   "laser_on": true,
+   "depth": 0.00010639813723068667,
+   "x_bottom": -2.9492500000010045e-05,
+   "front_tan": 1.6094636207469581,
+   "opening": 0.00011,
+   "centre_depth": 0.00010552976839409251,
+   "n_bubbles": 1,
+   "bubble_volume": 4.39099411681679e-15,
+   "bubble_d_eq": [
+    2.0316773751590706e-05
+   ],
+   "ray_absorbed": 0.7137330791989294,
+   "ray_escaped_top": 0.2484891534625257,
+   "ray_escaped_side": 0.0377773820830599,
+   "ray_stopped": 3.852554850098567e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.263813848884055,
+   "ray_first_cos": 0.5556303184022581,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 62,
+   "bubbles": [
+    {
+     "volume_um3": 4390.994116816789,
+     "centroid_um": [
+      103.50000000000001,
+      26.5,
+      85.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101536.67238314895
+    }
+   ],
+   "formed": 377,
+   "released": 359,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516622,
+   "wall_s": 822.0631730556488
+  },
+  {
+   "t": 0.00011700000000001355,
+   "x_l": 0.00014274250000001016,
+   "laser_on": true,
+   "depth": 0.00010524108117502259,
+   "x_bottom": -3.5242500000010144e-05,
+   "front_tan": 2.1391106949465977,
+   "opening": 0.00011,
+   "centre_depth": 0.00010501249798601297,
+   "n_bubbles": 3,
+   "bubble_volume": 7.231445002586157e-15,
+   "bubble_d_eq": [
+    1.4592553881957655e-05,
+    1.6707193029666478e-05,
+    1.821167994501454e-05
+   ],
+   "ray_absorbed": 0.7307226399427694,
+   "ray_escaped_top": 0.22341922704601777,
+   "ray_escaped_side": 0.045856488065343266,
+   "ray_stopped": 1.6449458695356657e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.429833087375769,
+   "ray_first_cos": 0.5387495572648151,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5788,
+   "bubbles": [
+    {
+     "volume_um3": 1627.0186796858072,
+     "centroid_um": [
+      54.16666666666667,
+      85.83333333333336,
+      87.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2441.794399671001,
+     "centroid_um": [
+      148.21428571428572,
+      31.785714285714285,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 90976.07260985259
+    },
+    {
+     "volume_um3": 3162.6319232293463,
+     "centroid_um": [
+      151.94444444444446,
+      117.50000000000001,
+      89.72222222222223
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 382,
+   "released": 362,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516606,
+   "wall_s": 829.5643351078033
+  },
+  {
+   "t": 0.00011800000000001371,
+   "x_l": 0.00014349250000001028,
+   "laser_on": true,
+   "depth": 0.00010573380839799237,
+   "x_bottom": -6.099250000001027e-05,
+   "front_tan": 2.1322961659102475,
+   "opening": 0.000115,
+   "centre_depth": 0.00010573380839799237,
+   "n_bubbles": 2,
+   "bubble_volume": 6.550400097016651e-15,
+   "bubble_d_eq": [
+    2.0268562187796017e-05,
+    1.611341438440688e-05
+   ],
+   "ray_absorbed": 0.7446834536192534,
+   "ray_escaped_top": 0.21188623035848408,
+   "ray_escaped_side": 0.04342671369478348,
+   "ray_stopped": 3.6023274792369956e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.650982168787137,
+   "ray_first_cos": 0.5321735808130438,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 61,
+   "bubbles": [
+    {
+     "volume_um3": 4359.808840334653,
+     "centroid_um": [
+      103.33333333333334,
+      31.666666666666668,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101920.15121098148
+    },
+    {
+     "volume_um3": 2190.5912566819966,
+     "centroid_um": [
+      148.75,
+      30.000000000000004,
+      86.25000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 386,
+   "released": 367,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851659,
+   "wall_s": 836.7145617008209
+  },
+  {
+   "t": 0.00011900000000001387,
+   "x_l": 0.0001442425000000104,
+   "laser_on": true,
+   "depth": 0.00010599553332673068,
+   "x_bottom": -6.17425000000104e-05,
+   "front_tan": 2.12962204660493,
+   "opening": 0.000115,
+   "centre_depth": 0.00010599553332673068,
+   "n_bubbles": 3,
+   "bubble_volume": 8.162307912322472e-15,
+   "bubble_d_eq": [
+    2.025215155146258e-05,
+    1.4294746304515583e-05,
+    1.6338444013562434e-05
+   ],
+   "ray_absorbed": 0.7468086451163297,
+   "ray_escaped_top": 0.20675685284161524,
+   "ray_escaped_side": 0.046434502042055244,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.7030746014550204,
+   "ray_first_cos": 0.5366398395138803,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 76,
+   "bubbles": [
+    {
+     "volume_um3": 4349.22752873125,
+     "centroid_um": [
+      102.50000000000001,
+      29.642857142857146,
+      83.21428571428572
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 1529.424273937496,
+     "centroid_um": [
+      132.50000000000003,
+      70.00000000000001,
+      105.0
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2283.6561096537253,
+     "centroid_um": [
+      157.5,
+      125.0,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 391,
+   "released": 371,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185165734,
+   "wall_s": 844.6838660240173
+  },
+  {
+   "t": 0.00012000000000001403,
+   "x_l": 0.00014499250000001054,
+   "laser_on": true,
+   "depth": 0.00010531813741030245,
+   "x_bottom": -6.749250000001054e-05,
+   "front_tan": 2.022601589896887,
+   "opening": 0.000115,
+   "centre_depth": 0.00010531813741030245,
+   "n_bubbles": 1,
+   "bubble_volume": 2.2746906361983805e-15,
+   "bubble_d_eq": [
+    1.6317034777555713e-05
+   ],
+   "ray_absorbed": 0.7424635961586747,
+   "ray_escaped_top": 0.21311762697556857,
+   "ray_escaped_side": 0.04441877686575664,
+   "ray_stopped": 0.0,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.6423253558241298,
+   "ray_first_cos": 0.5408712554405112,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 91,
+   "bubbles": [
+    {
+     "volume_um3": 2274.6906361983797,
+     "centroid_um": [
+      157.5,
+      125.0,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 395,
+   "released": 377,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516557,
+   "wall_s": 851.8824872970581
+  },
+  {
+   "t": 0.00012100000000001419,
+   "x_l": 0.00014574250000001063,
+   "laser_on": true,
+   "depth": 0.0001077356388249589,
+   "x_bottom": -3.8242500000010624e-05,
+   "front_tan": 1.905895421854227,
+   "opening": 0.000115,
+   "centre_depth": 0.0001077356388249589,
+   "n_bubbles": 2,
+   "bubble_volume": 6.434778427525767e-15,
+   "bubble_d_eq": [
+    2.014261587832527e-05,
+    1.60275037637222e-05
+   ],
+   "ray_absorbed": 0.7491597147927842,
+   "ray_escaped_top": 0.20660113751432724,
+   "ray_escaped_side": 0.04423860176464418,
+   "ray_stopped": 5.459282443043314e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.7875973722019594,
+   "ray_first_cos": 0.5422495756797779,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 94,
+   "bubbles": [
+    {
+     "volume_um3": 4279.038900319808,
+     "centroid_um": [
+      103.50000000000001,
+      27.5,
+      81.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2155.739527205957,
+     "centroid_um": [
+      150.0,
+      32.50000000000001,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 403,
+   "released": 383,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516541,
+   "wall_s": 859.0060594081879
+  },
+  {
+   "t": 0.00012200000000001435,
+   "x_l": 0.00014649250000001076,
+   "laser_on": true,
+   "depth": 0.00010824557948494425,
+   "x_bottom": -3.899250000001075e-05,
+   "front_tan": 1.811079923844902,
+   "opening": 0.000115,
+   "centre_depth": 0.00010824557948494425,
+   "n_bubbles": 1,
+   "bubble_volume": 4.317496235473551e-15,
+   "bubble_d_eq": [
+    2.020277909340433e-05
+   ],
+   "ray_absorbed": 0.7546729984787275,
+   "ray_escaped_top": 0.20362745835142262,
+   "ray_escaped_side": 0.04169953978859427,
+   "ray_stopped": 3.3812555414252483e-09,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.8870894910962774,
+   "ray_first_cos": 0.5516634083379826,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5614,
+   "bubbles": [
+    {
+     "volume_um3": 4317.49623547355,
+     "centroid_um": [
+      103.33333333333334,
+      29.166666666666668,
+      84.16666666666666
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 409,
+   "released": 386,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516525,
+   "wall_s": 866.7421727180481
+  },
+  {
+   "t": 0.00012300000000001389,
+   "x_l": 0.00014724250000001043,
+   "laser_on": true,
+   "depth": 0.0001079389984525497,
+   "x_bottom": -3.474250000001042e-05,
+   "front_tan": 1.7902792919395822,
+   "opening": 0.000115,
+   "centre_depth": 0.00010776568801561606,
+   "n_bubbles": 1,
+   "bubble_volume": 4.291273361038896e-15,
+   "bubble_d_eq": [
+    2.016179460482386e-05
+   ],
+   "ray_absorbed": 0.7407579267733424,
+   "ray_escaped_top": 0.21347859728124646,
+   "ray_escaped_side": 0.0457627576427271,
+   "ray_stopped": 7.18302683997025e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.7231303050048337,
+   "ray_first_cos": 0.5497897170339089,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 114,
+   "bubbles": [
+    {
+     "volume_um3": 4291.273361038895,
+     "centroid_um": [
+      103.50000000000001,
+      27.5,
+      84.5
+     ],
+     "frozen": true,
+     "pressure": 101944.17117101302
+    }
+   ],
+   "formed": 413,
+   "released": 389,
+   "T_max": 4805.745942217184,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516508,
+   "wall_s": 874.0672364234924
+  },
+  {
+   "t": 0.00012400000000001337,
+   "x_l": 0.00014799250000001004,
+   "laser_on": true,
+   "depth": 0.00010883359562383151,
+   "x_bottom": -3.549250000001003e-05,
+   "front_tan": 1.8454157531780713,
+   "opening": 0.00011,
+   "centre_depth": 0.00010764955660006253,
+   "n_bubbles": 1,
+   "bubble_volume": 2.2505661312571186e-15,
+   "bubble_d_eq": [
+    1.6259145551108138e-05
+   ],
+   "ray_absorbed": 0.7259614735897482,
+   "ray_escaped_top": 0.22634566597593497,
+   "ray_escaped_side": 0.047691574744608785,
+   "ray_stopped": 1.2856897080162346e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.614246757731184,
+   "ray_first_cos": 0.5481020633337144,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5783,
+   "bubbles": [
+    {
+     "volume_um3": 2250.5661312571183,
+     "centroid_um": [
+      157.5,
+      127.50000000000001,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 417,
+   "released": 391,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516491,
+   "wall_s": 881.1340441703796
+  },
+  {
+   "t": 0.00012500000000001285,
+   "x_l": 0.00014874250000000965,
+   "laser_on": true,
+   "depth": 0.00010872172244704333,
+   "x_bottom": -3.624250000000964e-05,
+   "front_tan": 1.9436238649704394,
+   "opening": 0.00011,
+   "centre_depth": 0.00010741193501877434,
+   "n_bubbles": 1,
+   "bubble_volume": 2.1382590013829145e-15,
+   "bubble_d_eq": [
+    1.5984064702341583e-05
+   ],
+   "ray_absorbed": 0.7306769619501844,
+   "ray_escaped_top": 0.22403019463799295,
+   "ray_escaped_side": 0.045292275126861584,
+   "ray_stopped": 5.682849611495885e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.614401120932065,
+   "ray_first_cos": 0.5463201863258133,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5673,
+   "bubbles": [
+    {
+     "volume_um3": 2138.259001382914,
+     "centroid_um": [
+      150.0,
+      35.00000000000001,
+      88.75
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 423,
+   "released": 396,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516475,
+   "wall_s": 888.427271604538
+  },
+  {
+   "t": 0.00012600000000001233,
+   "x_l": 0.00014949250000000926,
+   "laser_on": true,
+   "depth": 0.0001091028098641705,
+   "x_bottom": -3.699250000000925e-05,
+   "front_tan": 2.005066947770925,
+   "opening": 0.00011,
+   "centre_depth": 0.00010794548333778681,
+   "n_bubbles": 2,
+   "bubble_volume": 6.1713037555744896e-15,
+   "bubble_d_eq": [
+    2.0136633451615196e-05,
+    1.5356269882268453e-05
+   ],
+   "ray_absorbed": 0.7461150472524578,
+   "ray_escaped_top": 0.2053772320180965,
+   "ray_escaped_side": 0.048507399994103736,
+   "ray_stopped": 3.2073534199133595e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 3.7876095081598318,
+   "ray_first_cos": 0.5367917372270299,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 5611,
+   "bubbles": [
+    {
+     "volume_um3": 4275.227364442525,
+     "centroid_um": [
+      101.78571428571429,
+      28.92857142857143,
+      84.64285714285715
+     ],
+     "frozen": true,
+     "pressure": 101227.36985978167
+    },
+    {
+     "volume_um3": 1896.076391131963,
+     "centroid_um": [
+      165.00000000000003,
+      102.50000000000001,
+      42.5
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 426,
+   "released": 398,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185164584,
+   "wall_s": 895.6638391017914
+  },
+  {
+   "t": 0.00012700000000001181,
+   "x_l": 0.00015024250000000887,
+   "laser_on": true,
+   "depth": 0.00010969771405097701,
+   "x_bottom": -6.774250000000886e-05,
+   "front_tan": 1.9969712304717322,
+   "opening": 0.000115,
+   "centre_depth": 0.00010949947111439172,
+   "n_bubbles": 2,
+   "bubble_volume": 1.7101332913964824e-14,
+   "bubble_d_eq": [
+    3.0240359648351446e-05,
+    1.710768496882772e-05
+   ],
+   "ray_absorbed": 0.7661798406981277,
+   "ray_escaped_top": 0.18694309058803998,
+   "ray_escaped_side": 0.04687658965174666,
+   "ray_stopped": 4.790620854163517e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.0413974198706715,
+   "ray_first_cos": 0.536779527279838,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 191,
+   "bubbles": [
+    {
+     "volume_um3": 14479.697136640756,
+     "centroid_um": [
+      104.72222222222223,
+      53.38888888888889,
+      75.05555555555556
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2621.635777324065,
+     "centroid_um": [
+      177.5,
+      52.5,
+      83.40909090909092
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 432,
+   "released": 402,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516442,
+   "wall_s": 903.2386665344238
+  },
+  {
+   "t": 0.0001280000000000113,
+   "x_l": 0.00015099250000000849,
+   "laser_on": true,
+   "depth": 0.0001102531251034071,
+   "x_bottom": -7.349250000000849e-05,
+   "front_tan": 1.9403334992606842,
+   "opening": 0.000115,
+   "centre_depth": 0.0001102531251034071,
+   "n_bubbles": 1,
+   "bubble_volume": 2.9851666628600343e-15,
+   "bubble_d_eq": [
+    1.786446385959212e-05
+   ],
+   "ray_absorbed": 0.7783830484199062,
+   "ray_escaped_top": 0.17559116808103192,
+   "ray_escaped_side": 0.04602578315369426,
+   "ray_stopped": 3.4536760418984023e-10,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.287208465885535,
+   "ray_first_cos": 0.5388227335916187,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 203,
+   "bubbles": [
+    {
+     "volume_um3": 2985.1666628600337,
+     "centroid_um": [
+      153.33333333333337,
+      118.33333333333336,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 437,
+   "released": 408,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516426,
+   "wall_s": 910.7171273231506
+  },
+  {
+   "t": 0.00012900000000001078,
+   "x_l": 0.0001517425000000081,
+   "laser_on": true,
+   "depth": 0.00011068522819879297,
+   "x_bottom": -7.42425000000081e-05,
+   "front_tan": 1.9695742251676063,
+   "opening": 0.00011,
+   "centre_depth": 0.00011068522819879297,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7920065899468969,
+   "ray_escaped_top": 0.16756742012279977,
+   "ray_escaped_side": 0.04042598933434653,
+   "ray_stopped": 5.959569292085509e-10,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.40110787179091,
+   "ray_first_cos": 0.5400644663629529,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 223,
+   "bubbles": [],
+   "formed": 440,
+   "released": 412,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516409,
+   "wall_s": 918.1013679504395
+  },
+  {
+   "t": 0.00013000000000001026,
+   "x_l": 0.0001524925000000077,
+   "laser_on": true,
+   "depth": 0.00011129219670616333,
+   "x_bottom": -6.99925000000077e-05,
+   "front_tan": 1.98859872829732,
+   "opening": 0.00011,
+   "centre_depth": 0.00011115802414635279,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "ray_absorbed": 0.7939272069983971,
+   "ray_escaped_top": 0.1637141627389922,
+   "ray_escaped_side": 0.04235848135147789,
+   "ray_stopped": 1.4891113268038745e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.488295159274848,
+   "ray_first_cos": 0.5413480813722197,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 237,
+   "bubbles": [],
+   "formed": 442,
+   "released": 414,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516393,
+   "wall_s": 925.2233848571777
+  },
+  {
+   "t": 0.00013100000000000974,
+   "x_l": 0.00015324250000000732,
+   "laser_on": true,
+   "depth": 0.00011168816059746988,
+   "x_bottom": -7.574250000000732e-05,
+   "front_tan": 2.026223085804285,
+   "opening": 0.00011,
+   "centre_depth": 0.00011166785250874697,
+   "n_bubbles": 2,
+   "bubble_volume": 4.272595600546783e-15,
+   "bubble_d_eq": [
+    1.5884504893681472e-05,
+    1.6072739151472537e-05
+   ],
+   "ray_absorbed": 0.7892569290710719,
+   "ray_escaped_top": 0.16823071620360147,
+   "ray_escaped_side": 0.04251209338874151,
+   "ray_stopped": 2.613365850901019e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.414411202311902,
+   "ray_first_cos": 0.544932547223271,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 234,
+   "bubbles": [
+    {
+     "volume_um3": 2098.551688908886,
+     "centroid_um": [
+      150.0,
+      30.000000000000004,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2174.043911637896,
+     "centroid_um": [
+      157.5,
+      127.50000000000001,
+      69.16666666666667
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 450,
+   "released": 420,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516377,
+   "wall_s": 932.6275091171265
+  },
+  {
+   "t": 0.00013200000000000923,
+   "x_l": 0.00015399250000000693,
+   "laser_on": true,
+   "depth": 0.00011230794454617964,
+   "x_bottom": -7.649250000000693e-05,
+   "front_tan": 2.0528585940889172,
+   "opening": 0.00011,
+   "centre_depth": 0.00011230794454617964,
+   "n_bubbles": 1,
+   "bubble_volume": 2.0210922767246707e-15,
+   "bubble_d_eq": [
+    1.5686612677383987e-05
+   ],
+   "ray_absorbed": 0.7813383466019094,
+   "ray_escaped_top": 0.17312746122095293,
+   "ray_escaped_side": 0.04553334767073244,
+   "ray_stopped": 8.44506405321087e-07,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.320909769681385,
+   "ray_first_cos": 0.5413318144355597,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 230,
+   "bubbles": [
+    {
+     "volume_um3": 2021.0922767246702,
+     "centroid_um": [
+      129.16666666666666,
+      49.16666666666667,
+      90.83333333333336
+     ],
+     "frozen": false,
+     "pressure": 90509.91444761434
+    }
+   ],
+   "formed": 454,
+   "released": 425,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851636,
+   "wall_s": 940.0382361412048
+  },
+  {
+   "t": 0.0001330000000000087,
+   "x_l": 0.00015474250000000654,
+   "laser_on": true,
+   "depth": 0.00011308097446766846,
+   "x_bottom": -7.724250000000654e-05,
+   "front_tan": 1.8747297426506284,
+   "opening": 0.00011,
+   "centre_depth": 0.00011308097446766846,
+   "n_bubbles": 1,
+   "bubble_volume": 2.1505072320314943e-15,
+   "bubble_d_eq": [
+    1.6014526226545086e-05
+   ],
+   "ray_absorbed": 0.7898489156301106,
+   "ray_escaped_top": 0.16280752140467422,
+   "ray_escaped_side": 0.047342212072948094,
+   "ray_stopped": 1.350892267053077e-06,
+   "ray_not_deposited": 0.0,
+   "ray_bottom": 0.0,
+   "ray_mean_bounces": 4.494026780522726,
+   "ray_first_cos": 0.5524675489584573,
+   "ray_rays": 9856,
+   "open_below": true,
+   "open_below_cells": 225,
+   "bubbles": [
+    {
+     "volume_um3": 2150.507232031494,
+     "centroid_um": [
+      157.5,
+      130.00000000000003,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 462,
+   "released": 432,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185163435,
+   "wall_s": 947.2874205112457
+  },
+  {
+   "t": 0.0001340000000000082,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00011330231144856631,
+   "x_bottom": -7.724250000000654e-05,
+   "front_tan": 1.876803894496168,
+   "opening": 0.000115,
+   "centre_depth": 0.00011330231144856631,
+   "n_bubbles": 3,
+   "bubble_volume": 1.3990722406617349e-14,
+   "bubble_d_eq": [
+    2.5383211432879553e-05,
+    1.808249495336491e-05,
+    1.6452162458552532e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 219,
+   "bubbles": [
+    {
+     "volume_um3": 8563.244104080799,
+     "centroid_um": [
+      94.375,
+      32.70833333333334,
+      91.25000000000001
+     ],
+     "frozen": false,
+     "pressure": 105227.8068031107
+    },
+    {
+     "volume_um3": 3095.8055892768384,
+     "centroid_um": [
+      83.92857142857143,
+      51.7857142857143,
+      68.21428571428572
+     ],
+     "frozen": false,
+     "pressure": 93847.70833328867
+    },
+    {
+     "volume_um3": 2331.6727132597084,
+     "centroid_um": [
+      147.5,
+      30.000000000000004,
+      90.0
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 471,
+   "released": 437,
+   "T_max": 4648.661864342091,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516327,
+   "wall_s": 955.092024564743
+  },
+  {
+   "t": 0.00013500000000000767,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00011323640128843976,
+   "x_bottom": -8.224250000000654e-05,
+   "front_tan": 1.5757036694623798,
+   "opening": 0.000115,
+   "centre_depth": 0.00011323640128843976,
+   "n_bubbles": 1,
+   "bubble_volume": 7.260934870845354e-15,
+   "bubble_d_eq": [
+    2.4025068779086e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 225,
+   "bubbles": [
+    {
+     "volume_um3": 7260.934870845351,
+     "centroid_um": [
+      93.86363636363637,
+      33.18181818181819,
+      92.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 57913.93611192358
+    }
+   ],
+   "formed": 477,
+   "released": 446,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851631,
+   "wall_s": 962.4250090122223
+  },
+  {
+   "t": 0.00013600000000000715,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00011228806479882224,
+   "x_bottom": -8.224250000000654e-05,
+   "front_tan": 1.6028850232865173,
+   "opening": 0.000115,
+   "centre_depth": 0.00011228806479882224,
+   "n_bubbles": 2,
+   "bubble_volume": 8.979784936034083e-15,
+   "bubble_d_eq": [
+    2.362182997161628e-05,
+    1.5833376159599697e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 218,
+   "bubbles": [
+    {
+     "volume_um3": 6901.432422230344,
+     "centroid_um": [
+      94.54545454545456,
+      33.86363636363637,
+      89.31818181818183
+     ],
+     "frozen": false,
+     "pressure": 95212.59641820204
+    },
+    {
+     "volume_um3": 2078.3525138037367,
+     "centroid_um": [
+      150.0,
+      30.833333333333336,
+      86.66666666666667
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 488,
+   "released": 455,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516293,
+   "wall_s": 969.857143163681
+  },
+  {
+   "t": 0.00013700000000000664,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010986432691605723,
+   "x_bottom": -8.724250000000654e-05,
+   "front_tan": 1.6835535190230253,
+   "opening": 0.00011,
+   "centre_depth": 0.00010986432691605723,
+   "n_bubbles": 2,
+   "bubble_volume": 5.154299488298217e-15,
+   "bubble_d_eq": [
+    1.7539018596242014e-05,
+    1.6446639468363042e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 5616,
+   "bubbles": [
+    {
+     "volume_um3": 2824.9742140984895,
+     "centroid_um": [
+      87.50000000000001,
+      33.75,
+      91.25000000000001
+     ],
+     "frozen": false,
+     "pressure": 101764.71426981362
+    },
+    {
+     "volume_um3": 2329.3252741997258,
+     "centroid_um": [
+      149.16666666666666,
+      30.833333333333336,
+      88.33333333333334
+     ],
+     "frozen": true,
+     "pressure": 90368.32396264483
+    }
+   ],
+   "formed": 492,
+   "released": 460,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516277,
+   "wall_s": 976.9778788089752
+  },
+  {
+   "t": 0.00013800000000000612,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010803618812261317,
+   "x_bottom": -4.224250000000653e-05,
+   "front_tan": 1.80846358618449,
+   "opening": 0.00011,
+   "centre_depth": 0.00010797337850778327,
+   "n_bubbles": 1,
+   "bubble_volume": 2.509642652802065e-15,
+   "bubble_d_eq": [
+    1.6860524793911582e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 199,
+   "bubbles": [
+    {
+     "volume_um3": 2509.6426528020643,
+     "centroid_um": [
+      88.33333333333334,
+      35.00000000000001,
+      94.16666666666667
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 495,
+   "released": 464,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185162605,
+   "wall_s": 983.9780986309052
+  },
+  {
+   "t": 0.0001390000000000056,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010732928182497143,
+   "x_bottom": -4.724250000000653e-05,
+   "front_tan": 1.866138513596989,
+   "opening": 0.00011,
+   "centre_depth": 0.00010700201888458822,
+   "n_bubbles": 1,
+   "bubble_volume": 2.0896385932849462e-15,
+   "bubble_d_eq": [
+    1.5861984436891003e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 5382,
+   "bubbles": [
+    {
+     "volume_um3": 2089.6385932849453,
+     "centroid_um": [
+      147.5,
+      35.5,
+      88.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101109.33078707047
+    }
+   ],
+   "formed": 499,
+   "released": 468,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516244,
+   "wall_s": 991.1327524185181
+  },
+  {
+   "t": 0.00014000000000000508,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010683372748906938,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 2.039354182142514,
+   "opening": 0.00011,
+   "centre_depth": 0.00010655583169325308,
+   "n_bubbles": 1,
+   "bubble_volume": 2.698750760799273e-15,
+   "bubble_d_eq": [
+    1.727380655843236e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 5544,
+   "bubbles": [
+    {
+     "volume_um3": 2698.750760799272,
+     "centroid_um": [
+      160.83333333333337,
+      129.16666666666666,
+      70.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 77783.79603077252
+    }
+   ],
+   "formed": 505,
+   "released": 474,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516228,
+   "wall_s": 998.5024013519287
+  },
+  {
+   "t": 0.00014100000000000457,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010701956213308779,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 2.173374062293524,
+   "opening": 0.00011,
+   "centre_depth": 0.00010611825332929328,
+   "n_bubbles": 1,
+   "bubble_volume": 8.189878686238276e-15,
+   "bubble_d_eq": [
+    2.500880549275623e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 154,
+   "bubbles": [
+    {
+     "volume_um3": 8189.878686238273,
+     "centroid_um": [
+      150.22727272727275,
+      78.63636363636364,
+      89.31818181818183
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 507,
+   "released": 476,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.1851851621,
+   "wall_s": 1005.619172334671
+  },
+  {
+   "t": 0.00014200000000000405,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010689997738500052,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 2.2809536075873402,
+   "opening": 0.000115,
+   "centre_depth": 0.00010641758818417142,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "open_below": true,
+   "open_below_cells": 5293,
+   "bubbles": [],
+   "formed": 510,
+   "released": 480,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516194,
+   "wall_s": 1013.5061511993408
+  },
+  {
+   "t": 0.00014300000000000353,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010654515289298461,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 2.3269872863683587,
+   "opening": 0.000115,
+   "centre_depth": 0.00010637969553160295,
+   "n_bubbles": 2,
+   "bubble_volume": 7.631339145856942e-15,
+   "bubble_d_eq": [
+    2.200578298465207e-05,
+    1.5765304775077363e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 133,
+   "bubbles": [
+    {
+     "volume_um3": 5579.677521643896,
+     "centroid_um": [
+      96.78571428571429,
+      32.50000000000001,
+      87.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2051.6616242130435,
+     "centroid_um": [
+      157.5,
+      130.00000000000003,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 519,
+   "released": 487,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185161776,
+   "wall_s": 1020.9063956737518
+  },
+  {
+   "t": 0.000144000000000003,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010578933198589754,
+   "x_bottom": -6.724250000000653e-05,
+   "front_tan": 2.036873596260406,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010571163516298105,
+   "n_bubbles": 1,
+   "bubble_volume": 1.9540433738839893e-15,
+   "bubble_d_eq": [
+    1.551119267000413e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 116,
+   "bubbles": [
+    {
+     "volume_um3": 1954.0433738839888,
+     "centroid_um": [
+      90.0,
+      32.50000000000001,
+      92.50000000000001
+     ],
+     "frozen": false,
+     "pressure": 96442.89927860683
+    }
+   ],
+   "formed": 523,
+   "released": 492,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516161,
+   "wall_s": 1028.2353601455688
+  },
+  {
+   "t": 0.0001450000000000025,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010546935477726012,
+   "x_bottom": -6.724250000000653e-05,
+   "front_tan": 1.9384243541370507,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010546935477726012,
+   "n_bubbles": 1,
+   "bubble_volume": 2.024352275942913e-15,
+   "bubble_d_eq": [
+    1.569504225695228e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 104,
+   "bubbles": [
+    {
+     "volume_um3": 2024.3522759429125,
+     "centroid_um": [
+      157.5,
+      130.00000000000003,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 528,
+   "released": 497,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516144,
+   "wall_s": 1035.3502593040466
+  },
+  {
+   "t": 0.00014600000000000198,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010445136876163065,
+   "x_bottom": -7.224250000000653e-05,
+   "front_tan": 1.8006048435283575,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010445136876163065,
+   "n_bubbles": 3,
+   "bubble_volume": 6.7855824468166035e-15,
+   "bubble_d_eq": [
+    1.6031213270001603e-05,
+    1.5673167634223723e-05,
+    1.708767177865907e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 92,
+   "bubbles": [
+    {
+     "volume_um3": 2157.2366874101217,
+     "centroid_um": [
+      82.50000000000001,
+      50.0,
+      67.5
+     ],
+     "frozen": true,
+     "pressure": 101588.65719888356
+    },
+    {
+     "volume_um3": 2015.8998767846495,
+     "centroid_um": [
+      157.5,
+      125.0,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2612.4458826218306,
+     "centroid_um": [
+      177.5,
+      54.16666666666667,
+      80.83333333333333
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 537,
+   "released": 503,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185161274,
+   "wall_s": 1042.8576173782349
+  },
+  {
+   "t": 0.00014700000000000146,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010278804338221348,
+   "x_bottom": -7.224250000000653e-05,
+   "front_tan": 1.6787469463638547,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010278804338221348,
+   "n_bubbles": 1,
+   "bubble_volume": 5.9764886631173484e-15,
+   "bubble_d_eq": [
+    2.2515546494647018e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 78,
+   "bubbles": [
+    {
+     "volume_um3": 5976.488663117347,
+     "centroid_um": [
+      98.40909090909092,
+      31.590909090909093,
+      88.40909090909092
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 540,
+   "released": 507,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185161106,
+   "wall_s": 1050.2057476043701
+  },
+  {
+   "t": 0.00014800000000000094,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010076352027369377,
+   "x_bottom": -7.224250000000653e-05,
+   "front_tan": 1.5717617923599252,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010033835584558686,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "open_below": true,
+   "open_below_cells": 76,
+   "bubbles": [],
+   "formed": 546,
+   "released": 514,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516094,
+   "wall_s": 1057.689334154129
+  },
+  {
+   "t": 0.00014900000000000042,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010069207351887762,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 1.5087119957534498,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 9.99794915281989e-05,
+   "n_bubbles": 4,
+   "bubble_volume": 2.199490779263678e-14,
+   "bubble_d_eq": [
+    1.5955627475541668e-05,
+    2.2070724872064053e-05,
+    2.8523609990774656e-05,
+    1.58573729134244e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 63,
+   "bubbles": [
+    {
+     "volume_um3": 2126.866772688034,
+     "centroid_um": [
+      82.50000000000001,
+      52.5,
+      65.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101664.35597743535
+    },
+    {
+     "volume_um3": 5629.222479491055,
+     "centroid_um": [
+      98.33333333333334,
+      32.22222222222223,
+      87.7777777777778
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 12151.00196688462,
+     "centroid_um": [
+      146.56250000000003,
+      78.75,
+      81.40625
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2087.816573573066,
+     "centroid_um": [
+      145.5,
+      32.50000000000001,
+      86.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 552,
+   "released": 515,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516077,
+   "wall_s": 1064.7465867996216
+  },
+  {
+   "t": 0.0001499999999999999,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010083501734925363,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 1.4693128386900336,
+   "opening": 0.00012000000000000002,
+   "centre_depth": 0.00010034247103439791,
+   "n_bubbles": 2,
+   "bubble_volume": 7.778683515451456e-15,
+   "bubble_d_eq": [
+    1.5919593819651404e-05,
+    2.2118938010121803e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 62,
+   "bubbles": [
+    {
+     "volume_um3": 2112.4895561200824,
+     "centroid_um": [
+      82.50000000000001,
+      50.833333333333336,
+      65.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 5666.193959331371,
+     "centroid_um": [
+      96.87500000000001,
+      31.875000000000004,
+      87.81250000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 557,
+   "released": 520,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185160604,
+   "wall_s": 1072.0093729496002
+  },
+  {
+   "t": 0.0001509999999999994,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010083013801664796,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 1.4512512640428603,
+   "opening": 0.000125,
+   "centre_depth": 0.00010062126105540998,
+   "n_bubbles": 1,
+   "bubble_volume": 2.663046673069488e-15,
+   "bubble_d_eq": [
+    1.7197291466012527e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 63,
+   "bubbles": [
+    {
+     "volume_um3": 2663.0466730694875,
+     "centroid_um": [
+      176.25,
+      53.12500000000001,
+      83.75
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 561,
+   "released": 523,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516043,
+   "wall_s": 1079.6410439014435
+  },
+  {
+   "t": 0.00015199999999999887,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010075831838070064,
+   "x_bottom": -6.224250000000653e-05,
+   "front_tan": 1.5709096582553632,
+   "opening": 0.000125,
+   "centre_depth": 0.00010075831838070064,
+   "n_bubbles": 2,
+   "bubble_volume": 8.739669522321118e-15,
+   "bubble_d_eq": [
+    1.5856973373767573e-05,
+    2.3333762520823713e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 66,
+   "bubbles": [
+    {
+     "volume_um3": 2087.658764740942,
+     "centroid_um": [
+      148.75,
+      32.50000000000001,
+      87.50000000000001
+     ],
+     "frozen": true,
+     "pressure": 100991.57926308809
+    },
+    {
+     "volume_um3": 6652.010757580173,
+     "centroid_um": [
+      153.57142857142858,
+      76.78571428571429,
+      88.57142857142858
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 567,
+   "released": 528,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518516026,
+   "wall_s": 1087.2680757045746
+  },
+  {
+   "t": 0.00015299999999999835,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010118538548330612,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 1.5646119541787509,
+   "opening": 0.000125,
+   "centre_depth": 0.00010118538548330612,
+   "n_bubbles": 2,
+   "bubble_volume": 7.938501273972412e-15,
+   "bubble_d_eq": [
+    1.5850404889506446e-05,
+    2.23599457172818e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 71,
+   "bubbles": [
+    {
+     "volume_um3": 2085.0655067611256,
+     "centroid_um": [
+      85.0,
+      50.0,
+      67.5
+     ],
+     "frozen": true,
+     "pressure": 101411.35477571019
+    },
+    {
+     "volume_um3": 5853.435767211284,
+     "centroid_um": [
+      107.50000000000001,
+      46.42857142857144,
+      71.07142857142857
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 574,
+   "released": 534,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185160095,
+   "wall_s": 1094.4368538856506
+  },
+  {
+   "t": 0.00015399999999999783,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.000101924957763405,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 1.5759513191046164,
+   "opening": 0.000125,
+   "centre_depth": 0.000101924957763405,
+   "n_bubbles": 1,
+   "bubble_volume": 8.665237260592692e-15,
+   "bubble_d_eq": [
+    2.5483590168576867e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 72,
+   "bubbles": [
+    {
+     "volume_um3": 8665.23726059269,
+     "centroid_um": [
+      96.30952380952382,
+      28.690476190476193,
+      97.02380952380953
+     ],
+     "frozen": false,
+     "pressure": 52467.271137815136
+    }
+   ],
+   "formed": 578,
+   "released": 537,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515993,
+   "wall_s": 1102.4326333999634
+  },
+  {
+   "t": 0.00015499999999999732,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010289243783179715,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 1.6009716296603111,
+   "opening": 0.000125,
+   "centre_depth": 0.00010249472963287448,
+   "n_bubbles": 2,
+   "bubble_volume": 4.209418082228516e-15,
+   "bubble_d_eq": [
+    1.6426284515826424e-05,
+    1.5336413311282036e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 64,
+   "bubbles": [
+    {
+     "volume_um3": 2320.687403353337,
+     "centroid_um": [
+      82.50000000000001,
+      50.0,
+      66.25000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 1888.7306788751782,
+     "centroid_um": [
+      88.92857142857143,
+      32.50000000000001,
+      93.21428571428572
+     ],
+     "frozen": false,
+     "pressure": 124910.33001397931
+    }
+   ],
+   "formed": 581,
+   "released": 539,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515976,
+   "wall_s": 1109.9014537334442
+  },
+  {
+   "t": 0.0001559999999999968,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010320825032184236,
+   "x_bottom": -5.724250000000653e-05,
+   "front_tan": 1.5233158171458885,
+   "opening": 0.000125,
+   "centre_depth": 0.00010255390843412924,
+   "n_bubbles": 2,
+   "bubble_volume": 1.3286046175866892e-14,
+   "bubble_d_eq": [
+    1.579811110406271e-05,
+    2.7776961719508734e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 59,
+   "bubbles": [
+    {
+     "volume_um3": 2064.496322770545,
+     "centroid_um": [
+      82.50000000000001,
+      52.5,
+      65.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101019.06999860507
+    },
+    {
+     "volume_um3": 11221.549853096343,
+     "centroid_um": [
+      146.57407407407408,
+      78.98148148148148,
+      81.57407407407409
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 587,
+   "released": 545,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515959,
+   "wall_s": 1117.2329423427582
+  },
+  {
+   "t": 0.00015699999999999628,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.000102776632413033,
+   "x_bottom": -5.224250000000653e-05,
+   "front_tan": 1.5294851770484794,
+   "opening": 0.000125,
+   "centre_depth": 0.00010213111532768297,
+   "n_bubbles": 1,
+   "bubble_volume": 2.05614442955146e-15,
+   "bubble_d_eq": [
+    1.5776778626560836e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 59,
+   "bubbles": [
+    {
+     "volume_um3": 2056.1444295514593,
+     "centroid_um": [
+      82.50000000000001,
+      52.5,
+      65.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101407.43867829033
+    }
+   ],
+   "formed": 591,
+   "released": 548,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185159426,
+   "wall_s": 1124.541870355606
+  },
+  {
+   "t": 0.00015799999999999576,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010218399182501081,
+   "x_bottom": -5.224250000000653e-05,
+   "front_tan": 1.533528989328143,
+   "opening": 0.000125,
+   "centre_depth": 0.00010173810329733067,
+   "n_bubbles": 1,
+   "bubble_volume": 5.65748078569705e-15,
+   "bubble_d_eq": [
+    2.2107594415615928e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 53,
+   "bubbles": [
+    {
+     "volume_um3": 5657.480785697048,
+     "centroid_um": [
+      100.0,
+      32.1875,
+      87.81250000000001
+     ],
+     "frozen": false,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 595,
+   "released": 552,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515925,
+   "wall_s": 1131.75288438797
+  },
+  {
+   "t": 0.00015899999999999525,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010138817647252173,
+   "x_bottom": -5.224250000000653e-05,
+   "front_tan": 1.5383583842061213,
+   "opening": 0.000125,
+   "centre_depth": 0.00010109497807510835,
+   "n_bubbles": 3,
+   "bubble_volume": 1.0386728216233095e-14,
+   "bubble_d_eq": [
+    1.571393683352881e-05,
+    2.224301279070435e-05,
+    1.7045110948400796e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 43,
+   "bubbles": [
+    {
+     "volume_um3": 2031.6721691139153,
+     "centroid_um": [
+      82.50000000000001,
+      52.5,
+      65.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 5762.082300520076,
+     "centroid_um": [
+      101.91176470588236,
+      31.91176470588236,
+      87.20588235294119
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    },
+    {
+     "volume_um3": 2592.9737465991007,
+     "centroid_um": [
+      176.25,
+      51.25000000000001,
+      83.75
+     ],
+     "frozen": true,
+     "pressure": 90281.27018441349
+    }
+   ],
+   "formed": 601,
+   "released": 556,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515908,
+   "wall_s": 1139.3963181972504
+  },
+  {
+   "t": 0.00015999999999999473,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010084583477961037,
+   "x_bottom": -4.724250000000653e-05,
+   "front_tan": 1.5421515737434879,
+   "opening": 0.000125,
+   "centre_depth": 0.00010071548271585667,
+   "n_bubbles": 2,
+   "bubble_volume": 7.334815569512364e-15,
+   "bubble_d_eq": [
+    2.189105974726781e-05,
+    1.520873388283808e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 42,
+   "bubbles": [
+    {
+     "volume_um3": 5492.865706275368,
+     "centroid_um": [
+      99.28571428571429,
+      32.50000000000001,
+      85.35714285714286
+     ],
+     "frozen": true,
+     "pressure": 103137.45933506291
+    },
+    {
+     "volume_um3": 1841.9498632369941,
+     "centroid_um": [
+      157.5,
+      130.00000000000003,
+      70.00000000000001
+     ],
+     "frozen": true,
+     "pressure": 115561.94257101438
+    }
+   ],
+   "formed": 605,
+   "released": 560,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515892,
+   "wall_s": 1146.6418645381927
+  },
+  {
+   "t": 0.0001609999999999942,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010010897594634468,
+   "x_bottom": -4.724250000000653e-05,
+   "front_tan": 1.5445745167033391,
+   "opening": 0.000125,
+   "centre_depth": 0.00010004713012624458,
+   "n_bubbles": 2,
+   "bubble_volume": 4.32307566612245e-15,
+   "bubble_d_eq": [
+    1.566502497282103e-05,
+    1.6401777953213443e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 34,
+   "bubbles": [
+    {
+     "volume_um3": 2012.7595549258199,
+     "centroid_um": [
+      82.50000000000001,
+      50.0,
+      67.5
+     ],
+     "frozen": true,
+     "pressure": 101400.9738068494
+    },
+    {
+     "volume_um3": 2310.316111196629,
+     "centroid_um": [
+      177.5,
+      50.833333333333336,
+      85.83333333333336
+     ],
+     "frozen": true,
+     "pressure": 101325.0
+    }
+   ],
+   "formed": 611,
+   "released": 564,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185158756,
+   "wall_s": 1153.9869527816772
+  },
+  {
+   "t": 0.0001619999999999937,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 0.00010007157429981006,
+   "x_bottom": -4.224250000000653e-05,
+   "front_tan": 1.5463516246167932,
+   "opening": 0.000125,
+   "centre_depth": 9.958610395896895e-05,
+   "n_bubbles": 1,
+   "bubble_volume": 2.005965317175637e-15,
+   "bubble_d_eq": [
+    1.564737890320053e-05
+   ],
+   "open_below": true,
+   "open_below_cells": 28,
+   "bubbles": [
+    {
+     "volume_um3": 2005.9653171756368,
+     "centroid_um": [
+      82.50000000000001,
+      50.833333333333336,
+      65.83333333333334
+     ],
+     "frozen": true,
+     "pressure": 101458.01076149622
+    }
+   ],
+   "formed": 617,
+   "released": 570,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.18518515858,
+   "wall_s": 1161.4309289455414
+  },
+  {
+   "t": 0.00016299999999999317,
+   "x_l": null,
+   "laser_on": false,
+   "depth": 9.962658512828979e-05,
+   "x_bottom": -4.224250000000653e-05,
+   "front_tan": 1.547355318125578,
+   "opening": 0.000125,
+   "centre_depth": 9.896008466004934e-05,
+   "n_bubbles": 0,
+   "bubble_volume": 0.0,
+   "bubble_d_eq": [],
+   "open_below": true,
+   "open_below_cells": 24,
+   "bubbles": [],
+   "formed": 622,
+   "released": 576,
+   "T_max": 4427.067266256804,
+   "limited": 0,
+   "recoil_clipped": 0,
+   "mass": 37890.185185158414,
+   "wall_s": 1169.504096031189
+  }
+ ],
+ "finished": true,
+ "mass_error": -7.080054001420732e-13,
+ "energy_balance": 0.004417833037149378,
+ "energy_residual": -0.0044178330375224725,
+ "steps": 8167,
+ "seconds": 1172.0927133549994,
+ "mlups": 0.4869711154215882,
+ "dross_um3": 239875.0,
+ "dross_depth_um": 60.00000000000001
+}

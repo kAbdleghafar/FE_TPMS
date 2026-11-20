@@ -164,6 +164,13 @@ def test_bubble_pressure_follows_volume():
     T[12, 12, 13] = 1700.0                                        # one hot cell on the bubble wall
     bm_t.update(flag, fill, T=T, T_solidus=1600.0)
     assert not bm_t.bubbles[0]["frozen"] and bm_t.bubbles[0]["T_wall_max"] == pytest.approx(1700.0)
+    # a void that was never molten is not a pore; one frozen after its walls were molten is
+    cold = BubbleModel(p_ambient=1e5)
+    cold.update(flag, fill, T=np.full(flag.shape, 1200.0), T_solidus=1600.0)
+    assert cold.bubbles[0]["frozen"] and not cold.bubbles[0]["pore"]
+    bm_t.update(flag, fill, T=np.full(flag.shape, 1200.0), T_solidus=1600.0)   # the same bubble, now cold
+    assert bm_t.bubbles[0]["frozen"] and bm_t.bubbles[0]["pore"]
+    assert bm_t.bubbles[0]["T_wall_hist"] == pytest.approx(1700.0)
     # compress it: fill the gas cells of one half (as the melt would), pressure goes up as V0/V
     V0 = b["volume"]
     f2, fl2 = fill.copy(), flag.copy()

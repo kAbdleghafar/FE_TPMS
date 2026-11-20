@@ -976,7 +976,7 @@ class FreeSurfaceMeltPool:
         if self.bubbles is not None:
             b = self.bubbles
             bub = dict(ids=None if b.ids is None else asnumpy(b.ids), content=b.content, next_id=b.next_id,
-                       released=b.released, formed=b.formed)
+                       released=b.released, formed=b.formed, hot=getattr(b, "hot", {}))
         arr["meta"] = np.frombuffer(pickle.dumps(dict(meta=meta, bubbles=bub)), dtype=np.uint8)
         np.savez(path, **arr)
 
@@ -995,6 +995,7 @@ class FreeSurfaceMeltPool:
             b, s = self.bubbles, m["bubbles"]
             b.ids = None if s["ids"] is None else xp.asarray(s["ids"])
             b.content, b.next_id, b.released, b.formed = s["content"], s["next_id"], s["released"], s["formed"]
+            b.hot = s.get("hot", {})
 
     # ------------------------------------------------------------------ run
     def run(self, laser, path, t_extra: float = 0.0, verbose: bool = False, frozen_flow: bool = False,

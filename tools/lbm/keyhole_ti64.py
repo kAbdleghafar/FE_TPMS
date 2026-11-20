@@ -231,7 +231,8 @@ def main():
             row["bubbles"] = [dict(volume_um3=b["volume"] * (m.dx * 1e6) ** 3, pressure=b["pressure"],
                                    centroid_um=[c * m.dx * 1e6 for c in b["centroid"]],
                                    depth_um=1e6 * info["z_surface"] - b["centroid"][2] * m.dx * 1e6,
-                                   T_wall_max=b["T_wall_max"], frozen=b["frozen"]) for b in m.bubbles.bubbles]
+                                   T_wall_max=b["T_wall_max"], frozen=b["frozen"], pore=b["pore"])
+                              for b in m.bubbles.bubbles]
             row["bubbles_formed"], row["bubbles_released"] = m.bubbles.formed, m.bubbles.released
         T = m.T
         row.update(T_max=float(T.max()), u_max=float((m.lbm.u ** 2).sum(axis=0).max()) ** 0.5 * m.dx / m.dt,
@@ -242,7 +243,7 @@ def main():
         if len(log) % 10 == 0:
             d = row.get("depth", float("nan"))
             print(f"t {t * 1e6:7.1f} us  depth {d * 1e6:6.1f} um  absorbed {row.get('ray_absorbed', float('nan')):.2f}  "
-                  f"bubbles {len(row.get('bubbles', []))} (frozen {sum(b['frozen'] for b in row.get('bubbles', []))})  "
+                  f"bubbles {len(row.get('bubbles', []))} (pores {sum(b['pore'] for b in row.get('bubbles', []))})  "
                   f"T_max {row['T_max']:6.0f} C  u_max {row['u_max']:5.1f} m/s  "
                   f"lim {row['limited']} clip {row['recoil_clipped']}  ({row['wall_s']:.0f} s)", flush=True)
         if time.time() - t_wall[1] > 60.0 * args.checkpoint:

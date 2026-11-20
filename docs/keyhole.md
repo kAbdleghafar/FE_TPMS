@@ -463,3 +463,25 @@ The study's settings are 85 µm hatch, one contour, 0.75 m/s.
   * the powder melted under the slab (dross volume and depth).
 * **Cases.** Slabs of 90, 150 and 250 µm bracket open, intermittent and closed: 3–4 M cells at
   2.5 µm, 400 µs of scanning.
+
+**CPU check: a 90 µm slab**
+* **Setup.** 5 µm cells, a 100 µm track, 80 µm of powder (101 particles, packing 0.46);
+  20 min on four cores.
+* **Files.** `tools/lbm/keyhole_runs/cpu_check_overhang/`; figure by
+  `tools/lbm/keyhole_figure.py overhang`.
+
+![open keyhole](img/keyhole_overhang.png)
+
+* **The keyhole breaks through.** It deepens inside the slab, closed, until it passes the
+  slab's underside at 92 µs (103 µm deep). Its gas then joins the gas of the powder bed.
+* **It stays open, but unsteadily.** The connection flickers between tens and ~10⁴ gas cells,
+  as melt runs into the powder and seals it again. The keyhole is held at 100–110 µm, with
+  spikes to 137 µm.
+* **Dross.** Melt sags into the powder below the slab: 240,000 µm³ of melted powder, reaching
+  60 µm down, under a 100 µm track.
+* **Conservation and pores.** Mass to 7e-13; booked energy residual 0.4 %. No pore froze in:
+  sealed voids between cold particles are not counted, only bubbles whose walls were molten
+  (`pore`).
+* **Agreement with the map.** It predicted break-through where the keyhole (mean 187 µm by
+  Gan's law) exceeds the solid below. Here the keyhole never reached its free depth: the slab
+  bottom stopped it, and the melt went into the powder instead.
