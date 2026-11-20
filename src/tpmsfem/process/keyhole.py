@@ -404,21 +404,37 @@ class BubbleModel:
 
 
 # ====================================================================== diagnostics
+def surface_heights(fill, dx):
+    """Height [m] of the metal surface seen from above, per column: where the fill level (as
+    given, e.g. smoothed once) first reaches 1/2 coming down, interpolated between cells.
+    Low-fill specks above the surface (below 1/2) are not counted. Columns without metal: 0."""
+    e = np.asarray(fill, float)
+    nz = e.shape[2]
+    has = e >= 0.5
+    any_m = has.any(axis=2)
+    k = nz - 1 - np.argmax(has[:, :, ::-1], axis=2)                  # topmost cell at or above 1/2
+    lo = np.take_along_axis(e, k[:, :, None], axis=2)[:, :, 0]
+    hi = np.take_along_axis(e, np.minimum(k + 1, nz - 1)[:, :, None], axis=2)[:, :, 0]
+    frac = np.clip((lo - 0.5) / np.maximum(lo - hi, 1e-12), 0.0, 1.0)
+    return np.where(any_m, (k + 0.5 + frac) * dx, 0.0)
+
+
 def keyhole_metrics(md, x_l, y_l, radius, z_surface, window=3.0):
     """Keyhole depth and shape from the free-surface melt pool ``md`` with the beam at
     (x_l, y_l) [m], 1/e^2 radius ``radius`` [m] and the original surface at ``z_surface`` [m].
+    The surface is the fill = 1/2 level of the once-smoothed fill field (the surface the rays
+    see; isolated specks of metal in the keyhole do not count).
 
-    * ``depth``: deepest point of the open depression (first metal seen from above) within
-      ``window`` radii of the beam axis, below the original surface [m].
-    * ``x_bottom``: where that point is, relative to the beam axis [m] (negative: behind).
-    * ``front_tan``: tan of the front-wall angle from the horizontal on the track centreline:
-      depth over the horizontal distance from the front rim (where the depression is 10 % of
-      its depth, ahead of the bottom) to the bottom.
-    * ``opening``: width of the depression along the track (between the 10 % points) [m].
-    * ``bubbles``: from ``md.bubbles`` if a :class:`BubbleModel` is attached: count, volumes
+    * ``depth``: deepest point of the open depression within ``window`` radii of the beam
+      axis, below the original surface [m]; ``centre_depth``: the same on the track centreline.
+    * ``x_bottom``: where the deepest point is, relative to the beam axis [m] (negative: behind).
+    * ``front_tan``: tan of the front-wall angle from the horizontal on the track centreline,
+      a straight-line fit to the front wall between 20 and 80 % of the centreline depth.
+    * ``opening``: length of the depression along the centreline at 10 % of its depth [m].
+    * ``bubbles``: from ``md.bubbles`` if a :class:`BubbleModel` is attached: count, volume
       and equivalent diameters [m]."""
     dx = md.dx
-    s = asnumpy(md.surface_height())
+    s = surface_heights(asnumpy(md.lbm.smoothed_fill(1)), dx)
     x = (np.arange(s.shape[0]) + 0.5) * dx
     y = (np.arange(s.shape[1]) + 0.5) * dx
     ix = (np.abs(x - x_l) <= window * radius)
@@ -428,21 +444,26 @@ def keyhole_metrics(md, x_l, y_l, radius, z_surface, window=3.0):
     k = np.unravel_index(np.argmax(d), d.shape)
     depth = float(d[k])
     xb = float(x[ix][k[0]])
-    out = dict(depth=depth, x_bottom=xb - x_l, front_tan=float("nan"), opening=float("nan"))
+    out = dict(depth=depth, x_bottom=xb - x_l, front_tan=float("nan"), opening=float("nan"), centre_depth=float("nan"))
     j = int(np.argmin(np.abs(y - y_l)))
     prof = np.where(s[:, j] > 0, z_surface - s[:, j], 0.0)
-    ib = int(np.argmin(np.abs(x - xb)))
-    if depth > 2 * dx:
-        thr = 0.1 * depth
+    win = np.nonzero(ix)[0]
+    ib = int(win[np.argmax(prof[win])])
+    dc = float(prof[ib])
+    out["centre_depth"] = dc
+    if dc > 2 * dx:
         fr = ib
-        while fr + 1 < len(prof) and prof[fr + 1] > thr:
+        while fr + 1 < len(prof) and prof[fr + 1] > 0.1 * dc:
             fr += 1
         bk = ib
-        while bk - 1 >= 0 and prof[bk - 1] > thr:
+        while bk - 1 >= 0 and prof[bk - 1] > 0.1 * dc:
             bk -= 1
-        dist = (fr - ib + 0.5) * dx
-        out["front_tan"] = float(prof[ib] / dist) if dist > 0 else float("nan")
         out["opening"] = float((fr - bk + 1) * dx)
+        sel = np.arange(ib, fr + 1)
+        sel = sel[(prof[sel] >= 0.2 * dc) & (prof[sel] <= 0.8 * dc)]
+        if sel.size >= 2:
+            slope = np.polyfit(x[sel], prof[sel], 1)[0]
+            out["front_tan"] = float(abs(slope))
     bm = getattr(md, "bubbles", None)
     if bm is not None:
         vols = np.array([b["volume"] for b in bm.bubbles]) * dx ** 3

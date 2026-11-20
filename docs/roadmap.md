@@ -35,8 +35,11 @@ fidelity, benchmark credibility).
 7. **Process-scale models** (`process/`): melt pool, solidification and roughness **first version done**
    (docs/process_models.md). Next:
    * keyholes: **stage 1 done** (docs/keyhole.md): Gan et al. scaling laws checked on 71 X-ray
-     keyhole depths in Ti-6Al-4V, maps for IN625 and the gyroid. Next, stage 2 in the flow solver:
-     ray tracing with Fresnel absorption, a bubble model for pores, 2–3 µm cells on a GPU;
+     keyhole depths in Ti-6Al-4V, maps for IN625 and the gyroid. **Stage 2 solver done**: ray
+     tracing with Fresnel absorption and multiple reflections, a bubble model for pores, one-way
+     interface exchange and a sub-grid viscosity; a 5 µm CPU check forms a stable keyhole. Next:
+     the six Ti-6Al-4V X-ray cases at 2.5 µm on a GPU (`tools/lbm/run_keyhole_gpu.sh`), then IN625
+     and the gyroid;
    * a free-surface melt-pool model (keyhole, Marangoni): **own GPU-ready solver started**
      (`process/freesurface.py`, docs/freesurface_lbm.md): free-surface lattice Boltzmann with melting,
      Marangoni, recoil, evaporation; verified, AM-Bench case B run on CPU at 10 µm. Next: powder bed,

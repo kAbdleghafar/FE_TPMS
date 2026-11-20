@@ -940,6 +940,38 @@ print(f"u_max {out.u_max:.2f} m/s, mass error {out.mass_error:.1e}, energy resid
 * **Animation.** `tools/lbm/freesurface_animation.py`.
 * **Status and limits.** See [freesurface_lbm.md](freesurface_lbm.md).
 
+**Keyholes** (`tpmsfem.process.keyhole`). Three additions:
+* a `RayTracer` replaces the vertical absorption column: Fresnel absorption, multiple
+  reflections;
+* a `BubbleModel` gives every enclosed gas region its own ideal-gas pressure, so pores can
+  form;
+* `keyhole_metrics` measures the keyhole.
+
+For keyhole runs, also:
+* shorten the time step to dx/(250 m/s);
+* switch on the sub-grid viscosity, `fs.lbm.smagorinsky = 0.15`.
+
+The ray tracer can be tried on its own, here on a paraboloid keyhole:
+
+```python
+import numpy as np
+from tpmsfem.process.keyhole import RayTracer, smooth_fill
+
+n, top, depth, R = 50, 60.0, 45.0, 10.0                            # cells
+X, Y, Z = np.meshgrid(*(np.arange(k) + 0.5 for k in (n, n, 80)), indexing="ij")
+fill = (Z < top - depth * np.clip(1 - ((X - n / 2) ** 2 + (Y - n / 2) ** 2) / R ** 2, 0, None)).astype(float)
+fill[[0, -1]] = fill[:, [0, -1]] = fill[:, :, [0, -1]] = 0.0
+rt = RayTracer(A0=0.26)                                              # flat-melt absorptivity of Ti-6Al-4V
+dep, st = rt.trace(smooth_fill(fill), fill > 0, n / 2, n / 2, power=1.0, radius=4.0)
+print(f"absorbed {st['absorbed']:.2f} after {st['mean_bounces']:.1f} bounces (flat melt: {rt.A0:.2f})")
+```
+
+In a melt pool: `fs.rays = RayTracer(A0=0.26)`, `fs.bubbles = BubbleModel()`, and
+`fs.run(..., callback=f, callback_every=n)` with `f(fs, t, x_l, y_l)` calling
+`keyhole_metrics(fs, x_l, y_l, radius, z_surface)`. `fs.save_state` and `fs.load_state`
+checkpoint long runs. The Ti-6Al-4V X-ray cases: `tools/lbm/keyhole_ti64.py`
+([keyhole.md](keyhole.md)).
+
 ---
 
 ## 20. EBSD analysis
@@ -985,6 +1017,8 @@ compare predicted grains with this map.
 | grain CA vs EBSD; IN625 blocks | `nist_ambench2018_tracks_ca.py`, `ca_multilayer.py` | process_models.md §5.4–§5.5 |
 | CoCrFeMnNi gyroid: solidification, heat accumulation, residual strain, grains | `cantor_gyroid_*.py` | process_models.md §7 |
 | porosity maps | `porosity_maps.py` | porosity_maps.md |
+| keyhole depth and stability maps (Gan et al. laws) | `keyhole_maps.py` | keyhole.md |
+| keyhole dynamics, Ti-6Al-4V X-ray cases (GPU) | `tools/lbm/keyhole_ti64.py`, `run_keyhole_gpu.sh` | keyhole.md |
 | free-surface melt flow | `tools/lbm/*.py` | freesurface_lbm.md |
 
 Long studies store their results in `benchmarks/literature/results/` and can be resumed.

@@ -249,6 +249,27 @@ about 3× faster. The rest of the time step (curvature, surface terms, heat, int
 bookkeeping) is still whole-array NumPy and is now the bottleneck; moving it into kernels is
 the GPU port.
 
+## 6b. Keyhole additions (2026-11)
+
+Keyhole runs need three things; [keyhole.md](keyhole.md) gives the details and checks.
+* **Laser.** A ray tracer with Fresnel absorption and multiple reflections replaces the
+  vertical absorption column (`md.rays`).
+* **Pores.** A bubble model gives enclosed gas regions their own ideal-gas pressure
+  (`md.bubbles`).
+* **Two numerical changes** for the very low viscosity of liquid metal at keyhole speeds:
+  * **One-way exchange between interface cells of different type** (`lbm.interface_rules`,
+    after Thürey 2007), now the default. It keeps stray, nearly empty interface cells from
+    growing.
+    * Mass, the conservative heat transport and all earlier tests are unchanged.
+    * Runs made before this change reproduce with `interface_rules = False`.
+  * **A Smagorinsky sub-grid viscosity** (`lbm.smagorinsky`, off by default; Cs = 0.15 for
+    keyholes). It raises the relaxation time where the non-equilibrium stress is large. It
+    is needed when the cell Reynolds number u·dx/ν is far above ~10, otherwise the bulk
+    melt runs away.
+
+The run loop also takes a `callback` for diagnostics, and `save_state` / `load_state`
+checkpoint long runs.
+
 ## 7. Next steps
 
 1. **Single tracks on powder vs plate** (running): balling, width and roughness.

@@ -6,6 +6,7 @@ of the track length): mean, minimum and maximum keyhole depth (Gan et al.'s erro
 same max/min over the middle of their tracks), mean absorbed fraction, mean front-wall tangent.
 
     python tools/lbm/keyhole_figure.py [folder]
+    python tools/lbm/keyhole_figure.py check <folder>     # one run: sections, depth, absorption
 """
 import glob
 import json
@@ -129,5 +130,89 @@ def figure(folder):
         print({k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items() if k not in ("t", "depth_series")})
 
 
+def centreline_depth(fill_section, z_surface, dx):
+    """Depth of the open keyhole on a centreline section (x, z): the fill = 1/2 level of the
+    section smoothed once in x and z, deepest point below the original surface [m]."""
+    e = np.asarray(fill_section, float)
+    for ax in (0, 1):
+        n = e.shape[ax]
+        lo = np.take(e, np.r_[0, np.arange(n - 1)], axis=ax)
+        hi = np.take(e, np.r_[np.arange(1, n), n - 1], axis=ax)
+        e = 0.25 * (lo + 2.0 * e + hi)
+    has = e >= 0.5
+    k = e.shape[1] - 1 - np.argmax(has[:, ::-1], axis=1)
+    dep = np.where(has.any(axis=1), z_surface - (k + 1.0) * dx, 0.0)
+    return float(dep[1:-1].max())
+
+
+def check_figure(folder, tag="T3_dx5um", out=None):
+    """The 5 um CPU check of one case: centreline sections and the depth and absorbed fraction
+    over time (docs/img/keyhole_cpu_check.png)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    INK, MUTED, GRID, BLUE, ORANGE = "#0b0b0b", "#52514e", "#e4e3df", "#2a78d6", "#eb6834"
+    d = json.load(open(os.path.join(folder, tag + ".json")))
+    z = np.load(os.path.join(folder, tag + "_sections.npz"))
+    dx, zs = d["dx"], d["z_surface"]
+    t = z["t"]
+    dep = np.array([centreline_depth(z["fill"][i], zs, dx) for i in range(len(t))])
+    log = d["log"]
+    ab = np.array([r.get("ray_absorbed", np.nan) for r in log])
+    bn = np.array([r.get("ray_mean_bounces", np.nan) for r in log])
+    fig = plt.figure(figsize=(15, 4.6))
+    gs = fig.add_gridspec(1, 6, width_ratios=[1, 1, 1, 0.05, 0.12, 1.15], wspace=0.3, left=0.04, right=0.955,
+                          top=0.8, bottom=0.13)
+    for k, tt in enumerate((40e-6, 80e-6, 120e-6)):
+        i = int(np.argmin(np.abs(t - tt)))
+        ax = fig.add_subplot(gs[k])
+        f = z["fill"][i].astype(float).T
+        T = z["T"][i].astype(float).T
+        ext = [0, f.shape[1] * dx * 1e6, 0, f.shape[0] * dx * 1e6]
+        im = ax.imshow(np.where(f > 0.01, T, np.nan), origin="lower", cmap="inferno", vmin=25, vmax=4500, extent=ext,
+                       interpolation="nearest")
+        ax.contour((np.arange(f.shape[1]) + 0.5) * dx * 1e6, (np.arange(f.shape[0]) + 0.5) * dx * 1e6, f, [0.5],
+                   colors=["#4fd1e8"], linewidths=0.9)
+        ax.axvline(log[i]["x_l"] * 1e6, color="white", lw=0.7, ls="--")
+        ax.set_ylim(zs * 1e6 - 160, zs * 1e6 + 40)
+        ax.set_title(f"({'abc'[k]}) t = {t[i] * 1e6:.0f} µs: {dep[i] * 1e6:.0f} µm deep, absorbs {ab[i]:.2f}",
+                     fontsize=9.5, loc="left")
+        ax.set_xlabel("x [µm] (scan →, dashed: beam axis)", fontsize=8)
+        ax.set_ylabel("z [µm]", fontsize=8)
+        ax.tick_params(labelsize=7, colors=MUTED)
+    cb = fig.colorbar(im, cax=fig.add_subplot(gs[3]))
+    cb.set_label("T [°C]", fontsize=8)
+    cb.ax.tick_params(labelsize=7)
+    ax = fig.add_subplot(gs[5])
+    ax.plot(t * 1e6, dep * 1e6, color=BLUE, lw=1.6, label="keyhole depth (centreline)")
+    ax.set_xlabel("time [µs]", fontsize=8.5)
+    ax.set_ylabel("depth [µm]", fontsize=8.5, color=BLUE)
+    ax.tick_params(labelsize=7.5, colors=MUTED)
+    ax.grid(True, color=GRID, lw=0.6)
+    ax2 = ax.twinx()
+    ax2.plot([r["t"] * 1e6 for r in log], ab, color=ORANGE, lw=1.4, label="absorbed fraction (rays)")
+    if d.get("measured_eta"):
+        ax2.axhline(d["measured_eta"], color=ORANGE, lw=0.8, ls=":")
+        ax2.text(2, d["measured_eta"] + 0.01, f"Gan et al. (steady): {d['measured_eta']:.2f}", fontsize=7, color=ORANGE)
+    ax2.set_ylim(0, 0.8)
+    ax2.set_ylabel("absorbed fraction", fontsize=8.5, color=ORANGE)
+    ax2.tick_params(labelsize=7.5, colors=ORANGE)
+    ax.set_title(f"(d) depth and absorption ({np.nanmax(bn):.1f} bounces at the end)", fontsize=9.5, loc="left")
+    for k_ in ("top",):
+        ax.spines[k_].set_visible(False)
+    fig.suptitle(f"Keyhole stage 2, CPU check: Ti-6Al-4V, {d['P']:.0f} W, {d['v']} m/s, r0 47.5 µm, {dx * 1e6:g} µm cells, "
+                 f"{d['dt'] * 1e9:.0f} ns steps (ray-traced laser, bubbles, sub-grid viscosity). "
+                 f"Mass error {d['mass_error']:.0e}, booked energy residual {d['energy_residual']:.1%}\n"
+                 f"A short track (120 µs): the keyhole is still deepening; X-ray steady depth {d['measured_depth'] * 1e6:.0f} µm "
+                 f"needs the 500 µm GPU tracks", fontsize=10, x=0.02, ha="left")
+    out = out or os.path.join(HERE, "..", "..", "docs", "img", "keyhole_cpu_check.png")
+    fig.savefig(out, dpi=140)
+    print("wrote", out, "depth", [round(v * 1e6) for v in dep[9::10]])
+
+
 if __name__ == "__main__":
-    figure(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "keyhole_runs"))
+    if len(sys.argv) > 2 and sys.argv[1] == "check":
+        check_figure(sys.argv[2])
+    else:
+        figure(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "keyhole_runs"))

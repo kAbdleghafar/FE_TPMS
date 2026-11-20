@@ -9,9 +9,10 @@ The work runs in two stages:
 * **Stage 1 (this page, done).** Process maps from the scaling laws of Gan et al. These are
   checked against operando X-ray keyhole depths, Ti-6Al-4V first, then applied to IN625 and the
   CoCrFeMnNi gyroid.
-* **Stage 2 (next).** Keyhole dynamics in the free-surface flow solver: ray tracing with
-  multiple reflections, a bubble model, and pore pinch-off. Small cases are tested on a CPU;
-  production runs go on a GPU (plan at the end).
+* **Stage 2 (solver done, production runs on a GPU next).** Keyhole dynamics in the
+  free-surface flow solver: ray tracing with multiple reflections, a bubble model for pores,
+  and the numerics a keyhole needs. Small cases are checked on a CPU here; the X-ray cases run
+  on a GPU ([Stage 2](#stage-2-keyhole-dynamics-in-the-flow-solver)).
 
 ## Stage 1: scaling laws
 
@@ -170,20 +171,143 @@ temperatures come from the heat-accumulation study ([process_models.md](process_
   not simulated. The fluctuation law is taken from the paper without an independent check.
 * **The IN625 check is again one data set from text.** The spot is inferred, not measured.
 
-## Stage 2 (next): keyhole dynamics in the flow solver
+## Stage 2: keyhole dynamics in the flow solver
 
 The free-surface lattice Boltzmann solver ([freesurface_lbm.md](freesurface_lbm.md)) already
-has melting, Marangoni flow, recoil pressure, evaporation and radiation. A keyhole needs four
-more things:
-1. **Ray tracing with Fresnel absorption.** Multiple reflections replace the vertical
-   Beer–Lambert column. The target is Eq. 6 (η rising to ~0.6 in deep keyholes) and the
-   front-wall angle above.
-2. **A bubble model.** Each enclosed gas region gets its own ideal-gas pressure, so a bubble
-   pinched off at the tip survives and can be trapped as a pore.
-3. **Fine cells.** 2–3 µm cells, without the recoil cap and speed limiter used at 10 µm.
-4. **Diagnostics.** Keyhole depth and its fluctuation over time, front-wall angle, absorbed
-   power, and pore count and size.
+had melting, Marangoni flow, recoil pressure, evaporation and radiation. Stage 2 adds what a
+keyhole needs (`tpmsfem.process.keyhole`, hooks in `FreeSurfaceMeltPool`).
 
-**Validation targets:** the 71 Ti-6Al-4V depths above, and the pore onset between Ke 16 and
-30. **Applications:** IN625 and the gyroid, at 80 and 300 °C. Small cases are tested on a
-CPU; production cases run on a GPU.
+**Laser ray tracing** (`RayTracer`, `md.rays`).
+* **Rays.** The Gaussian beam is cut into vertical rays 0.25 cells apart, out to two 1/e²
+  radii; the power is renormalised exactly.
+* **Marching.** Each ray marches through the once-smoothed fill-level field until it crosses
+  fill = ½, located by bisection.
+* **Absorption.** It deposits the Fresnel-absorbed share of its power in the metal cell half
+  a cell behind the surface.
+* **Reflection.** It reflects specularly about the surface normal (the fill gradient) and
+  marches on, until it leaves upwards or sideways, or keeps less than 0.1 % of its power.
+* **Optics.**
+  * Unpolarised Fresnel absorption for a complex index n + ik.
+  * n and k are chosen so that normal incidence gives the flat-melt absorptivity (Ti-6Al-4V
+    0.26, Gan et al.), with k = n, the good-conductor limit behind Bramson's formula.
+  * The absorptivity then peaks at 0.43 near 83° incidence.
+* **Cost and update rate.** The trace runs on the host (numba, parallel over rays) in a box
+  of four radii around the beam, every `ray_every` steps. A production-size trace (72,000
+  rays, a keyhole 90 cells deep) takes 0.2 s on four cores.
+
+**Bubbles** (`BubbleModel`, `md.bubbles`).
+* **Regions.** Gas regions are labelled with the 18-neighbour connectivity of the D3Q19
+  links. The region reaching the top of the domain is the ambient gas: the atmosphere and the
+  open keyhole.
+* **Pressure.** Every other region is a bubble. Its gas content is fixed when it pinches off
+  (ambient pressure times its volume then), and its pressure is p_amb (V₀/V)^γ (γ = 1,
+  isothermal).
+* **Tracking.** Bubbles are followed between updates by their overlap:
+  * merging bubbles add their gas;
+  * a splitting bubble shares its gas by overlap;
+  * a bubble that reopens to the ambient gas releases its gas.
+* **Coupling.** The pressure difference to ambient acts on the interface cells around the
+  bubble, so a bubble pinched off at the keyhole tip resists closing and can be frozen in as a
+  pore.
+* **GPU.** Labelling uses `cupyx.scipy.ndimage` on the GPU.
+
+**Diagnostics** (`keyhole_metrics`):
+* the depth below the original surface (first metal seen from above, within three radii of
+  the beam);
+* the position of the bottom;
+* the front-wall angle and the opening on the track centreline;
+* the bubbles with their volumes and centroids.
+
+**Numerics a keyhole needs.** The first 5 µm checks of case T3 (260 W, 0.6 m/s) failed in
+three ways. Each fix is now in the solver:
+1. **Time step.** With dt = dx/(100 m/s) the recoil cap (a lattice density jump of 0.1)
+   acted once the wall passed ~4,250 °C. The wall then overheated, and the speed limiter
+   acted in hundreds of cells. Keyhole runs now use dt = dx/(250 m/s): lattice Mach 0.1 at
+   25 m/s, and recoil pressures up to ~80 atm within the cap.
+2. **Stray interface cells.** Nearly empty interface cells sprayed off the keyhole wall and
+   filled the depression with a cloud of fragments. The exchange between interface cells of
+   different type now runs one way only (after Thürey 2007):
+   * a cell with no liquid neighbour may only lose mass;
+   * a cell with no gas neighbour may only gain.
+
+   It is clipped rather than forced, so it stays conservative and keeps the bounded heat
+   transport exact. This is now the default (`lbm.interface_rules`).
+3. **Bulk instability.** Liquid Ti-6Al-4V has ν = 6.8e-7 m²/s. At 20 m/s the cell Reynolds
+   number u·dx/ν is ~150 at 5 µm and ~75 at 2.5 µm. The bare two-relaxation-time collision
+   ran away in the melt under the keyhole: 2 → 727 cells at the speed limit in 3 µs. A shorter
+   step cannot help, because this number does not depend on dt.
+
+   A Smagorinsky sub-grid viscosity (`lbm.smagorinsky`, Cs = 0.15 for keyholes; off by
+   default) raises the relaxation time where the non-equilibrium stress is large, as LBM
+   melt-pool codes usually do. From the same state the bulk then stays at 10–17 m/s.
+
+**Verification** (`tests/test_keyhole.py`, `tests/test_freesurface.py`):
+
+| check | result |
+|---|---|
+| Fresnel at normal incidence | 4n/((n+1)² + k²) = A0 to 1e-12 |
+| flat plate | absorbs A0 to 2e-3; deposit centred, Gaussian width within 5 % |
+| inclined plane, 20° and 35° | first-hit incidence within 0.006 in cos θ (~1°); one bounce, Fresnel A(θ) |
+| paraboloid keyhole, depth/rim radius 0, 2, 4.5 | absorbed 0.30 → 0.52 → 0.62, converged to 1 % in ray spacing; every watt accounted for |
+| bubble in a liquid block | one bubble at ambient pressure; compressed, p = p_amb V₀/V exactly; reopened, released |
+| melt pool with rays and bubbles | mass to 1e-12, energy balance = booked residual to 1e-9, flat plate 0.26 |
+| numba and array (GPU) steps | agree to round-off, with and without the sub-grid viscosity |
+| sub-grid viscosity | damps an unresolved 4-cell shear wave by more than half; leaves a resolved one within 3 % and a resting fluid at rest |
+
+### CPU check: case T3 at 5 µm
+
+**Setup.** `tools/lbm/keyhole_ti64.py T3 --dx 5e-6 --dt 2e-8 --track 72e-6 ...`. The results
+are in `tools/lbm/keyhole_runs/cpu_check/`; the figure is drawn by
+`tools/lbm/keyhole_figure.py check tools/lbm/keyhole_runs/cpu_check`.
+* Ti-6Al-4V, 260 W, 0.6 m/s, r₀ 47.5 µm. X-ray steady depth 169 µm, Ke 10.9 (stable).
+* 5 µm cells, 20 ns steps, 120 µs (72 µm of track).
+* 0.16 M cells; 38 min on four CPU cores (0.42 MLUPS).
+
+![CPU check](img/keyhole_cpu_check.png)
+
+**Reading the check.**
+* **A keyhole forms and deepens steadily.** On the centreline it is 30, 75 and 100 µm deep at
+  40, 80 and 120 µs. It is still deepening at the end: the 169 µm steady depth needs the
+  longer tracks.
+* **The ray tracer gives the absorption rise of a keyhole.** The absorbed fraction goes from
+  the flat-melt 0.26 to 0.37, 0.54 and 0.61 at those times, with 3.3 bounces per ray at the
+  end. Gan et al.'s absorptivity for this case, from their ray-tracing model and measured
+  absorptivities, is 0.57.
+* **Conservation and stability.**
+  * Mass error 7e-13; booked energy residual 0.4 %.
+  * The speed limiter acted in 2 cells over the whole run, the recoil cap in 1.
+* **Wall temperature.** It peaks at 4,300–5,300 °C, where evaporation balances the absorbed
+  flux.
+* **No bubbles formed.** At Ke 10.9 the keyhole is in Gan's stable range, where pores are
+  rare.
+* **What remains.**
+  * A few isolated, less-than-half-full specks of metal float in the keyhole. They no longer
+    grow, and the rays and diagnostics ignore them (they work on the fill = ½ surface).
+  * 5 µm puts only 19 cells across the beam. Depth, front-wall angle and pores are judged at
+    2.5 µm on the GPU.
+
+
+### Production runs (GPU)
+
+`tools/lbm/keyhole_ti64.py` runs the six X-ray cases below; `tools/lbm/run_keyhole_gpu.sh`
+runs them in a row on a CUDA GPU (CuPy for the flow, numba for the rays). Each case:
+* writes a diagnostics line every 1 µs and a centreline section to
+  `tools/lbm/keyhole_runs/`;
+* checkpoints every 20 minutes, so rerunning the same command resumes;
+* is read by `tools/lbm/keyhole_figure.py`, which compares the second half of each track with
+  the X-ray depth, Gan's Eq. 6 absorptivity and the measured front-wall correlation.
+
+| case | power, speed | X-ray depth | Ke (Gan) | cells at 2.5 µm | memory (est.) |
+|---|---|---|---|---|---|
+| T1 | 129.4 W, 0.4 m/s | 85 µm | 5.8 | 4.5 M | 4 GB |
+| T2 | 209.3 W, 1.1 m/s | 79 µm | 4.2 | 4.5 M | 4 GB |
+| T3 | 260.2 W, 0.6 m/s | 169 µm | 10.9 | 5.7 M | 5 GB |
+| T4 | 312.5 W, 0.9 m/s | 172 µm | 9.8 | 5.8 M | 5 GB |
+| T5 | 364.8 W, 0.7 m/s | 257 µm | 15.1 | 7.7 M | 7 GB |
+| T6 | 468.0 W, 0.7 m/s | 351 µm | 20.7 | 9.8 M | 9 GB |
+
+All cases use r₀ = 47.5 µm, a 500 µm track and 100 µs of cooling, dt = 10 ns at 2.5 µm: 55,000–135,000 steps.
+T5 and T6 straddle the Ke 16 pore threshold: the bubble model should start trapping pores
+there.
+
+**Next after the Ti-6Al-4V validation:** IN625 and the CoCrFeMnNi gyroid at 80 and 300 °C.
