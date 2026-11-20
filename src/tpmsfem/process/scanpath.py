@@ -91,3 +91,76 @@ def slice_scan_path(field, z, bounds, *, hatch=0.08, speed=1000.0, power=None, a
                  hatch_length_mm=float(L_hatch),
                  scan_time_s=float(sum(np.hypot(v.x1 - v.x0, v.y1 - v.y0) / v.speed for v in path)))
     return path, stats
+
+
+# ---------------------------------------------------------------- timed trajectories
+def trajectory(xy, t0, t1, dt_seg, power=None):
+    """Scan vectors along a timed trajectory: ``xy(t)`` -> (x, y) and ``power(t)`` -> W (None:
+    the laser's power), sampled every ``dt_seg``. Each vector covers one interval at its mean
+    speed; a (nearly) stationary interval keeps its duration with a tiny length. Any
+    consistent length and time units (mm and s for ``MeltPoolModel``, m and s for the
+    free-surface model)."""
+    ts = np.arange(t0, t1 + 0.5 * dt_seg, dt_seg)
+    vecs = []
+    for a, b in zip(ts[:-1], ts[1:]):
+        (xa, ya), (xb, yb) = xy(a), xy(b)
+        L = float(np.hypot(xb - xa, yb - ya))
+        if L < 1e-12:
+            xb, L = xa + 1e-12, 1e-12
+        P = None if power is None else float(power(0.5 * (a + b)))
+        vecs.append(ScanVector(float(xa), float(ya), float(xb), float(yb), L / (b - a), P))
+    return vecs
+
+
+def ramp_down(x0, y0, x1, y1, speed, power, ramp, end_power=0.0, n=10):
+    """A straight vector at constant ``power`` whose last ``ramp`` (length) ramps the power
+    linearly down to ``end_power`` in ``n`` steps, at constant speed: the end-of-track
+    ramp-down that lets a keyhole close slowly instead of collapsing."""
+    L = float(np.hypot(x1 - x0, y1 - y0))
+    ramp = min(ramp, L)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    xs = x0 + ux * (L - ramp)
+    ys = y0 + uy * (L - ramp)
+    vecs = [ScanVector(x0, y0, xs, ys, speed, power)] if L - ramp > 0 else []
+    for k in range(n):
+        a, b = k / n * ramp, (k + 1) / n * ramp
+        P = power + (end_power - power) * (k + 0.5) / n
+        vecs.append(ScanVector(xs + ux * a, ys + uy * a, xs + ux * b, ys + uy * b, speed, P))
+    return vecs
+
+
+def turn_point(x_turn, y0, speed, hatch, accel, *, approach, depart=None, shift_time=None, dt_seg=None,
+               power=None):
+    """A galvanometer turn point (Martin et al., Nat. Commun. 10 (2019) 1987): the beam runs along
+    +x at ``speed``, decelerates at ``accel`` to reverse at ``x_turn`` (time 0), shifts by
+    ``hatch`` in y over +-``shift_time`` around the reversal (smooth cosine step), and
+    accelerates back along -x. ``approach`` / ``depart``: times at full speed before and after
+    the deceleration and acceleration phases. ``power(t, v)``: power as a function of time
+    (0 at the reversal) and beam speed (None: the laser's power, i.e. constant).
+
+    Returns (vectors, t_start) with t_start < 0 the time of the first vector."""
+    T = speed / accel                                     # deceleration (and acceleration) time
+    depart = approach if depart is None else depart
+    shift_time = T / 3.0 if shift_time is None else shift_time
+    dt_seg = T / 100.0 if dt_seg is None else dt_seg
+    xr = x_turn - 0.5 * speed * T                         # where the deceleration starts / acceleration ends
+
+    def xy(t):
+        if t < -T:
+            x = xr + speed * (t + T)
+        elif t <= T:
+            x = x_turn - 0.5 * accel * t * t
+        else:
+            x = xr - speed * (t - T)
+        tt = np.clip(t, -shift_time, shift_time)
+        y = y0 + 0.5 * hatch * (1.0 - np.cos(np.pi * (tt + shift_time) / (2.0 * shift_time)))
+        return x, y
+
+    def v_of(t):
+        h = 1e-3 * dt_seg
+        (xa, ya), (xb, yb) = xy(t - h), xy(t + h)
+        return np.hypot(xb - xa, yb - ya) / (2 * h)
+
+    pw = None if power is None else (lambda t: power(t, v_of(t)))
+    t0, t1 = -T - approach, T + depart
+    return trajectory(xy, t0, t1, dt_seg, pw), t0

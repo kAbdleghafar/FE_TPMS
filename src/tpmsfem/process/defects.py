@@ -185,3 +185,22 @@ def keyhole_state(P, v, radius, *, eta_min, rho, cp, alpha, T_l, T0, absorptivit
                 KeL=keyhole_porosity_number(P, v, radius, eta_min, rho, cp, T_l, T0),
                 Ld=normalized_diffusion_length(v, radius, alpha),
                 regime=keyhole_regime(Ke), stability=keyhole_stability(Ke))
+
+
+def keyhole_power(Ke, v, radius, *, eta_min, rho, cp, alpha, T_l, T0, P_max=5000.0):
+    """Laser power [W] that gives the keyhole number ``Ke`` at scan speed ``v`` [m/s], with the
+    process absorptivity of Eq. 6 (monotone in P, solved by bisection). Keeping Ke constant
+    while the beam slows down (a turn point, the end of a track) keeps the keyhole depth and
+    stability of the steady track: a power schedule that avoids the deepening and collapse
+    behind turn-point pores."""
+    def ke(P):
+        eta = keyhole_absorptivity(P, v, radius, eta_min, rho, cp, T_l, T0)
+        return keyhole_number(P, v, eta, radius, rho, cp, T_l, T0, alpha)
+
+    lo, hi = 0.0, float(P_max)
+    if ke(hi) < Ke:
+        return hi
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if ke(mid) < Ke else (lo, mid)
+    return 0.5 * (lo + hi)

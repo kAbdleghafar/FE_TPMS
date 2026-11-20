@@ -1023,28 +1023,30 @@ class FreeSurfaceMeltPool:
         t_start = time.perf_counter()
         n = 0
         snaps = []
-        q_rays = None
+        q_rays, P_rays, iseg = None, None, 0
         while self.t < t_end - 1e-15:
             tm = self.t + 0.5 * dt
             q = None
             xl = yl = None
-            for (a, b, v) in seg:
-                if a <= tm < b:
-                    P = laser.power if v.power is None else v.power
-                    if P > 0:
-                        s = (tm - a) / (b - a)
-                        xl, yl = v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0)
-                        if self.rays is not None:
-                            if q_rays is None or n % self.ray_every == 0:
-                                q_rays = self._ray_source(xl, yl, P, laser.radius)
-                            q = q_rays
-                        else:
-                            q = self._laser_source(xl, yl, P, laser.absorptivity, laser.radius, laser.depth)
-                    break
+            while iseg < len(seg) and seg[iseg][1] <= tm:    # segments are in time order
+                iseg += 1
+            if iseg < len(seg) and seg[iseg][0] <= tm:
+                a, b, v = seg[iseg]
+                P = laser.power if v.power is None else v.power
+                if P > 0:
+                    s = (tm - a) / (b - a)
+                    xl, yl = v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0)
+                    if self.rays is not None:
+                        if q_rays is None or n % self.ray_every == 0:
+                            q_rays, P_rays = self._ray_source(xl, yl, P, laser.radius), P
+                        # between traces the absorbed share is kept; the power may change (ramps)
+                        q = q_rays if P == P_rays else q_rays * (P / P_rays)
+                    else:
+                        q = self._laser_source(xl, yl, P, laser.absorptivity, laser.radius, laser.depth)
             if q is None:
                 q_rays = None
             if self.bubbles is not None and not frozen_flow and n % self.bubble_every == 0:
-                self._bubble_dp = self.bubbles.update(self.lbm.flag, self.lbm.fill)
+                self._bubble_dp = self.bubbles.update(self.lbm.flag, self.lbm.fill, self.T, self.Ts)
             loss = self._surface_terms()
             if not frozen_flow:
                 self._couple()

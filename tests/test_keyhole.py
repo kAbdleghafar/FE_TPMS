@@ -156,6 +156,14 @@ def test_bubble_pressure_follows_volume():
     assert b["pressure"] == pytest.approx(1e5)
     assert np.allclose(dp, 0.0)
     assert b["centroid"] == pytest.approx([12.0, 12.0, 9.0], abs=0.1)
+    # frozen in when all the metal around it is below the solidus
+    bm_t = BubbleModel(p_ambient=1e5)
+    bm_t.update(flag, fill, T=np.full(flag.shape, 1200.0), T_solidus=1600.0)
+    assert bm_t.bubbles[0]["frozen"] and bm_t.bubbles[0]["T_wall_max"] == pytest.approx(1200.0)
+    T = np.full(flag.shape, 1200.0)
+    T[12, 12, 13] = 1700.0                                        # one hot cell on the bubble wall
+    bm_t.update(flag, fill, T=T, T_solidus=1600.0)
+    assert not bm_t.bubbles[0]["frozen"] and bm_t.bubbles[0]["T_wall_max"] == pytest.approx(1700.0)
     # compress it: fill the gas cells of one half (as the melt would), pressure goes up as V0/V
     V0 = b["volume"]
     f2, fl2 = fill.copy(), flag.copy()
@@ -214,3 +222,26 @@ def test_melt_pool_with_rays_and_bubbles():
     res = md.run(Laser(300.0, 0.0, 25e-6), [], t_extra=5e-7)
     assert abs(res.mass_error) < 1e-12
     assert abs(res.energy_balance + res.energy_residual) < 1e-9
+
+
+def test_open_sides_and_breakthrough():
+    from tpmsfem.process.keyhole import open_gas_reaches
+    n = 16
+    flag = np.full((n, n, 24), LIQUID, np.int8)
+    fill = np.ones(flag.shape)
+    flag[:, :, 18:] = GAS                                      # atmosphere
+    flag[:, :, 3:7] = GAS                                      # a gas layer under a slab (the powder's gas)
+    fill[flag == GAS] = 0.0
+    flag = _close(flag)
+    closed = BubbleModel()
+    closed.update(flag, fill)
+    assert len(closed.bubbles) == 1                            # sealed: one big bubble
+    opened = BubbleModel(open_sides=True)
+    opened.update(flag, fill)
+    assert opened.bubbles == []                                # open through the sides: ambient
+    assert open_gas_reaches(flag, 10) == (False, 0)            # keyhole closed
+    kh = flag.copy()
+    kh[8, 8, 7:18] = GAS                                       # the keyhole breaks through the slab
+    kh = _close(np.where(kh == INTERFACE, LIQUID, kh).astype(np.int8))
+    reach, cells = open_gas_reaches(kh, 10)
+    assert reach and cells > 50

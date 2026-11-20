@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from tpmsfem.process.defects import (gan_porosity, keyhole_absorptivity, keyhole_aspect_ratio, keyhole_depth,
+                                     keyhole_power,
                                      keyhole_fluctuation, keyhole_number, keyhole_porosity_number, keyhole_regime,
                                      keyhole_stability, keyhole_state, lof_criterion, lof_porosity,
                                      normalized_diffusion_length, normalized_energy_density, volumetric_energy_density)
@@ -90,3 +91,14 @@ def test_gan_porosity_terms():
     assert gan_porosity(1.51, -10.0) == pytest.approx(0.10 - 0.01 + 0.055)
     assert gan_porosity(50.0, 10.0) > gan_porosity(50.0, 1.0)                      # keyhole pores
     assert gan_porosity(0.5, 1.0) > gan_porosity(5.0, 1.0)                         # lack of fusion
+
+
+def test_keyhole_power_inverts_ke():
+    kw = dict(eta_min=0.26, alpha=TI64_ALPHA, **TI64)
+    st = keyhole_state(200.0, 1.0, 25e-6, **kw)
+    P = keyhole_power(float(st["Ke"]), 1.0, 25e-6, **kw)
+    assert P == pytest.approx(200.0, rel=1e-9)
+    # slowing down at constant Ke needs less power, roughly with sqrt(v) (less as eta saturates)
+    P_slow = keyhole_power(float(st["Ke"]), 0.25, 25e-6, **kw)
+    assert P_slow < 200.0 * np.sqrt(0.25) * 1.05
+    assert float(keyhole_state(P_slow, 0.25, 25e-6, **kw)["Ke"]) == pytest.approx(float(st["Ke"]), rel=1e-9)

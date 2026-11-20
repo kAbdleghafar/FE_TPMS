@@ -302,10 +302,13 @@ class BubbleModel:
     pressure difference to ambient [Pa] on every interface cell next to a bubble (zero
     elsewhere) and keeps the list of bubbles in ``self.bubbles``. ``gamma``: 1 isothermal, 1.4
     adiabatic (diatomic gas). ``min_cells``: smaller gas regions are ignored (dp = 0): single
-    empty cells in the melt are lattice noise, not resolvable pores."""
+    empty cells in the melt are lattice noise, not resolvable pores. ``open_sides``: gas that
+    reaches the side faces of the domain is ambient too, e.g. the gas in a powder bed, which
+    connects to the chamber through the bed around the domain."""
 
-    def __init__(self, p_ambient=101325.0, gamma=1.0, min_cells=2):
+    def __init__(self, p_ambient=101325.0, gamma=1.0, min_cells=2, open_sides=False):
         self.p_amb = float(p_ambient)
+        self.open_sides = bool(open_sides)     # gas reaching the side faces is ambient too (a powder bed)
         self.gamma = float(gamma)
         self.min_cells = int(min_cells)
         self.ids = None               # per-cell bubble id of the last update (0: none / ambient)
@@ -315,7 +318,11 @@ class BubbleModel:
         self.released = 0             # bubbles that reopened to the ambient gas
         self.formed = 0
 
-    def update(self, flag, fill):
+    def update(self, flag, fill, T=None, T_solidus=None):
+        """Relabel the gas, follow the bubbles and return the pressure difference to ambient on
+        the interface cells around them. With the temperature ``T`` and ``T_solidus``, every
+        bubble also gets the hottest temperature of the metal around it (``T_wall_max``) and
+        ``frozen`` = all of it below the solidus: a pore trapped by solidification."""
         from .freesurface import C, GAS, INTERFACE
         xp = get_xp()
         ndi = _ndimage(xp)
@@ -332,6 +339,9 @@ class BubbleModel:
         amb = xp.zeros(nlab + 1, dtype=bool)
         top = lab[:, :, -2].ravel()
         amb[top] = True
+        if self.open_sides:                    # the cells next to the side walls
+            for face in (lab[1], lab[-2], lab[:, 1], lab[:, -2]):
+                amb[face.ravel()] = True
         amb[0] = True
         # volume: gas cells plus the empty part of the interface cells next to them
         itf = flag == INTERFACE
@@ -380,6 +390,13 @@ class BubbleModel:
         self.content = {int(ids_reg[i]): float(content_new[i]) for i in idx}
         self.next_id += int(idx.size)
         self.ids = xp.asarray(ids_reg)[lab]
+        # hottest metal around each bubble (interface cells next to it): frozen in or not
+        T_wall = np.full(nlab + 1, np.nan)
+        if T is not None and idx.size:
+            sel = xp.nonzero(nb_lab > 0)
+            lab_w, T_w = asnumpy(nb_lab[sel]), asnumpy(T[sel])
+            T_wall = np.full(nlab + 1, -np.inf)
+            np.maximum.at(T_wall, lab_w, T_w)
         # bubble list with centroids
         self.bubbles = []
         if idx.size:
@@ -387,9 +404,12 @@ class BubbleModel:
             lr = lab.ravel()
             cen = [asnumpy(xp.bincount(lr, weights=coords[a].ravel().astype(float), minlength=nlab + 1)) for a in range(3)]
             for i in idx:
+                tw = float(T_wall[i])
                 self.bubbles.append(dict(id=int(ids_reg[i]), volume=float(vol_h[i]), V0=float(content_new[i]),
                                          pressure=float(p[i]), cells=int(ncell_h[i]),
-                                         centroid=[float(cen[a][i] / max(ncell_h[i], 1)) + 0.5 for a in range(3)]))
+                                         centroid=[float(cen[a][i] / max(ncell_h[i], 1)) + 0.5 for a in range(3)],
+                                         T_wall_max=tw,
+                                         frozen=bool(T_solidus is not None and np.isfinite(tw) and tw < T_solidus)))
         # pressure difference on the interface cells around each bubble
         dpr = xp.asarray(dp_reg)
         dp_gas = dpr[lab]
@@ -471,3 +491,23 @@ def keyhole_metrics(md, x_l, y_l, radius, z_surface, window=3.0):
         out["bubble_volume"] = float(vols.sum())
         out["bubble_d_eq"] = [float((6.0 * v / np.pi) ** (1.0 / 3.0)) for v in vols]
     return out
+
+
+def open_gas_reaches(flag, k_below):
+    """True where the gas connected to the top of the domain (the open keyhole and the
+    atmosphere) reaches below the cell layer ``k_below``: a keyhole broken through into what
+    lies under a slab. Returns (reaches, number of such cells below)."""
+    from .freesurface import GAS
+    xp = get_xp()
+    ndi = _ndimage(xp)
+    g = np.indices((3, 3, 3)) - 1
+    struct = xp.asarray((np.abs(g).sum(axis=0) <= 2).astype(np.int32))
+    lab, n = ndi.label(flag == GAS, structure=struct)
+    if int(n) == 0:
+        return False, 0
+    top = xp.zeros(int(n) + 1, dtype=bool)
+    top[lab[:, :, -2].ravel()] = True
+    top[0] = False
+    below = top[lab[:, :, 1:k_below]]
+    cnt = int(below.sum())
+    return cnt > 0, cnt
