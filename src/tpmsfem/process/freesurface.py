@@ -157,17 +157,25 @@ class FreeSurfaceLBM:
         nb = xp.roll(a, -d, ax)
         return xp.where(xp.roll(wall, -d, ax), a, nb)
 
-    def normal_curvature(self, smooth: int = 1, eps=None):
-        """Interface normal (unit, pointing into the liquid) and mean curvature (sum of the
-        principal curvatures, positive for a convex liquid) from the fill-level field,
-        smoothed ``smooth`` times with a [1 2 1] filter per axis. Walls act as mirrors."""
-        xp = self.xp
+    def smoothed_fill(self, smooth: int = 1, eps=None):
+        """The fill-level field smoothed ``smooth`` times with a [1 2 1] filter per axis;
+        walls act as mirrors."""
         wall = self.flag == WALL
         e = self.fill if eps is None else eps
         sm = self._shift_mirror
         for _ in range(smooth):
             for ax in range(3):
                 e = 0.25 * (sm(e, ax, -1, wall) + 2.0 * e + sm(e, ax, 1, wall))
+        return e
+
+    def normal_curvature(self, smooth: int = 1, eps=None):
+        """Interface normal (unit, pointing into the liquid) and mean curvature (sum of the
+        principal curvatures, positive for a convex liquid) from the fill-level field,
+        smoothed ``smooth`` times with a [1 2 1] filter per axis. Walls act as mirrors."""
+        xp = self.xp
+        wall = self.flag == WALL
+        e = self.smoothed_fill(smooth, eps)
+        sm = self._shift_mirror
         g = [0.5 * (sm(e, ax, 1, wall) - sm(e, ax, -1, wall)) for ax in range(3)]
         norm = xp.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2) + 1e-12
         n = [gi / norm for gi in g]
@@ -686,6 +694,15 @@ class FreeSurfaceMeltPool:
         self.heat_weight = "mass"           # lattice mass (conserves heat through mass exchange) or "fill"
         self.recoil_cap = 0.1                 # largest recoil density jump on the lattice (3 p dt^2 / rho dx^2)
         self.recoil_clipped = 0               # most interface cells clipped in one step
+        # keyhole physics (tpmsfem.process.keyhole): a RayTracer replaces the vertical
+        # Beer-Lambert column (re-traced every ``ray_every`` steps), a BubbleModel gives every
+        # enclosed gas region its own pressure (updated every ``bubble_every`` steps)
+        self.rays = None
+        self.ray_every = 5
+        self.ray_stats = {}
+        self.bubbles = None
+        self.bubble_every = 10
+        self._bubble_dp = None
         # heat-capacity floor of nearly empty interface cells: low enough to hold their heat,
         # high enough for the explicit conduction step to stay stable (6 alpha dt / dx^2 / cap < 1)
         self.eps_min = max(0.1, 1.25 * 6.0 * float(alpha.max()) * self.dt / dx ** 2)
@@ -831,6 +848,9 @@ class FreeSurfaceMeltPool:
             scale = dt * dt / (self.rho0 * dx)
             hot = m & (T > self.Ts)
             self.lbm.force = xp.stack([xp.where(hot, Fm[a] * scale, 0.0) for a in range(3)])
+        # the lattice carries density jumps of a few percent; beyond that the step is too long
+        cap = self.recoil_cap if self.recoil_cap else np.inf
+        gp = None
         if self.evaporation is not None and self.recoil_factor > 0.0:
             ev = self.evaporation
             Tk_ = xp.maximum(T + 273.15, 300.0)
@@ -838,11 +858,33 @@ class FreeSurfaceMeltPool:
             p_r = self.recoil_factor * ev.p0 * xp.exp(expo)                               # Pa
             p_lat = p_r * dt * dt / (self.rho0 * dx * dx)
             rp = xp.where(self.lbm.flag == INTERFACE, 3.0 * p_lat, 0.0)
-            # the lattice carries density jumps of a few percent; beyond that the step is too long
-            cap = self.recoil_cap
             self.recoil_clipped = max(self.recoil_clipped, int(xp.sum(rp > cap)))
-            self.lbm.gas_pressure = xp.minimum(rp, cap)
+            gp = xp.minimum(rp, cap)
+        if self._bubble_dp is not None:
+            # bubble gas pressure (difference to ambient) on the cells around each bubble
+            bp = xp.clip(3.0 * self._bubble_dp * dt * dt / (self.rho0 * dx * dx), -cap, cap)
+            gp = bp if gp is None else gp + bp
+        if gp is not None:
+            self.lbm.gas_pressure = gp
         return loss
+
+    def _ray_source(self, x_l, y_l, power, radius):
+        """Absorbed power density [W/m^3] from the ray tracer, traced in a box of
+        ``rays.box`` radii around the beam over the smoothed fill levels (on the host)."""
+        xp, dx = self.xp, self.dx
+        nx, ny, nz = self.shape
+        rc = radius / dx
+        half = int(np.ceil(self.rays.box * rc)) + 4
+        ic, jc = int(x_l / dx), int(y_l / dx)
+        i0, i1 = max(ic - half, 0), min(ic + half + 1, nx)
+        j0, j1 = max(jc - half, 0), min(jc + half + 1, ny)
+        e = self.lbm.smoothed_fill(1)[i0:i1, j0:j1, :]
+        m = self.metal()[i0:i1, j0:j1, :]
+        dep, st = self.rays.trace(asnumpy(e), asnumpy(m), x_l / dx - i0, y_l / dx - j0, power, rc)
+        self.ray_stats = st
+        q = xp.zeros(self.shape, dtype=self.dtype)
+        q[i0:i1, j0:j1, :] = xp.asarray(dep / dx ** 3, dtype=self.dtype)
+        return q
 
     def _couple(self):
         """Darcy damping from the liquid fraction (lattice units); cells below the solidus are
@@ -870,13 +912,52 @@ class FreeSurfaceMeltPool:
         self.H = xp.where(new, xp.where(n > 0, s / xp.maximum(n, 1.0), self.H_ref), self.H)
         self.T = xp.where(new, self._T_of_H(self.H), self.T)
 
+    # ------------------------------------------------------------------ checkpoints
+    _STATE_LBM = ("f", "flag", "mass", "rho", "u", "kappa")
+
+    def save_state(self, path):
+        """Write the evolving state (lattice, enthalpy, time, bubbles) to ``path`` (.npz), so
+        a long run can be resumed with :meth:`load_state` and the same ``run`` call: ``run``
+        continues from ``self.t`` along the same path."""
+        import pickle
+        arr = {f"lbm_{k}": asnumpy(getattr(self.lbm, k)) for k in self._STATE_LBM}
+        arr.update(H=asnumpy(self.H), T=asnumpy(self.T))
+        meta = dict(t=self.t, lost=self.lost, lbm_steps=self.lbm.steps, lbm_lost_mass=self.lbm.lost_mass,
+                    recoil_clipped=self.recoil_clipped, limited=self.lbm.limited)
+        bub = None
+        if self.bubbles is not None:
+            b = self.bubbles
+            bub = dict(ids=None if b.ids is None else asnumpy(b.ids), content=b.content, next_id=b.next_id,
+                       released=b.released, formed=b.formed)
+        arr["meta"] = np.frombuffer(pickle.dumps(dict(meta=meta, bubbles=bub)), dtype=np.uint8)
+        np.savez(path, **arr)
+
+    def load_state(self, path):
+        import pickle
+        xp = self.xp
+        d = np.load(path)
+        for k in self._STATE_LBM:
+            setattr(self.lbm, k, xp.asarray(d[f"lbm_{k}"]))
+        self.H, self.T = xp.asarray(d["H"]), xp.asarray(d["T"])
+        m = pickle.loads(d["meta"].tobytes())
+        self.t, self.lost = m["meta"]["t"], m["meta"]["lost"]
+        self.lbm.steps, self.lbm.lost_mass = m["meta"]["lbm_steps"], m["meta"]["lbm_lost_mass"]
+        self.recoil_clipped, self.lbm.limited = m["meta"]["recoil_clipped"], m["meta"]["limited"]
+        if m["bubbles"] is not None and self.bubbles is not None:
+            b, s = self.bubbles, m["bubbles"]
+            b.ids = None if s["ids"] is None else xp.asarray(s["ids"])
+            b.content, b.next_id, b.released, b.formed = s["content"], s["next_id"], s["released"], s["formed"]
+
     # ------------------------------------------------------------------ run
     def run(self, laser, path, t_extra: float = 0.0, verbose: bool = False, frozen_flow: bool = False,
-            snapshot_every: int = 0):
+            snapshot_every: int = 0, callback=None, callback_every: int = 0):
         """Scan ``path`` (list of :class:`tpmsfem.process.ScanVector`, positions in **m**,
         speed in m/s) with ``laser`` (:class:`tpmsfem.process.Laser`, radius and depth in
         **m**), then cool for ``t_extra`` s. ``frozen_flow``: skip the flow (conduction only,
-        for comparison with the conduction model)."""
+        for comparison with the conduction model). With a ray tracer (``self.rays``) the
+        laser's absorptivity and depth are not used: Fresnel absorption decides.
+        ``callback(md, t, x_l, y_l)`` is called every ``callback_every`` steps (x_l, y_l: beam
+        position [m], None when the laser is off)."""
         xp, dx, dt = self.xp, self.dx, self.dt
         seg = []
         tc = 0.0
@@ -894,17 +975,28 @@ class FreeSurfaceMeltPool:
         t_start = time.perf_counter()
         n = 0
         snaps = []
+        q_rays = None
         while self.t < t_end - 1e-15:
             tm = self.t + 0.5 * dt
             q = None
+            xl = yl = None
             for (a, b, v) in seg:
                 if a <= tm < b:
                     P = laser.power if v.power is None else v.power
                     if P > 0:
                         s = (tm - a) / (b - a)
-                        q = self._laser_source(v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0), P,
-                                               laser.absorptivity, laser.radius, laser.depth)
+                        xl, yl = v.x0 + s * (v.x1 - v.x0), v.y0 + s * (v.y1 - v.y0)
+                        if self.rays is not None:
+                            if q_rays is None or n % self.ray_every == 0:
+                                q_rays = self._ray_source(xl, yl, P, laser.radius)
+                            q = q_rays
+                        else:
+                            q = self._laser_source(xl, yl, P, laser.absorptivity, laser.radius, laser.depth)
                     break
+            if q is None:
+                q_rays = None
+            if self.bubbles is not None and not frozen_flow and n % self.bubble_every == 0:
+                self._bubble_dp = self.bubbles.update(self.lbm.flag, self.lbm.fill)
             loss = self._surface_terms()
             if not frozen_flow:
                 self._couple()
@@ -923,6 +1015,8 @@ class FreeSurfaceMeltPool:
             T_peak = xp.maximum(T_peak, xp.where(self.metal(), self.T, -1e9))
             self.t += dt
             n += 1
+            if callback is not None and callback_every and n % callback_every == 0:
+                callback(self, self.t, xl, yl)
             if snapshot_every and n % snapshot_every == 0:
                 snaps.append((self.t, asnumpy(self.T[:, :, :]).astype(np.float32), asnumpy(self.lbm.fill).astype(np.float32)))
             if verbose and n % 500 == 0:
