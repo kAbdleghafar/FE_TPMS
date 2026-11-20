@@ -39,7 +39,10 @@ fidelity, benchmark credibility).
      tracing with Fresnel absorption and multiple reflections, a bubble model for pores, one-way
      interface exchange and a sub-grid viscosity; a 5 µm CPU check forms a stable keyhole. Next:
      the six Ti-6Al-4V X-ray cases at 2.5 µm on a GPU (`tools/lbm/run_keyhole_gpu.sh`), then IN625
-     and the gyroid;
+     and the gyroid. **Closed keyholes**: turn-off and turn-point collapse (Martin et al. 2019 cases,
+     ramp-down and constant-Ke mitigation), collapse while scanning, and the break-through map for
+     the gyroid (23 % of the scanned area at the study settings); GPU runs:
+     `tools/lbm/run_closed_keyhole_gpu.sh`;
    * a free-surface melt-pool model (keyhole, Marangoni): **own GPU-ready solver started**
      (`process/freesurface.py`, docs/freesurface_lbm.md): free-surface lattice Boltzmann with melting,
      Marangoni, recoil, evaporation; verified, AM-Bench case B run on CPU at 10 µm. Next: powder bed,

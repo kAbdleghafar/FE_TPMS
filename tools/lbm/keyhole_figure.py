@@ -32,6 +32,8 @@ def summarise(path):
     ft = np.array([r.get("front_tan", np.nan) for r in log])
     last = d["log"][-1]
     pores = last.get("bubbles", [])
+    frozen = [b for b in pores if b.get("frozen")]
+    track_mm = 1e3 * float(x.max() - x.min()) if x.size else float("nan")
     from tpmsfem.process import defects as DF
     import ti64_material as TM
     m = TM.GAN2021
@@ -45,6 +47,9 @@ def summarise(path):
                 depth_max_um=1e6 * float(dep[w].max()), absorbed=float(np.nanmean(ab[w])),
                 front_tan=float(np.nanmean(ft[w])), aspect=float(dep[w].mean() / d["r0"]),
                 pores=len(pores), pore_d_um=[(6.0 * p["volume_um3"] / np.pi) ** (1 / 3) for p in pores],
+                frozen=len(frozen), frozen_d_um=[(6.0 * p["volume_um3"] / np.pi) ** (1 / 3) for p in frozen],
+                track_mm=track_mm, formed_per_mm=last.get("bubbles_formed", 0) / track_mm if track_mm else float("nan"),
+                frozen_per_mm=len(frozen) / track_mm if track_mm else float("nan"),
                 formed=last.get("bubbles_formed", 0), released=last.get("bubbles_released", 0),
                 limited=last.get("limited", 0), recoil_clipped=last.get("recoil_clipped", 0),
                 mass_error=d.get("mass_error"), energy_balance=d.get("energy_balance"),
@@ -58,7 +63,7 @@ def figure(folder):
     import matplotlib.pyplot as plt
 
     INK, MUTED, GRID, BLUE, ORANGE = "#0b0b0b", "#52514e", "#e4e3df", "#2a78d6", "#eb6834"
-    runs = [s for s in (summarise(p) for p in sorted(glob.glob(os.path.join(folder, "*_dx*um.json")))) if s]
+    runs = [s for s in (summarise(p) for p in sorted(glob.glob(os.path.join(folder, "T[0-9]_dx*um.json")))) if s]
     json.dump([{k: v for k, v in r.items() if k not in ("t", "depth_series")} for r in runs],
               open(os.path.join(folder, "keyhole_summary.json"), "w"), indent=1)
 
@@ -69,7 +74,7 @@ def figure(folder):
             ax.spines[k].set_visible(False)
         ax.tick_params(colors=MUTED, labelsize=7.5)
 
-    fig, axs = plt.subplots(1, 4, figsize=(17, 4.6))
+    fig, axs = plt.subplots(1, 5, figsize=(21, 4.6))
     fig.subplots_adjust(left=0.045, right=0.99, top=0.82, bottom=0.13, wspace=0.3)
     cols = plt.cm.viridis(np.linspace(0.05, 0.9, max(len(runs), 1)))
     ax = axs[0]
@@ -118,6 +123,20 @@ def figure(folder):
     ax.set_xlabel("keyhole aspect ratio e* (simulated)", fontsize=8.5)
     ax.set_ylabel("tan(front-wall angle)", fontsize=8.5)
     ax.set_title("(d) front wall", fontsize=9.5, loc="left")
+    ax.legend(fontsize=7, frameon=False)
+    style(ax)
+    ax = axs[4]
+    for r, c in zip(runs, cols):
+        ax.plot([r["Ke"]], [r["formed_per_mm"]], "o", color=c, ms=5)
+        ax.plot([r["Ke"]], [r["frozen_per_mm"]], "s", color=c, ms=5, mfc="none")
+    for x_, t_ in ((16.0, "Ke 16"), (30.0, "Ke 30")):
+        ax.axvline(x_, color=MUTED, lw=0.7, ls=":")
+        ax.text(x_ + 0.3, 0.02, t_, fontsize=7, color=MUTED, transform=ax.get_xaxis_transform())
+    ax.plot([], [], "o", color=MUTED, label="bubbles pinched off")
+    ax.plot([], [], "s", color=MUTED, mfc="none", label="pores frozen in")
+    ax.set_xlabel("keyhole number Ke (Gan et al.)", fontsize=8.5)
+    ax.set_ylabel("per mm of track", fontsize=8.5)
+    ax.set_title("(e) keyhole collapse while scanning", fontsize=9.5, loc="left")
     ax.legend(fontsize=7, frameon=False)
     style(ax)
     fig.suptitle("Keyhole stage 2: Ti-6Al-4V single tracks (free-surface LBM, ray-traced Fresnel laser, bubble "
@@ -211,7 +230,96 @@ def check_figure(folder, tag="T3_dx5um", out=None):
     print("wrote", out, "depth", [round(v * 1e6) for v in dep[9::10]])
 
 
+def closure_summary(path):
+    """One closure run (scenario track / ramp / turn / turn-ke): depth against the time from the
+    turn-off (or the turn midpoint), pore formation events, frozen pores at the end."""
+    d = json.load(open(path))
+    log = d["log"]
+    scen = d.get("scenario", "track")
+    t = np.array([r["t"] for r in log])
+    on = np.array([r.get("laser_on", r.get("x_l") is not None) for r in log])
+    if scen.startswith("turn"):
+        t_ref = d["t_turn"]
+    else:
+        t_ref = float(t[~on][0]) if (~on).any() else float(t[-1])
+    dep = np.array([r.get("depth", np.nan) for r in log])
+    formed = np.array([r.get("bubbles_formed", r.get("formed", 0)) for r in log])
+    events = t[1:][np.diff(formed) > 0] - t_ref
+    last = log[-1].get("bubbles", [])
+    frozen = [b for b in last if b.get("frozen")]
+    return dict(path=path, case=d["case"] if "case" in d else "overhang", scenario=scen, P=d["P"], v=d["v"],
+                t=t - t_ref, depth=dep, events=events, formed=int(formed[-1]) if formed.size else 0,
+                pores=len(last), frozen=len(frozen),
+                frozen_d_um=[(6.0 * b["volume_um3"] / np.pi) ** (1 / 3) for b in frozen],
+                frozen_depth_um=[b.get("depth_um", np.nan) for b in frozen], finished=d.get("finished", False),
+                dx=d["dx"], z_surface=d["z_surface"])
+
+
+def closure_figure(paths, out=None, sections_of=None, times=(0.0, 10e-6, 25e-6, 60e-6)):
+    """Depth after turn-off / around the turn for several runs, sections of one run while its
+    keyhole closes, and the pores left."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
+    cols = ["#2a78d6", "#eb6834", "#2f9e6e", "#c8302c", "#7b5ea7", "#0b0b0b"]
+    runs = [closure_summary(p) for p in paths]
+    sec = sections_of or paths[0]
+    nsec = len(times)
+    fig = plt.figure(figsize=(4.2 * (nsec + 1), 4.4))
+    gs = fig.add_gridspec(1, nsec + 1, width_ratios=[1.3] + [1] * nsec, wspace=0.28, left=0.04, right=0.99,
+                          top=0.8, bottom=0.14)
+    ax = fig.add_subplot(gs[0])
+    for r, c in zip(runs, cols):
+        lab = f"{r['case']} {r['scenario']}: {r['frozen']} frozen pore(s)"
+        ax.plot(1e6 * r["t"], 1e6 * r["depth"], color=c, lw=1.4, label=lab)
+        for e in r["events"]:
+            ax.axvline(1e6 * e, color=c, lw=0.6, ls=":")
+    ax.axvline(0.0, color=MUTED, lw=0.8)
+    ax.set_xlabel("time from laser turn-off / turn midpoint [µs] (dotted: a bubble pinches off)", fontsize=8)
+    ax.set_ylabel("keyhole depth [µm]", fontsize=8.5)
+    ax.set_title("(a) the keyhole closing", fontsize=9.5, loc="left")
+    ax.legend(fontsize=7, frameon=False)
+    ax.grid(True, color=GRID, lw=0.6)
+    ax.tick_params(labelsize=7.5, colors=MUTED)
+    rs = closure_summary(sec)
+    d = json.load(open(sec))
+    z = np.load(sec.replace(".json", "_sections.npz"))
+    tt = z["t"]
+    t_ref = float(np.array([r["t"] for r in d["log"]])[0] - rs["t"][0])
+    dx, zs = d["dx"], d["z_surface"]
+    x_last = next((r.get("x_last") for r in d["log"] if r.get("x_last")), None)
+    for k, tw in enumerate(times):
+        i = int(np.argmin(np.abs(tt - (t_ref + tw))))
+        ax = fig.add_subplot(gs[k + 1])
+        f = z["fill"][i].astype(float).T
+        T = z["T"][i].astype(float).T
+        im = ax.imshow(np.where(f > 0.01, T, np.nan), origin="lower", cmap="inferno", vmin=25, vmax=4000,
+                       extent=[0, f.shape[1] * dx * 1e6, 0, f.shape[0] * dx * 1e6], interpolation="nearest")
+        ax.contour((np.arange(f.shape[1]) + 0.5) * dx * 1e6, (np.arange(f.shape[0]) + 0.5) * dx * 1e6, f, [0.5],
+                   colors=["#4fd1e8"], linewidths=0.9)
+        if x_last:
+            ax.set_xlim(x_last * 1e6 - 120, x_last * 1e6 + 60)
+        ax.set_ylim(zs * 1e6 - 160, zs * 1e6 + 30)
+        ax.set_title(f"({'bcdefg'[k]}) {1e6 * (tt[i] - t_ref):+.0f} µs", fontsize=9.5, loc="left")
+        ax.set_xlabel("x [µm]", fontsize=8)
+        ax.tick_params(labelsize=7, colors=MUTED)
+    fig.suptitle(f"Closed keyhole: {rs['case']} {rs['scenario']} ({rs['P']:.0f} W, {rs['v']} m/s, {dx * 1e6:g} µm cells) "
+                 f"- the keyhole after the laser stops; sections on the track centreline, cyan: metal surface",
+                 fontsize=10, x=0.02, ha="left")
+    out = out or os.path.join(HERE, "..", "..", "docs", "img", "keyhole_closure.png")
+    fig.savefig(out, dpi=140)
+    print("wrote", out)
+    for r in runs:
+        print({k: (np.round(v, 2).tolist() if isinstance(v, (list, np.ndarray)) and k not in ("t", "depth") else v)
+               for k, v in r.items() if k not in ("t", "depth")})
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "closure":
+        closure_figure(sys.argv[2:])
+        sys.exit()
     if len(sys.argv) > 2 and sys.argv[1] == "check":
         check_figure(sys.argv[2])
     else:

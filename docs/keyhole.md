@@ -311,3 +311,155 @@ T5 and T6 straddle the Ke 16 pore threshold: the bubble model should start trapp
 there.
 
 **Next after the Ti-6Al-4V validation:** IN625 and the CoCrFeMnNi gyroid at 80 and 300 °C.
+
+## Closed keyholes
+
+A keyhole closes, or opens, in three ways:
+1. **It collapses where the laser stops or turns.** This is the end of a track, or a turn
+   point.
+2. **It collapses while scanning.** An unstable keyhole pinches off bubbles at its tip.
+3. **It opens through the part.** In welding terms an LPBF keyhole is "closed" (blind): its
+   tip ends in metal. Under a thin, down-facing wall it can reach through into the powder
+   below and become "open" (full penetration).
+
+### Why this matters for TPMS lattices
+
+| scan of one layer | hatch vectors | mean vector length | track ends per mm² |
+|---|---|---|---|
+| CoCrFeMnNi gyroid, 4 heights | 56–95 | 0.33–0.52 mm | 28–44 |
+| solid 4 × 4 mm block | 45 | 3.8 mm | 5.7 |
+
+The study's settings are 85 µm hatch, one contour, 0.75 m/s.
+* **The lattice has 5–8 times more track ends per area than a solid block.**
+* **Most of a gyroid track lies near an end.** Martin et al. found nearly all turn-point pores
+  within 200 µm of the turn (below), and the gyroid's vectors are only 0.33–0.52 mm long.
+
+### 1. Closure where the laser stops or turns
+
+**Data.** Martin, Calta, Khairallah et al., Nat. Commun. 10 (2019) 1987, open access.
+* **Setup.** Ti-6Al-4V, 50 µm beam, 50–300 W, 0.6–1.0 m/s, single-turn scans with 50 µm
+  hatch, imaged by X-ray at 20 kHz.
+* **The turn.** The galvanometer mirrors decelerate about 900 µs before the turn and are back
+  at speed about 1,200 µs after it. The slow beam overheats the turn: the depression deepens
+  (at 50 W, 1 m/s from 32 to 62 µm) and peaks about 100 µs after the turn.
+* **The collapse.** As the beam accelerates away, the deep depression collapses and leaves
+  argon pores:
+  * 87 % of the pores lie within 200 µm of the turn;
+  * they formed 200–1,000 µs after it;
+  * pores formed at every power.
+* **Turn-off.** Switching the laser off at a track end (skywriting) collapses the keyhole the
+  same way.
+* **The fix.** A power schedule that keeps the depression depth even (100 W, 1 m/s) left no
+  pores.
+
+**Tools** (`tools/lbm/keyhole_ti64.py --scenario ...`, `tpmsfem.process.scanpath`):
+
+| scenario | what | builds on |
+|---|---|---|
+| `track` | straight track, laser off abruptly at the end, the closing keyhole followed for `--cool` | |
+| `ramp` | power ramped linearly to zero over the last `--ramp` of the track | `ramp_down` |
+| `turn` | galvanometer turn: deceleration 1.1e3 m/s², hatch shift, back at speed; constant power | `turn_point` |
+| `turn-ke` | the same turn with the power cut as the beam slows, keeping Gan's keyhole number of the steady track (floor 20 %) | `defects.keyhole_power` |
+
+* **Pores.** The bubble model marks a bubble `frozen` when all the metal around it is below
+  the solidus: a pore trapped by solidification.
+* **Diagnostics.** After the laser stops, they follow the keyhole where the beam left it.
+* **Martin's cases.** M100, M200 and M300 (W, at 1.0 m/s, r₀ 25 µm) run the turn on a 400 µm
+  plate: 6.2 M cells at 2.5 µm, 2.7 M at 3.33 µm, 2.1 ms of scanning.
+* **Mitigation.** For M200 the constant-Ke schedule lowers the power from 200 W to about
+  69 W at the reversal.
+
+**CPU check: abrupt turn-off**
+* **Setup.** Case T3 (Ti-6Al-4V, 260 W, 0.6 m/s), 5 µm cells, 120 µs of track, then 150 µs
+  with the laser off.
+* **Files.** `tools/lbm/keyhole_runs/cpu_check_off/`; figure by
+  `tools/lbm/keyhole_figure.py closure`.
+
+![closure](img/keyhole_closure.png)
+
+* **The keyhole closes in about 30 µs.**
+  * At turn-off it is 100 µm deep, with a mouth about 90 µm wide.
+  * Then: 89 µm at +5 µs, 66 at +11, 32 at +20, 19 at +29.
+  * After that a 7–8 µm crater remains and freezes.
+  * This is the capillary closing time √(ρR³/σ) ≈ 15 µs for a 45 µm radius, within a factor
+    of two.
+* **No pore.** The walls and the bottom refill together; no gas is cut off. Mass is conserved
+  to 2e-12, and the booked energy residual is 0.6 %.
+* **Why no pore here.** Pores need a deep, narrow keyhole whose walls meet above a gas pocket
+  before the bottom fills: the deep-keyhole collapse Martin et al. describe. This short track
+  stopped at half its steady depth (aspect ratio ~1 to its mouth).
+* **The decisive cases run on the GPU.**
+  * T3 at its steady depth (169 µm, aspect 3.6) after a 300 µm track, abrupt and ramped.
+  * Martin's turns: the turn drives the keyhole into the deep regime.
+  * The prediction: abrupt turn-off and constant-power turns trap pores, the ramp and the
+    constant-Ke turn do not.
+
+
+### 2. Collapse while scanning
+
+* **Which runs.** In the steady X-ray cases, T5 (Ke 15) and T6 (Ke 21) straddle Gan's pore
+  threshold, Ke ≈ 16.
+* **What is recorded.** The run log records every bubble: when it pinches off, its size, its
+  depth, and whether it freezes in.
+* **What is compared.** `tools/lbm/keyhole_figure.py` reports bubbles formed, released and
+  frozen per run, to compare with the Ke 16 and 30 thresholds. Pores per millimetre of track
+  against Ke is the stage-1 prediction made dynamic.
+* **No CPU check.** At 5 µm a Ke above 16 keyhole is not resolved: its tip is a few cells
+  wide.
+
+### 3. Open or closed: the keyhole under a down-facing wall
+
+**Map** (`benchmarks/literature/keyhole_penetration.py`, about 2 min).
+* **Setup.** The graded gyroid of the study (4 mm cell, walls 0.2 → 0.6 mm) is sliced into
+  30 µm layers at 16 heights through one unit cell.
+* **Solid below.** For every scanned point, the solid below the layer is the distance down to
+  the first point outside the sheet (5 µm steps).
+* **Break-through criterion.** The keyhole reaches the powder where its depth below the powder
+  top exceeds the layer plus that solid. The depth is Gan's mean, or its deepest excursion
+  (mean + r₀Δe*/2).
+
+![penetration](img/keyhole_penetration.png)
+
+| settings | Ke | keyhole depth (deepest) | scanned area where the keyhole reaches powder (deepest) |
+|---|---|---|---|
+| r₀ 35 µm, part 80 °C (study) | 14.8 | 187 µm (251) | **22.8 %** (31.7 %) |
+| r₀ 35 µm, 300 °C | 18.8 | 244 µm (322) | 30.4 % (40.5 %) |
+| r₀ 45 µm, 80 °C | 8.3 | 125 µm (175) | 14.2 % (20.8 %) |
+| r₀ 45 µm, 300 °C | 11.0 | 173 µm (237) | 20.8 % (29.8 %) |
+| conduction pool, 54 µm (§7) | | | 5.0 % |
+| scanned directly over powder | | | 3.0 % |
+
+* **Area affected.** At the study settings the keyhole opens into the powder under nearly a
+  quarter of every layer, and under a third at its deepest. A conduction pool would reach the
+  powder under 5 %. These are the down-facing sides of the walls (orange in panels a, b).
+  The share swings between 18 and 27 % with height.
+* **Thin walls are worst.** At r₀ 35 µm and 80 °C the share is:
+
+  | wall | share (mean depth) | share (deepest excursion) |
+  |---|---|---|
+  | 0.2–0.3 mm | 37 % | 50 % |
+  | 0.3–0.4 mm | 26 % | 36 % |
+  | 0.4–0.5 mm | 20 % | 28 % |
+  | 0.5–0.6 mm | 17 % | 23 % |
+
+* **Heat accumulation and spot size move it.** A hotter part (300 °C) raises the share to 30 %.
+  The larger 45 µm spot lowers it to 14 %.
+* **What an open keyhole does.** It melts into the powder (dross, sagging of down-skin
+  surfaces), and its gas connects to the powder bed. The flow case below checks what happens
+  at the break-through.
+
+**Flow case** (`tools/lbm/keyhole_overhang.py`).
+* **Geometry.** A CoCrFeMnNi slab over a rained powder bed (120 µm, d50 30 µm) on a 30 µm base
+  plate.
+* **Scan.** 200 W, 0.75 m/s, r₀ 35 µm on the bare slab top.
+* **Physics** as in the Ti-6Al-4V runs, with assumed Fe–Ni–Cr-type melt properties: σ 1.8 N/m,
+  dσ/dT −1.1e-4 N/(m K), μ 5 mPa s. Recoil and evaporation are those of Mn at 20 at%, as in the
+  gyroid study.
+* **Gas in the powder.** It is open to the chamber through the bed (gas reaching the side faces
+  is ambient), so only pockets enclosed by the melt count as bubbles.
+* **Outputs.**
+  * the break-through (`open_below`: the keyhole's gas reaches under the slab);
+  * the pores and whether they freeze in;
+  * the powder melted under the slab (dross volume and depth).
+* **Cases.** Slabs of 90, 150 and 250 µm bracket open, intermittent and closed: 3–4 M cells at
+  2.5 µm, 400 µs of scanning.

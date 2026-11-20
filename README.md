@@ -245,7 +245,7 @@ am.remove_from_plate()   # spring-back, final residual stress
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found
 * [docs/lbm_feasibility.md](docs/lbm_feasibility.md): lattice Boltzmann (waLBerla, OpenLB) feasibility check on the AM-Bench case-B track
 * [docs/porosity_maps.md](docs/porosity_maps.md): porosity process maps (lack of fusion, keyhole) for IN625 (checked against Locatelli et al. 2026) and CoCrFeMnNi, and the risk through the gyroid
-* [docs/keyhole.md](docs/keyhole.md): keyhole depth, fluctuation and stability (Gan et al. 2021 laws checked on 71 X-ray keyhole depths in Ti-6Al-4V), maps for IN625 and the CoCrFeMnNi gyroid, and keyhole dynamics in the flow solver (ray-traced Fresnel laser, bubble pressures for pores, sub-grid viscosity; GPU runs of the X-ray cases)
+* [docs/keyhole.md](docs/keyhole.md): keyhole depth, fluctuation and stability (Gan et al. 2021 laws checked on 71 X-ray keyhole depths in Ti-6Al-4V), maps for IN625 and the CoCrFeMnNi gyroid, keyhole dynamics in the flow solver (ray-traced Fresnel laser, bubble pressures for pores, sub-grid viscosity; GPU runs of the X-ray cases), and closed keyholes (collapse at turn-off and turn points, pores, and where the keyhole breaks through thin gyroid walls into the powder)
 * [docs/freesurface_lbm.md](docs/freesurface_lbm.md): our free-surface lattice Boltzmann melt pool (powder-scale LPBF, GPU-ready): method, verification, AM-Bench case B
 * [docs/roadmap.md](docs/roadmap.md): what's next (GPU multigrid, thermo-mechanical AM, contact/press-fit, fatigue)
 
