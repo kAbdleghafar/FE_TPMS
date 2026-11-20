@@ -19,9 +19,10 @@ energy-absorbing lattices, architected materials and biomedical implants. The
 implant-specific parts (a parametric femoral stem and acetabular cup, ISO 7206-4 loading)
 are one module among many.
 
-> **Start here:** the [user manual](docs/manual.md) has a worked, tested example for every
-> calculation. The Python package is imported as `tpmsfem`, and the command-line tool is
-> `tpmsfem`.
+> **Start here:** the [tutorials](docs/tutorials/README.md) walk through every calculation step
+> by step, with the output of a real run under each step; the [user manual](docs/manual.md) is
+> the compact reference, with a tested example for every calculation. The Python package is
+> imported as `tpmsfem`, and the command-line tool is `tpmsfem`.
 
 ```
  design             mesh                 mechanics & heat              LPBF process                 microstructure
@@ -239,7 +240,8 @@ am.remove_from_plate()   # spring-back, final residual stress
 
 ## Documentation
 
-* [docs/manual.md](docs/manual.md): **user manual**, how to perform every calculation, with tested examples
+* [docs/tutorials/](docs/tutorials/README.md): **23 step-by-step tutorials**, one per calculation, with recorded outputs
+* [docs/manual.md](docs/manual.md): **user manual**, how to perform every calculation, with tested examples and the results so far
 * [docs/theory.md](docs/theory.md): formulation, elements, plasticity, inherent strain, element-birth semantics
 * [docs/process_models.md](docs/process_models.md): melt pool, solidification microstructure (grains, 3-D grain CA, phase-field cells with solute trapping, 3-D multicomponent cells and synthetic EDS maps, where twins or HCP could start under compression), surface roughness
 * [docs/benchmarking.md](docs/benchmarking.md): V&V plan, running Abaqus/Ansys/CalculiX comparisons, metrics, pitfalls found

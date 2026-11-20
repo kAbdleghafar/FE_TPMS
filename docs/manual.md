@@ -24,7 +24,11 @@ This manual shows **how to perform every calculation**. Each section explains:
 
 The code blocks build on each other, like cells of a notebook. A few reuse an object from an
 earlier section, and say so. Every block is executed by `python tools/manual/check_manual.py`,
-except those marked as not run (they need external solvers, measured data or long runs). The validation of each model against
+except those marked as not run (they need external solvers, measured data or long runs).
+
+**New to TPMSsuite?** The [tutorials](tutorials/README.md) walk through every calculation step
+by step, with the output of a real run under each step (`check_manual.py --all` runs the manual
+and all tutorials). The validation of each model against
 measurements is documented in [process_models.md](process_models.md),
 [literature_benchmarks.md](literature_benchmarks.md),
 [freesurface_lbm.md](freesurface_lbm.md) and [porosity_maps.md](porosity_maps.md).
@@ -49,9 +53,10 @@ Contents:
 17. [Porosity: lack of fusion and keyholes](#17-porosity-lack-of-fusion-and-keyholes)
 18. [Surface roughness](#18-surface-roughness)
 19. [Melt flow with a free surface, powder beds](#19-melt-flow-with-a-free-surface-powder-beds)
-20. [EBSD analysis](#20-ebsd-analysis)
-21. [Benchmark and study scripts](#21-benchmark-and-study-scripts)
-22. [Command line](#22-command-line)
+20. [Keyholes: depth, dynamics and closed keyholes](#20-keyholes-depth-dynamics-and-closed-keyholes)
+21. [EBSD analysis](#21-ebsd-analysis)
+22. [Benchmark and study scripts](#22-benchmark-and-study-scripts)
+23. [Command line](#23-command-line)
 
 ---
 
@@ -388,6 +393,27 @@ for shape in ("exponential", "sigmoidal"):                 # one data point: rep
 * **Your own data.** `StrainInducedHCP.fit(eps_p, f, f0, shape=...)` fits the law to a measured
   point.
 * **Study.** The FeMnCoCr gyroid is in [process_models.md](process_models.md) §7.6.
+
+**Results so far** (graded gyroid column of the CoCrFeMnNi study, 4 × 4 × 8 mm, walls
+0.2 → 0.6 mm, 0.1 mm voxels, grain-CA textures; compression along the build direction):
+
+| nominal compressive strain | 1 % | 2 % | 3 % |
+|---|---|---|---|
+| Level 0: faults can extend, τ_c 360 MPa (stress-free start) | 6.2 % | 10.4 % | 13.1 % |
+| Level 0: τ_c 240 MPa (fault energy × 0.67) | 27.8 % | 43.6 % | 51.7 % |
+| Level 0 from the as-built residual stress, τ_c 360 MPa | 9.4 % | 13.6 % | 16.2 % |
+| Level 1a, FeMnCoCr gyroid: HCP lattice mean (exponential / sigmoidal) | 1.3 / 1.0 % | 1.8 / 1.2 % | 2.4 / 1.4 % |
+
+* **Faults extend as soon as the walls yield**, because the as-built yield (757 MPa) exceeds
+  the measured twinning stress (720 MPa); they sit in the bending hinges of the inclined walls.
+  Texture and wall thickness change the fractions by under 0.2 points.
+* **The free-partials bound gives none**: the stress overcomes only 18–24 mJ/m² that way.
+* **Residual stresses bring the onset forward**: 6.5 times the fault-prone volume at 0.4 %
+  strain, 1.25 times at 3 %.
+* **Little HCP at test strains** in the metastable alloy: 2–3.5 % at 5 % strain, but 8–12 % in
+  the hinges; the small-strain shape of the kinetics is the main uncertainty.
+
+Tutorial: [07_stacking_faults_hcp.md](tutorials/07_stacking_faults_hcp.md).
 
 ---
 
@@ -867,7 +893,8 @@ print(st["regime"], st["stability"], sep="\n")
 Full process maps over power and speed come from `benchmarks/literature/porosity_maps.py`
 (lack of fusion) and `benchmarks/literature/keyhole_maps.py` (keyholes). Validation against
 Locatelli et al. (2026) is in [porosity_maps.md](porosity_maps.md); against X-ray keyhole
-depths, and the maps for IN625 and the gyroid, in [keyhole.md](keyhole.md).
+depths, and the maps for IN625 and the gyroid, in [keyhole.md](keyhole.md). Keyhole dynamics, pores and
+closed keyholes are in Section 20.
 
 ---
 
@@ -940,18 +967,28 @@ print(f"u_max {out.u_max:.2f} m/s, mass error {out.mass_error:.1e}, energy resid
 * **Animation.** `tools/lbm/freesurface_animation.py`.
 * **Status and limits.** See [freesurface_lbm.md](freesurface_lbm.md).
 
-**Keyholes** (`tpmsfem.process.keyhole`). Three additions:
-* a `RayTracer` replaces the vertical absorption column: Fresnel absorption, multiple
-  reflections;
-* a `BubbleModel` gives every enclosed gas region its own ideal-gas pressure, so pores can
-  form;
-* `keyhole_metrics` measures the keyhole.
+**Keyholes**: the ray-traced laser, bubbles and pores, and the closed-keyhole tools are in
+Section 20.
 
-For keyhole runs, also:
-* shorten the time step to dx/(250 m/s);
-* switch on the sub-grid viscosity, `fs.lbm.smagorinsky = 0.15`.
+---
 
-The ray tracer can be tried on its own, here on a paraboloid keyhole:
+## 20. Keyholes: depth, dynamics and closed keyholes
+
+A keyhole is the vapour depression a high-intensity beam drills into the melt. TPMSsuite treats
+it on three levels:
+* **Scaling laws** (Section 17, `process.defects`): keyhole number, absorptivity, depth,
+  fluctuation, regime and stability, checked on 71 X-ray keyhole depths.
+* **Dynamics in the flow solver** (`process.keyhole` with `FreeSurfaceMeltPool`): a ray-traced
+  laser with Fresnel absorption and multiple reflections, ideal-gas bubbles that can freeze in
+  as pores, and keyhole diagnostics.
+* **Closed keyholes**: collapse where the laser stops or turns, collapse while scanning, and
+  break-through of the keyhole under thin walls into the powder.
+
+Units: SI.
+
+**Ray tracing.** The beam is cut into vertical rays (0.25 cells apart) that march through the
+smoothed fill field, deposit the Fresnel-absorbed share where they meet the metal and reflect
+specularly. Optical constants come from the flat-melt absorptivity A0 (k = n).
 
 ```python
 import numpy as np
@@ -966,15 +1003,94 @@ dep, st = rt.trace(smooth_fill(fill), fill > 0, n / 2, n / 2, power=1.0, radius=
 print(f"absorbed {st['absorbed']:.2f} after {st['mean_bounces']:.1f} bounces (flat melt: {rt.A0:.2f})")
 ```
 
-In a melt pool: `fs.rays = RayTracer(A0=0.26)`, `fs.bubbles = BubbleModel()`, and
-`fs.run(..., callback=f, callback_every=n)` with `f(fs, t, x_l, y_l)` calling
-`keyhole_metrics(fs, x_l, y_l, radius, z_surface)`. `fs.save_state` and `fs.load_state`
-checkpoint long runs. The Ti-6Al-4V X-ray cases: `tools/lbm/keyhole_ti64.py`
-([keyhole.md](keyhole.md)).
+**Bubbles and pores.** `BubbleModel` labels the gas (18-neighbour connectivity). The region
+reaching the top is the ambient gas (`open_sides=True`: also gas reaching the side faces, e.g.
+a powder bed). Every other region is a bubble with p = p_amb (V0/V)^γ, V0 fixed at pinch-off.
+Each bubble records `frozen` (all metal around it below the solidus) and `pore` (frozen after
+its walls were molten). `open_gas_reaches(flag, k)` tells whether the open keyhole reaches below
+cell layer k.
+
+**A keyhole melt pool.** Attach the tracer and the bubbles, shorten the time step and switch on
+the sub-grid viscosity:
+
+```python
+from tpmsfem.fem.materials import Material, ThermalProperties
+from tpmsfem.process import Evaporation, Laser, ScanVector
+from tpmsfem.process.freesurface import FreeSurfaceMeltPool
+from tpmsfem.process.keyhole import BubbleModel, keyhole_metrics
+
+th = ThermalProperties.from_si([0.0, 20000.0], [30.0, 30.0], [800.0, 800.0], 4000.0, 2.9e5, 1600.0, 1660.0)
+h = 5e-6
+metal = np.zeros((26, 20, 24), bool)
+metal[1:-1, 1:-1, 1:15] = True
+md = FreeSurfaceMeltPool(Material("Ti64-like", 110e3, 0.3, thermal=th), h, metal, dt=h / 250.0, viscosity=3e-3,
+                         sigma=1.6, T_max=8000.0, dsigma_dT=-2.6e-4,
+                         evaporation=Evaporation(T_boil=3290.0, L_v=9.3e6, M=0.048), energy_transport="lbm")
+md.rays, md.ray_every = RayTracer(A0=0.26), 5
+md.bubbles = BubbleModel()
+md.lbm.smagorinsky = 0.15                          # liquid metal: cell Reynolds number >> 10
+kh = []
+res = md.run(Laser(300.0, 0.0, 25e-6), [ScanVector(h + 45e-6, 10 * h, h + 75e-6, 10 * h, 2.0)],
+             callback=lambda m, t, x, y: kh.append(keyhole_metrics(m, x, y, 25e-6, 15 * h)["depth"]),
+             callback_every=150)
+print(f"keyhole depth {[round(1e6 * d) for d in kh]} um, absorbed {md.ray_stats['absorbed']:.2f}, "
+      f"mass error {res.mass_error:.0e}")
+```
+
+* **Numerics.** dt = dx/(250 m/s) keeps the lattice Mach number at 0.1 for 25 m/s and recoil
+  within the density-jump cap; the one-way interface exchange (`lbm.interface_rules`, default)
+  keeps stray cells from spraying off the wall; the Smagorinsky viscosity stops the bulk melt
+  from running away. Watch `md.recoil_clipped` and `md.lbm.limited`: they should stay near zero.
+* **Long runs.** `md.save_state(path)` / `md.load_state(path)` checkpoint; `run` resumes from
+  `md.t` along the same path.
+
+**Closed-keyhole tools.**
+
+| tool | what |
+|---|---|
+| `scanpath.ramp_down(x0, y0, x1, y1, speed, power, ramp)` | end-of-track power ramp |
+| `scanpath.turn_point(x_turn, y0, speed, hatch, accel, approach=...)` | galvanometer turn (Martin et al. 2019) |
+| `scanpath.trajectory(xy(t), t0, t1, dt, power(t))` | any timed path |
+| `defects.keyhole_power(Ke, v, r0, ...)` | the power that keeps Ke at speed v (turn mitigation) |
+| `keyhole.open_gas_reaches(flag, k)`, `BubbleModel(open_sides=True)` | break-through into powder |
+
+```python
+from tpmsfem.process.defects import keyhole_power
+from tpmsfem.process.scanpath import ramp_down, turn_point
+
+ti64 = dict(eta_min=0.26, rho=3920.0, cp=830.0, alpha=33.4 / (3920.0 * 830.0), T_l=1660.0, T0=30.0)
+print("power for Ke 19.9 at 1.0 / 0.5 / 0.1 m/s:", [round(keyhole_power(19.9, v, 25e-6, **ti64)) for v in (1.0, 0.5, 0.1)], "W")
+print("ramp:", [round(v.power) for v in ramp_down(0.0, 0.0, 300e-6, 0.0, 0.6, 260.0, 100e-6, n=4)])
+turn, t0 = turn_point(1e-3, 0.0, 1.0, 50e-6, 1.11e3, approach=100e-6, dt_seg=10e-6)
+print(f"turn: {len(turn)} segments, {-2e3 * t0:.1f} ms, slowest {min(v.speed for v in turn):.2f} m/s")
+```
+
+**Scripts.** `tools/lbm/keyhole_ti64.py` (Ti-6Al-4V X-ray cases T1–T6; `--scenario track | ramp |
+turn | turn-ke`; Martin's M100–M300), `tools/lbm/keyhole_overhang.py` (slab over powder),
+`benchmarks/literature/keyhole_penetration.py` (break-through map of the gyroid), and the GPU
+batches `run_keyhole_gpu.sh`, `run_closed_keyhole_gpu.sh`. Analysis: `tools/lbm/keyhole_figure.py`.
+
+**Results so far** (details in [keyhole.md](keyhole.md)):
+
+| what | result |
+|---|---|
+| Gan et al. laws on 71 Ti-6Al-4V X-ray depths (15–445 µm) | RMSE 17 µm, R² 0.98 from P, v, r₀ alone; a fit to Al6061 + SS316 only predicts Ti-6Al-4V as well |
+| IN625, Locatelli et al. | the Ke 16 threshold reproduces all 10 outcomes for r₀ 40–46 µm |
+| CoCrFeMnNi gyroid point (200 W, 0.75 m/s, r₀ 35 µm) | keyhole mode, ~190 µm deep (Ke 14.8); past Ke 16 near 155 °C part temperature (~11 mm up); stable with a 45 µm spot |
+| ray tracer | flat plate absorbs A0 exactly; paraboloid keyhole 0.30 → 0.52 → 0.62 with depth |
+| flow check, Ti-6Al-4V 260 W 0.6 m/s, 5 µm | stable keyhole to 100 µm in 120 µs; absorbed 0.26 → 0.61 (Gan et al.: 0.57); mass 7e-13 |
+| closure after turn-off (same run) | refills in ~30 µs (capillary time ~15 µs), 7 µm crater, no pore |
+| break-through, CoCrFeMnNi 90 µm slab over powder | open at 92 µs; 240,000 µm³ of powder melted, 60 µm deep, under a 100 µm track |
+| gyroid map (Gan depth vs solid below each scan point) | keyhole reaches the powder under 23 % of every layer (32 % at its deepest), 37 % in 0.2–0.3 mm walls; conduction pool 5 % |
+| scan paths | a gyroid layer has 28–44 track ends per mm², 5–8× a solid block |
+| pending (GPU) | the six X-ray cases at 2.5 µm; Martin's turns with and without constant-Ke power; slabs of 90–250 µm |
+
+Tutorials: [18](tutorials/18_porosity_keyhole_maps.md) (laws and maps) and
+[21](tutorials/21_keyholes.md) (dynamics and closed keyholes).
 
 ---
 
-## 20. EBSD analysis
+## 21. EBSD analysis
 
 `process.ebsd` reads and analyses EBSD maps of cubic phases:
 * `read_ctf` reads Oxford .ctf files;
@@ -1000,7 +1116,7 @@ compare predicted grains with this map.
 
 ---
 
-## 21. Benchmark and study scripts
+## 22. Benchmark and study scripts
 
 | calculation | script | documentation |
 |---|---|---|
@@ -1019,6 +1135,9 @@ compare predicted grains with this map.
 | porosity maps | `porosity_maps.py` | porosity_maps.md |
 | keyhole depth and stability maps (Gan et al. laws) | `keyhole_maps.py` | keyhole.md |
 | keyhole dynamics, Ti-6Al-4V X-ray cases (GPU) | `tools/lbm/keyhole_ti64.py`, `run_keyhole_gpu.sh` | keyhole.md |
+| closed keyholes: turn-off, ramps, turn points, slabs over powder (GPU) | `keyhole_ti64.py --scenario`, `keyhole_overhang.py`, `run_closed_keyhole_gpu.sh` | keyhole.md |
+| keyhole break-through map of the gyroid | `benchmarks/literature/keyhole_penetration.py` | keyhole.md |
+| stacking faults and HCP in compressed gyroids | `cantor_gyroid_faults*.py`, `femncocr_gyroid_hcp.py` | process_models.md §7.5–§7.6 |
 | free-surface melt flow | `tools/lbm/*.py` | freesurface_lbm.md |
 
 Long studies store their results in `benchmarks/literature/results/` and can be resumed.
@@ -1026,7 +1145,7 @@ Long studies store their results in `benchmarks/literature/results/` and can be 
 
 ---
 
-## 22. Command line
+## 23. Command line
 
 ```bash
 tpmsfem info                                              # backend and device
