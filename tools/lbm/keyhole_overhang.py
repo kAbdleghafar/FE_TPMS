@@ -98,6 +98,7 @@ def main():
     ap.add_argument("--smagorinsky", type=float, default=0.15)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--checkpoint", type=float, default=20.0)
+    ap.add_argument("--redo", action="store_true", help="rerun a case that has already finished")
     ap.add_argument("--backend", default=None)
     ap.add_argument("--out", default=os.path.join(HERE, "keyhole_runs"))
     a = ap.parse_args()
@@ -105,6 +106,9 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     tag = f"overhang_slab{a.slab * 1e6:.0f}um_dx{a.dx * 1e6:g}um"
     js, npz, ck = (os.path.join(a.out, f"{tag}{s}") for s in (".json", "_sections.npz", "_checkpoint.npz"))
+    if not a.redo and not os.path.exists(ck) and os.path.exists(js) and json.load(open(js)).get("finished"):
+        print(f"{tag}: already finished ({js}); --redo to run it again", flush=True)
+        return
     log, sections = [], []
     if os.path.exists(ck):
         md.load_state(ck)

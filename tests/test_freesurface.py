@@ -179,6 +179,82 @@ def test_numba_kernel_matches_array_version(cs):
     np.testing.assert_allclose(b.h, a.h, atol=1e-9)
 
 
+@pytest.mark.parametrize("cs", [0.0, 0.15])
+def test_cuda_kernel_matches_array_version(cs):
+    """The fused CUDA step (CuPy) gives the array version's result to round-off, with and
+    without the sub-grid viscosity, the carried enthalpy, Darcy damping, a solid mask and a
+    body force."""
+    if not on_gpu():
+        pytest.skip("the CUDA kernel runs on the CuPy backend only")
+    flag, fill = _droplet(n=20, r=5.0)
+    out = {}
+    for kern in ("array", "cuda"):
+        s = FreeSurfaceLBM(flag, fill, tau=0.7 if cs == 0 else 0.502, sigma=0.01, gravity=(0.0, 0.0, -1e-4))
+        s.smagorinsky = cs
+        s.kernel = kern
+        s.h = to_device(np.where(fill > 0, 1.0 + np.arange(fill.size).reshape(fill.shape) % 7, 0.0))
+        x = np.arange(20)[:, None, None] + 0.0 * np.arange(20)[None, :, None] + 0.0 * np.arange(20)[None, None, :]
+        s.damping = to_device(np.where(x < 4, 0.3, 0.0))
+        s.solid = to_device(x < 3)
+        s.force = to_device(np.stack([1e-5 * np.sin(x / 3.0), 0.0 * x, 0.0 * x]))
+        for _ in range(60):
+            s.step()
+        out[kern] = s
+    a, b = out["array"], out["cuda"]
+    assert (asnumpy(a.flag) == asnumpy(b.flag)).all()
+    np.testing.assert_allclose(asnumpy(b.mass), asnumpy(a.mass), atol=1e-10)
+    np.testing.assert_allclose(asnumpy(b.u), asnumpy(a.u), atol=1e-12)
+    np.testing.assert_allclose(asnumpy(b.h), asnumpy(a.h), atol=1e-9)
+    assert a.limited == b.limited
+
+
+def test_cuda_normal_curvature_matches_array_version():
+    """The fused normal / curvature kernels give the array version's fields, walls included."""
+    if not on_gpu():
+        pytest.skip("the CUDA kernels run on the CuPy backend only")
+    flag, fill = _droplet(n=20, r=5.0)
+    flag = flag.copy()
+    flag[:, :, 0] = WALL
+    out = {}
+    for kern in ("array", "cuda"):
+        s = FreeSurfaceLBM(flag, fill, tau=0.7, sigma=0.01)
+        s.kernel = kern
+        out[kern] = [asnumpy(a) for a in s.normal_curvature(2)] + [asnumpy(s.smoothed_fill(1))]
+    for a, b in zip(out["array"], out["cuda"]):
+        np.testing.assert_allclose(b, a, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize("transport", ["lbm", "fv"])
+def test_cuda_melt_pool_matches_array_version(transport):
+    """A short laser track with Marangoni flow, recoil, evaporation and radiation: the fused
+    CUDA path (stream-collide, normals, heat step) follows the array version to round-off.
+    With the flow frozen the heat step is bit-identical."""
+    if not on_gpu():
+        pytest.skip("the CUDA kernels run on the CuPy backend only")
+    from tpmsfem.process.meltpool import Evaporation
+    h = 10e-6
+    metal = np.zeros((24, 14, 12), bool)
+    metal[1:-1, 1:-1, 1:7] = True
+    res = {}
+    for kern in ("array", "cuda"):
+        md = FreeSurfaceMeltPool(_const_material(), h, metal, dt=2e-7, T0=25.0, T_max=8000.0, dsigma_dT=-1.1e-4,
+                                 energy_transport=transport, evaporation=Evaporation(T_boil=3000.0), emissivity=0.3)
+        md.lbm.kernel = kern
+        md.lbm.smagorinsky = 0.1
+        y = h + 6 * h
+        r = md.run(Laser(150.0, 0.35, 60e-6, depth=5e-6), [ScanVector(h + 40e-6, y, h + 100e-6, y, 0.8)])
+        res[kern] = (r, md)
+    (ra, a), (rb, b) = res["array"], res["cuda"]
+    assert (asnumpy(a.lbm.flag) == asnumpy(b.lbm.flag)).all()
+    # round-off grows in the flow: the numba kernel differs from the array version by the same
+    # ~1e-10 (relative) after these 375 steps
+    np.testing.assert_allclose(asnumpy(b.T), asnumpy(a.T), rtol=1e-9, atol=1e-9)
+    np.testing.assert_allclose(asnumpy(b.lbm.mass), asnumpy(a.lbm.mass), atol=1e-10)
+    assert rb.absorbed == pytest.approx(ra.absorbed, rel=1e-10)
+    assert rb.energy_balance == pytest.approx(ra.energy_balance, abs=1e-9)
+    assert abs(rb.mass_error) < 1e-12
+
+
 def test_smagorinsky_damps_an_underresolved_shear_layer():
     """A shear wave four cells long at tau = 0.5005: the sub-grid viscosity damps this
     unresolved scale strongly; a smooth, resolved wave hardly feels it; a resting fluid stays
@@ -190,7 +266,7 @@ def test_smagorinsky_damps_an_underresolved_shear_layer():
         x = np.arange(n) + 0.5
         u = np.zeros((3, n, 4, 4))
         u[1] = 0.05 * np.sin(2 * np.pi * x / length)[:, None, None]
-        s.u = u
+        s.u = to_device(u)
         s.f = s._feq(s.rho, s.u)
         for _ in range(steps):
             s.step()

@@ -329,6 +329,9 @@ class BubbleModel:
         from .freesurface import C, GAS, INTERFACE
         xp = get_xp()
         ndi = _ndimage(xp)
+        flag, fill = xp.asarray(flag), xp.asarray(fill)
+        if T is not None:
+            T = xp.asarray(T)
         gas = flag == GAS
         g = np.indices((3, 3, 3)) - 1
         struct = xp.asarray((np.abs(g).sum(axis=0) <= 2).astype(np.int32))     # the 18 D3Q19 neighbours
@@ -515,6 +518,7 @@ def open_gas_reaches(flag, k_below):
     ndi = _ndimage(xp)
     g = np.indices((3, 3, 3)) - 1
     struct = xp.asarray((np.abs(g).sum(axis=0) <= 2).astype(np.int32))
+    flag = xp.asarray(flag)
     lab, n = ndi.label(flag == GAS, structure=struct)
     if int(n) == 0:
         return False, 0
