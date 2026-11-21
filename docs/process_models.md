@@ -1283,15 +1283,9 @@ start, not which one forms.
   * The criterion's Schmid factors reproduce the known twinning asymmetry of FCC single
     crystals: [001] 0.47 in compression and 0.24 in tension; [111] 0.31 in tension and 0.16 in
     compression (tests/test_fcc_faults.py).
-  * **Resolution.** A 0.05 mm run (298,000 voxels) was stopped by a container restart after the
-    2 % step. Up to 2 % it gives:
-    * the nominal stress within 2 %;
-    * 8–14 % more (relative) fault-prone volume at τ_c = 360 MPa: 6.9 % against 6.2 % at 1 %
-      strain, 11.9 % against 10.4 % at 2 %;
-    * at τ_c = 240 MPa, within 4–9 % and slightly lower: 43.0 % against 43.6 % at 2 %;
-    * a free-partials maximum of 28.7 mJ/m² against 22.5 at 2 %: thin-wall stress peaks are
-      under-resolved at 0.1 mm.
-    * Results in `results/cantor_gyroid_faults_vox0.05.json`.
+  * **Resolution.** Checked at 0.05 and 0.025 mm (§7.7): the nominal stress is converged, the
+    fault-prone volume at τ_c = 360 MPa is 2–3 points higher at convergence (16.0 % against
+    13.1 % at 3 %), and the free-partials maximum does not converge.
 
 **Results** (0.1 mm voxels). Share of the lattice volume where faults can extend, counting
 only yielded material, with the CA textures:
@@ -1335,8 +1329,8 @@ only yielded material, with the CA textures:
     That is where a stress-induced FCC → HCP transformation in the gyroid becomes plausible.
 * **The strict free-partials bound gives almost no extended faults.**
   * At 0.1 mm the local stresses never overcome more than 24 mJ/m², against the measured 30.
-  * At 0.05 mm the peaks reach 28.7 mJ/m² at 2 % strain, so a few hot spots may reach the bound
-    at finer resolution or larger strain.
+  * Refining the mesh raises the peaks past the bound (44 mJ/m² at 0.025 mm and 3 %), but the
+    maximum does not converge and covers about 1e-6 of the lattice (§7.7).
   * Either way the calibrated criterion, not this bound, matches the measured twinning stress.
 * **Texture and wall thickness hardly matter here.**
   * In compression along the build direction, the thin-wall texture has more favourably
@@ -1465,3 +1459,73 @@ holds 0.94 % HCP.
   * Level 1b: transformation strain and stress-state-dependent kinetics in the constitutive
     update.
   * Calibration on HCP fractions measured at several strains.
+
+### 7.7 Mesh convergence of Levels 0 and 1a (GPU)
+
+**Question.** Are the 0.1 mm results of §7.5 and §7.6 converged, and do the thin-wall hot
+spots reach the free-partials bound when the hinges are resolved?
+
+**Method** (`benchmarks/literature/fcc_hcp_resolution.py`).
+* Both studies re-run unchanged at 0.1, 0.05 and 0.025 mm voxels: 37,000, 298,000 and 2.39 M
+  voxels (up to 8.0 M dofs). Same mesh generator, platens, materials, strain steps,
+  600-orientation samples, thresholds and kinetic laws.
+* The fault criterion is evaluated over element chunks: the dense (elements × orientations)
+  arrays would need 11 GB each at 0.025 mm.
+* At 0.1 mm the driver reproduces the published results to 2e-14 (Level 0) and 7e-15
+  (Level 1a), on the GPU in 84 s and 58 s (CPU: 324 s and 3,152 s).
+* Grid convergence index after Roache, with refinement ratio 2 and safety factor 1.25. The
+  observed order p comes from the three meshes; "extrapolated" is the Richardson value.
+* Level 1a at 0.025 mm was stopped after the 2 % step, so its convergence is given up to 2 %.
+
+**Results, Level 0** (CoCrFeMnNi, CA textures), at 1 % and 3 % nominal strain:
+
+| quantity | 0.1 mm | 0.05 mm | 0.025 mm | extrapolated | GCI (finest) |
+|---|---:|---:|---:|---:|---:|
+| nominal stress [MPa], 1 % | 78.2 | 79.6 | 80.1 | 80.4 | 0.4 % |
+| nominal stress [MPa], 3 % | 87.6 | 89.1 | 89.6 | 89.8 | 0.3 % |
+| yielded volume, 1 % | 38.7 % | 35.1 % | 33.5 % | 32.0 % | 5.5 % |
+| yielded volume, 3 % | 68.6 % | 64.2 % | 62.3 % | 60.8 % | 3.0 % |
+| **faults can extend, τ_c = 360 MPa, 1 %** | **6.2 %** | **6.9 %** | **7.2 %** | **7.4 %** | **2.7 %** |
+| **faults can extend, τ_c = 360 MPa, 3 %** | **13.1 %** | **14.9 %** | **15.6 %** | **16.0 %** | **3.7 %** |
+| faults can extend, τ_c = 240 MPa, 3 % | 51.7 % | 51.3 % | 50.6 % | — | — |
+| free-partials maximum [mJ/m²], 1 % | 19.8 | 23.7 | 28.3 | diverges | — |
+| free-partials maximum [mJ/m²], 3 % | 23.9 | 33.1 | 43.7 | diverges | — |
+
+**Results, Level 1a** (Fe50Mn30Co10Cr10, exponential kinetics), at 2 % nominal strain:
+
+| quantity | 0.1 mm | 0.05 mm | 0.025 mm | extrapolated | GCI (finest) |
+|---|---:|---:|---:|---:|---:|
+| nominal stress [MPa] | 56.2 | 57.1 | 57.4 | 57.6 | 0.3 % |
+| plastic strain, 95th percentile | 2.64 % | 2.72 % | 2.74 % | 2.74 % | 0.1 % |
+| HCP, lattice mean | 1.83 % | 1.85 % | 1.86 % | 1.86 % | 0.3 % |
+| HCP, 95th percentile | 5.12 % | 5.25 % | 5.27 % | 5.27 % | 0.1 % |
+
+**Reading the results.**
+* **The macroscopic stress is converged at 0.1 mm** (0.3–0.5 % GCI on the 0.025 mm mesh in
+  both studies).
+* **The 0.1 mm fault-prone volume is about 2–3 points low.** At τ_c = 360 MPa it converges at
+  order 1.4 towards 7.4 % at 1 % strain and 16.0 % at 3 % (13.1 % at 0.1 mm). The conclusions
+  of §7.5 stand: about a sixth of the lattice reaches the twinning stress at 3 %.
+* **At τ_c = 240 MPa the mesh hardly matters** (51.7 → 50.6 % at 3 %). The changes are too
+  small and not monotone in order to extrapolate; read it as about 51 %.
+* **The free-partials maximum does not converge.** It rises by about 10 mJ/m² each time the
+  voxel is halved. It passes the 30 mJ/m² bound at 0.05 mm (2.5 % strain) and reaches 44 mJ/m²
+  at 0.025 mm.
+  * This is the stress concentration of the voxel staircase at the hinges, a pointwise maximum
+    of a model with no length scale, not a resolved physical stress.
+  * The volume above the bound stays at about 1e-6 of the lattice.
+  * So whether the hinges reach the free-partials bound cannot be decided with element-level
+    J2 stresses. It needs grain-scale crystal plasticity on a smooth hinge (Level 2).
+* **Level 1a is converged at 0.05 mm** (GCI ≤ 0.5 % on every quantity). The HCP fractions of
+  §7.6 hold within 2 % (relative).
+* **Thin and thick walls.** At 0.025 mm and 3 % strain, 16.4 % of the thin-wall volume and
+  15.1 % of the thick-wall volume can fault: the gap grows slightly with resolution but stays
+  small.
+* **Cost** (RTX 4070 SUPER, float64). Level 0: 84 s, 11 min and 3.0 h at 0.1, 0.05 and 0.025
+  mm. At 0.025 mm the GMG-PCG solves slow from 1–2 min to up to 32 min per step beyond 1.5 %
+  strain, and the CPU-side fault post-processing adds 7 min per step.
+* **Results** in `results/fcc_hcp_resolution_{0,1a}_vox{0.1,0.05,0.025}.json` (the 1a 0.025 mm
+  file ends at 2 %).
+
+    python benchmarks/literature/fcc_hcp_resolution.py run 0 0.05     # level, voxel [mm]
+    python benchmarks/literature/fcc_hcp_resolution.py gci
