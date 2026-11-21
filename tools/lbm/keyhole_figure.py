@@ -7,6 +7,7 @@ same max/min over the middle of their tracks), mean absorbed fraction, mean fron
 
     python tools/lbm/keyhole_figure.py [folder]
     python tools/lbm/keyhole_figure.py check <folder>     # one run: sections, depth, absorption
+    python tools/lbm/keyhole_figure.py closure [--out PNG] [--sections RUN.json] [--times 0,10,25,60] RUN.json ...
 """
 import glob
 import json
@@ -300,13 +301,17 @@ def closure_figure(paths, out=None, sections_of=None, times=(0.0, 10e-6, 25e-6, 
         ax.contour((np.arange(f.shape[1]) + 0.5) * dx * 1e6, (np.arange(f.shape[0]) + 0.5) * dx * 1e6, f, [0.5],
                    colors=["#4fd1e8"], linewidths=0.9)
         if x_last:
-            ax.set_xlim(x_last * 1e6 - 120, x_last * 1e6 + 60)
-        ax.set_ylim(zs * 1e6 - 160, zs * 1e6 + 30)
+            ax.set_xlim(x_last * 1e6 - 220, x_last * 1e6 + 60)
+        elif d.get("x_turn"):
+            ax.set_xlim(d["x_turn"] * 1e6 - 250, d["x_turn"] * 1e6 + 40)
+        ax.set_ylim(zs * 1e6 - max(160.0, 1.1e6 * float(np.nanmax(rs["depth"]))), zs * 1e6 + 30)
         ax.set_title(f"({'bcdefg'[k]}) {1e6 * (tt[i] - t_ref):+.0f} µs", fontsize=9.5, loc="left")
         ax.set_xlabel("x [µm]", fontsize=8)
         ax.tick_params(labelsize=7, colors=MUTED)
     fig.suptitle(f"Closed keyhole: {rs['case']} {rs['scenario']} ({rs['P']:.0f} W, {rs['v']} m/s, {dx * 1e6:g} µm cells) "
-                 f"- the keyhole after the laser stops; sections on the track centreline, cyan: metal surface",
+                 + ("- the keyhole through the turn (times from the turn midpoint); sections on the first track's centreline, "
+                    "cyan: metal surface" if rs["scenario"].startswith("turn") else
+                    "- the keyhole after the laser stops; sections on the track centreline, cyan: metal surface"),
                  fontsize=10, x=0.02, ha="left")
     out = out or os.path.join(HERE, "..", "..", "docs", "img", "keyhole_closure.png")
     fig.savefig(out, dpi=140)
@@ -385,7 +390,15 @@ if __name__ == "__main__":
         overhang_figure(sys.argv[2])
         sys.exit()
     if len(sys.argv) > 2 and sys.argv[1] == "closure":
-        closure_figure(sys.argv[2:])
+        # closure [--out PNG] [--sections RUN.json] [--times us,us,...] RUN.json ...
+        args, kw = sys.argv[2:], {}
+        for opt, key, conv in (("--out", "out", str), ("--sections", "sections_of", str),
+                               ("--times", "times", lambda v: tuple(1e-6 * float(x) for x in v.split(",")))):
+            if opt in args:
+                i = args.index(opt)
+                kw[key] = conv(args[i + 1])
+                del args[i:i + 2]
+        closure_figure(args, **kw)
         sys.exit()
     if len(sys.argv) > 2 and sys.argv[1] == "check":
         check_figure(sys.argv[2])

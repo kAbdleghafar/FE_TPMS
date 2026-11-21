@@ -17,3 +17,6 @@ benchmarks/literature/results/*_checkpoint.pkl*
 # residual-strain resolution check: large intermediate fields (statistics are in cantor_publication_checks.json)
 benchmarks/literature/results/cantor_residual_check_*
 tools/lbm/*.npz
+
+# closed-keyhole runs: restart checkpoints (~0.6 GB each)
+tools/lbm/keyhole_runs/**/*_checkpoint.npz

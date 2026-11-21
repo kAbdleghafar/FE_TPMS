@@ -365,7 +365,8 @@ The study's settings are 85 µm hatch, one contour, 0.75 m/s.
   the solidus: a pore trapped by solidification.
 * **Diagnostics.** After the laser stops, they follow the keyhole where the beam left it.
 * **Martin's cases.** M100, M200 and M300 (W, at 1.0 m/s, r₀ 25 µm) run the turn on a 400 µm
-  plate: 6.2 M cells at 2.5 µm, 2.7 M at 3.33 µm, 2.1 ms of scanning.
+  plate: 6.2 M cells at 2.5 µm, 2.7 M at 3.33 µm, 2.1 ms of scanning. M200 drills through
+  400 µm at the turn (below): these runs need a deeper plate.
 * **Mitigation.** For M200 the constant-Ke schedule lowers the power from 200 W to about
   69 W at the reversal.
 
@@ -393,6 +394,114 @@ The study's settings are 85 µm hatch, one contour, 0.75 m/s.
   * Martin's turns: the turn drives the keyhole into the deep regime.
   * The prediction: abrupt turn-off and constant-power turns trap pores, the ramp and the
     constant-Ke turn do not.
+
+**GPU runs: T3 at its steady depth, abrupt and ramped**
+* **Setup.**
+  * Case T3, 3.33 µm cells (1.8 M cells), 13 ns steps.
+  * A 300 µm track, then 200 µs with the laser off.
+  * The ramp lowers the power linearly to zero over the last 100 µm of track (167 µs).
+  * `tools/lbm/run_closed_keyhole_gpu.sh`, with the fused CUDA kernels.
+  * 43–47 min per case on an RTX 4070 SUPER (36 MLUPS, float64).
+* **Files.**
+  * Results: `tools/lbm/keyhole_runs/T3_dx3.33um*` and `T3_ramp_dx3.33um*`.
+  * Figure: `tools/lbm/keyhole_figure.py closure --out docs/img/keyhole_closure_gpu.png --times 0,10,30,100 <runs>`.
+  * ParaView: `tools/lbm/keyhole_to_vtk.py <run>.json` writes the centreline sections as a time series and the 3-D end state.
+
+![closure on the GPU](img/keyhole_closure_gpu.png)
+
+| | abrupt turn-off | 100 µm ramp |
+|---|---|---|
+| keyhole, second half of the track | 140 µm (128–153), absorbed 0.68 | as abrupt until the ramp |
+| depth when the power reaches zero | 132 µm | 11 µm (conduction mode, absorbed 0.26) |
+| bubbles pinched off | 42, 58–86 µs after turn-off | 5, while still deep (before −130 µs) |
+| reopened to the gas / refilled | 28 / 14 | 4 / 1 |
+| pores at the end | **0** | **0** |
+| end crater | **56 µm deep** | 11 µm |
+| mass error, energy residual | 6e-12, 0.35 % | 6e-12, 0.18 % |
+
+* **The steady keyhole.**
+  * It is 17 % shallower than the X-ray value: 140 µm against 169 µm.
+  * It absorbs a little more than Gan's 0.57: 0.68.
+  * 3.33 µm cells put 29 cells across the beam. The 2.5 µm runs of the validation table are
+    the reference for the depth.
+* **Abrupt turn-off: a slow, partial closure.**
+  * The keyhole falls from 132 µm to 121, 100, 79 and 56 µm at +10, +20, +50 and +100 µs,
+    and then freezes as a 56 µm crater at the track end.
+  * The CPU check's 100 µm keyhole closed to 7 µm in 30 µs. This deep one does not close: the
+    melt behind it solidifies first.
+  * Between +58 and +86 µs the closing tip pinches off 42 small bubbles (d_eq ≤ 10 µm, 38–73 µm
+    below the surface). Two thirds of them reopen to the crater, and the others are refilled
+    by the melt.
+  * One was marked frozen at +85 µs (walls at 1,595 °C, just below the solidus) and was gone
+    1 µs later.
+* **Ramp: the keyhole unwinds.**
+  * The depth follows the power down: 75 µm at −100 µs, 41 µm at −75 µs, and conduction mode
+    (10 µm) from −50 µs, at about 30 % power.
+  * Nothing deep is left to collapse, and the end crater is 11 µm.
+  * The ramp's 5 bubbles pinched off while the keyhole was still deep: 4 at −324 to −322 µs on
+    the steady track, 1 at −132 µs early in the ramp. 4 of them reopened.
+* **Against the prediction.**
+  * The ramp behaves as predicted.
+  * The abrupt turn-off **did not trap a pore at 3.33 µm**. It does leave a deep end crater,
+    a defect of its own: the next layer's powder has to fill it.
+  * The pinched-off bubbles are 2–3 cells across. Surface tension and the gas pressure in them
+    are not resolved, so this resolution cannot settle whether they survive. That question
+    needs the tip at 2.5 µm or finer.
+* **Reproducibility.** Rerunning both cases reproduces the depth to 1e-10 µm and every
+  bubble event.
+
+**GPU run: Martin's M200 turn (partial)**
+* **Setup.**
+  * 200 W, 1.0 m/s, r₀ 25 µm, constant power. Ke 19.9, above Gan's pore threshold of ~16.
+  * 100 µs at full speed, deceleration at 1.1e3 m/s² to the turn at t = 1,001 µs, a 50 µm
+    hatch step, then back at speed.
+  * 3.33 µm cells, a 400 µm plate: 2.65 M cells, 5.4 s of wall time per µs.
+* **Status.**
+  * Stopped by request at 1,102 µs: 101 µs after the turn, out of ~2,300 µs.
+  * It has not reached the collapse as the beam speeds away, which Martin et al. saw
+    200–1,000 µs after the turn.
+  * The checkpoint is not in the repository: restarting the same command reruns from the
+    start. The depth log and the centreline sections are in
+    `tools/lbm/keyhole_runs/M200_turn_dx3.33um*` (`finished: false`).
+
+![M200 turn](img/keyhole_turn_gpu.png)
+
+| beam | time from the turn | keyhole depth, mean (range) | absorbed |
+|---|---|---|---|
+| full speed | −1,000 to −900 µs | 75 µm (rising to 99) | 0.67 |
+| decelerating | −900 to −700 µs | 102 µm (92–113) | 0.69 |
+| | −700 to −500 µs | 130 µm (109–157) | 0.72 |
+| | −500 to −300 µs | 173 µm (142–209) | 0.81 |
+| | −300 to −100 µs | 236 µm (183–282) | 0.89 |
+| slowest, at the turn | −100 to 0 µs | 293 µm (120–350) | 0.90 |
+| reversing | 0 to +100 µs | 345 µm (162–**398**) | 0.80 |
+
+* **The turn drills the keyhole.**
+  * As the beam slows at constant power, the keyhole deepens from 100 µm to ~300 µm at the
+    turn, and absorbs up to 0.95 of the power by multiple reflection.
+  * This is the deepening Martin et al. imaged. Here it is 3–4 times the full-speed depth.
+* **It is violently unstable around the turn.**
+  * In the last 100 µs before the turn, the depth swings between 120 and 350 µm.
+  * 154 bubbles pinched off over the run, 77 of them reopened. The largest are tens of
+    microns across, up to d_eq 110 µm: the keyhole walls meeting across a deep pocket, which
+    reopens.
+  * In the sections, pockets cut off at the bottom (c) and halfway down (d) are refilled or
+    reconnected within tens of microseconds.
+* **The plate is too thin for this case.**
+  * At +88 µs the keyhole reaches 398 µm, the bottom of the 400 µm plate, where the cold
+    bottom wall stops it.
+  * The one bubble marked a frozen pore so far sat there (352 µm deep, walls at 1,272 °C, at
+    +1 µs), and it was gone in the next log line.
+  * The 400 µm default was taken from Martin's 500 µm plates. The run says the keyhole
+    reaches beyond it.
+* **Pores so far: none.**
+  * At +101 µs no bubble is left.
+  * A pocket that looks closed in section (e) is still joined to the keyhole outside the
+    plane; the bubble model works in 3-D.
+* **Still to do.**
+  * Rerun on a 700 µm plate (`--plate 700e-6`, ~4.4 M cells, ~6 h) through the full
+    departure and cooling.
+  * The constant-Ke turn, and M100 and M300.
 
 
 ### 2. Collapse while scanning
