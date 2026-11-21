@@ -99,8 +99,12 @@ class FreeSurfaceLBM:
                                        # moved along every link with the mass flux, upwind
         self.h_residual = 0.0          # carried quantity (x mass) the bounded update could not place
         from . import freesurface_kernels as _k
-        # fused numba kernels on the CPU (float64); the array version otherwise (NumPy or CuPy)
-        self.kernel = "numba" if (xp is np and _k.available() and np.dtype(dtype) == np.float64) else "array"
+        # fused numba kernels on the CPU (float64), fused CUDA kernels on CuPy; "array" (the
+        # generic whole-array version, NumPy or CuPy) is the reference
+        if xp is np:
+            self.kernel = "numba" if (_k.available() and np.dtype(dtype) == np.float64) else "array"
+        else:
+            self.kernel = "cuda" if np.dtype(dtype) in (np.float64, np.float32) else "array"
         self.limited = 0               # most cells limited in one step
         self.min_fragment = 0.5        # isolated interface cells with less metal are dissolved (0: off)
         self.fragments_removed = 0
@@ -127,6 +131,7 @@ class FreeSurfaceLBM:
         # the bulk melt. 0: off (default).
         self.smagorinsky = 0.0
         self.steps = 0
+        self._nk_cache = None          # (key, arrays kept alive, (normal, curvature))
 
     # ------------------------------------------------------------------ basics
     def set_tau(self, tau, magic=3.0 / 16.0):
@@ -176,8 +181,11 @@ class FreeSurfaceLBM:
     def smoothed_fill(self, smooth: int = 1, eps=None):
         """The fill-level field smoothed ``smooth`` times with a [1 2 1] filter per axis;
         walls act as mirrors."""
-        wall = self.flag == WALL
         e = self.fill if eps is None else eps
+        if self.kernel == "cuda":
+            from .freesurface_cuda import smoothed_fill
+            return smoothed_fill(self.flag, e, smooth, self.dtype)
+        wall = self.flag == WALL
         sm = self._shift_mirror
         for _ in range(smooth):
             for ax in range(3):
@@ -187,8 +195,25 @@ class FreeSurfaceLBM:
     def normal_curvature(self, smooth: int = 1, eps=None):
         """Interface normal (unit, pointing into the liquid) and mean curvature (sum of the
         principal curvatures, positive for a convex liquid) from the fill-level field,
-        smoothed ``smooth`` times with a [1 2 1] filter per axis. Walls act as mirrors."""
+        smoothed ``smooth`` times with a [1 2 1] filter per axis. Walls act as mirrors.
+
+        Without ``eps`` the result is cached until the flag, mass or density arrays change
+        (they are replaced, never edited in place), so the coupler and the step share it."""
+        if eps is None:
+            key = (smooth, id(self.flag), id(self.mass), id(self.rho))
+            if self._nk_cache is not None and self._nk_cache[0] == key:
+                return self._nk_cache[2]
+            res = self._normal_curvature(smooth, None)
+            # keep the arrays alive so that their ids stay unique while cached
+            self._nk_cache = (key, (self.flag, self.mass, self.rho), res)
+            return res
+        return self._normal_curvature(smooth, eps)
+
+    def _normal_curvature(self, smooth, eps):
         xp = self.xp
+        if self.kernel == "cuda":
+            from .freesurface_cuda import normal_curvature
+            return normal_curvature(self.flag, self.fill if eps is None else eps, smooth, self.dtype)
         wall = self.flag == WALL
         e = self.smoothed_fill(smooth, eps)
         sm = self._shift_mirror
@@ -275,6 +300,9 @@ class FreeSurfaceLBM:
             rho_g = rho_g + self.gas_pressure
         if self.kernel == "numba" and not self.rebuild_normal:
             self._step_numba(flag, fluid, itf, rho_g)
+            return
+        if self.kernel == "cuda" and not self.rebuild_normal:
+            self._step_cuda(flag, fluid, itf, rho_g)
             return
         u = self.u
         eps = self.fill
@@ -423,12 +451,31 @@ class FreeSurfaceLBM:
         self._convert()
         self.steps += 1
 
+    def _step_cuda(self, flag, fluid, itf, rho_g):
+        """The same step as the array version, fused into one CUDA thread per cell."""
+        from .freesurface_cuda import stream_collide
+        xp = self.xp
+        carry = self.h is not None
+        if carry:
+            m_old = xp.where(itf, self.mass, xp.where(flag == LIQUID, self.rho, 0.0))
+        f_out, rho, u, mass, E_in, M_in, M_out, n_lim = stream_collide(self, flag, self._itype(flag, itf), rho_g,
+                                                                       self.fill)
+        self.limited = max(self.limited, n_lim)
+        self.f, self.rho, self.u, self.mass = f_out, rho, u, mass
+        if carry:
+            self._mix(fluid, m_old, M_in, E_in, M_out)
+        self._convert()
+        self.steps += 1
+
     # ------------------------------------------------------------------ interface motion
     def _any_nb(self, mask):
         xp = self.xp
         if self.kernel == "numba":
             from .freesurface_kernels import nb_any
             return nb_any(np.ascontiguousarray(mask, dtype=np.bool_), C)
+        if self.kernel == "cuda":
+            from .freesurface_cuda import nb_any
+            return nb_any(mask, self.dtype)
         out = xp.zeros(self.shape, dtype=bool)
         for i in range(1, Q):
             out |= _nb(xp, mask, C[i])
@@ -440,6 +487,9 @@ class FreeSurfaceLBM:
         if self.kernel == "numba":
             from .freesurface_kernels import nb_sum
             return nb_sum(np.ascontiguousarray(a, dtype=np.float64), C)
+        if self.kernel == "cuda":
+            from .freesurface_cuda import nb_sums
+            return nb_sums([a], self.dtype)[0]
         out = xp.zeros(self.shape, dtype=self.dtype)
         for i in range(1, Q):
             out += _nb(xp, a, C[i])
@@ -450,6 +500,9 @@ class FreeSurfaceLBM:
         if self.kernel == "numba":
             from .freesurface_kernels import nb_sum_stack
             return list(nb_sum_stack(np.ascontiguousarray(np.stack(arrays), dtype=np.float64), C))
+        if self.kernel == "cuda":
+            from .freesurface_cuda import nb_sums
+            return nb_sums(list(arrays), self.dtype)
         return [self._nb_sum(a) for a in arrays]
 
     def _feq_cells(self, mask, rho, u):
@@ -690,6 +743,8 @@ class FreeSurfaceMeltPool:
         self._tt = xp.asarray(tt, dtype=dtype)
         self._HH = xp.asarray(HH * 1e6, dtype=dtype)                    # mJ/mm^3 -> J/m^3
         self._kT = xp.asarray(th.conductivity(tt), dtype=dtype)
+        dtt = np.diff(tt)
+        self._uniform_table = bool(len(tt) > 1 and np.allclose(dtt, dtt[0], rtol=1e-12, atol=0.0))
         self.Ts, self.Tl = float(th.T_solidus), float(th.T_liquidus)
         self.T0 = float(T0)
         rc = self.rho0 * np.interp(tt, th.T, th.cp) * 1e-6
@@ -817,6 +872,12 @@ class FreeSurfaceMeltPool:
         Sources and surface losses go in with a capacity floored at ``eps_min``. Returns the
         energy [J] that ``q`` and ``loss`` [W/m^3] put in and took out."""
         xp, dx, dt = self.xp, self.dx, self.dt
+        if self.lbm.kernel == "cuda" and self._uniform_table:
+            from .freesurface_cuda import heat_step
+            self.H, self.T, e_in, e_out = heat_step(
+                self.lbm.flag, self.T, self.H, self._weight(), self.lbm.u, q, loss, self.energy_transport != "lbm",
+                dx, dt, self.eps_min, self._tt, self._kT, self._HH, self.dtype)
+            return e_in, e_out
         T, H = self.T, self.H
         m = self.metal()
         k = xp.interp(T.ravel(), self._tt, self._kT).reshape(T.shape)

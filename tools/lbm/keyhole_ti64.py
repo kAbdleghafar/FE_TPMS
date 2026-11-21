@@ -188,6 +188,7 @@ def main():
     ap.add_argument("--smagorinsky", type=float, default=0.15, help="sub-grid (LES) constant; 0: off")
     ap.add_argument("--no-bubbles", action="store_true")
     ap.add_argument("--checkpoint", type=float, default=20.0, help="minutes between checkpoints")
+    ap.add_argument("--redo", action="store_true", help="rerun a case that has already finished")
     ap.add_argument("--backend", default=None)
     ap.add_argument("--out", default=os.path.join(HERE, "keyhole_runs"))
     args = ap.parse_args()
@@ -196,6 +197,9 @@ def main():
     tag = (f"{args.case}_dx{args.dx * 1e6:g}um" if info["scenario"] == "track"
            else f"{args.case}_{info['scenario']}_dx{args.dx * 1e6:g}um")
     js, npz, ck = (os.path.join(args.out, f"{tag}{s}") for s in (".json", "_sections.npz", "_checkpoint.npz"))
+    if not args.redo and not os.path.exists(ck) and os.path.exists(js) and json.load(open(js)).get("finished"):
+        print(f"{tag}: already finished ({js}); --redo to run it again", flush=True)
+        return
     log, sections = [], []
     if os.path.exists(ck):
         md.load_state(ck)

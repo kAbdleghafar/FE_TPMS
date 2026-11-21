@@ -2,6 +2,8 @@
 import numpy as np
 import pytest
 
+from tpmsfem.backend import asnumpy
+
 from tpmsfem.process.freesurface import GAS, INTERFACE, LIQUID, WALL
 from tpmsfem.process.keyhole import BubbleModel, RayTracer, fresnel_absorptivity, index_from_absorptivity, smooth_fill
 
@@ -150,7 +152,7 @@ def test_bubble_pressure_follows_volume():
     flag, fill = _block_with_bubble()
     flag = _close(flag)
     bm = BubbleModel(p_ambient=1e5)
-    dp = bm.update(flag, fill)
+    dp = asnumpy(bm.update(flag, fill))
     assert len(bm.bubbles) == 1 and bm.formed == 1
     b = bm.bubbles[0]
     assert b["pressure"] == pytest.approx(1e5)
@@ -178,7 +180,7 @@ def test_bubble_pressure_follows_volume():
     fl2[half] = LIQUID
     f2[half] = 1.0
     fl2 = _close(np.where(fl2 == INTERFACE, LIQUID, fl2).astype(np.int8))
-    dp = bm.update(fl2, f2)
+    dp = asnumpy(bm.update(fl2, f2))
     b = bm.bubbles[0]
     assert b["V0"] == pytest.approx(V0)
     assert b["pressure"] == pytest.approx(1e5 * V0 / b["volume"], rel=1e-9)
@@ -189,7 +191,7 @@ def test_bubble_pressure_follows_volume():
     fl3 = fl2.copy()
     fl3[12, 12, 9:17] = GAS
     fl3 = _close(np.where(fl3 == INTERFACE, LIQUID, fl3).astype(np.int8))
-    dp = bm.update(fl3, f2)
+    dp = asnumpy(bm.update(fl3, f2))
     assert bm.bubbles == [] and bm.released == 1 and np.allclose(dp, 0.0)
 
 
