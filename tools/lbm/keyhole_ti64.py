@@ -56,7 +56,7 @@ from tpmsfem.backend import asnumpy  # noqa: E402
 from tpmsfem.process import Laser, ScanVector  # noqa: E402
 from tpmsfem.process.freesurface import FreeSurfaceMeltPool  # noqa: E402
 from tpmsfem.process import defects as DF  # noqa: E402
-from tpmsfem.process.keyhole import BubbleModel, RayTracer, keyhole_metrics  # noqa: E402
+from tpmsfem.process.keyhole import BubbleModel, RayTracer, keyhole_metrics, melt_diagnostics  # noqa: E402
 from tpmsfem.process.scanpath import ramp_down, turn_point  # noqa: E402
 
 DATA = os.path.join(HERE, "..", "..", "benchmarks", "literature", "data", "gan2021_keyhole_xray.json")
@@ -238,17 +238,19 @@ def main():
                                    T_wall_max=b["T_wall_max"], frozen=b["frozen"], pore=b["pore"])
                               for b in m.bubbles.bubbles]
             row["bubbles_formed"], row["bubbles_released"] = m.bubbles.formed, m.bubbles.released
-        T = m.T
-        row.update(T_max=float(T.max()), u_max=float((m.lbm.u ** 2).sum(axis=0).max()) ** 0.5 * m.dx / m.dt,
-                   limited=int(m.lbm.limited), recoil_clipped=int(m.recoil_clipped),
+        row.update(melt_diagnostics(m))          # T_max over metal; u_max of the pool, droplets apart
+        row.update(limited=int(m.lbm.limited), recoil_clipped=int(m.recoil_clipped),
                    mass=float(m.lbm.total_mass()), wall_s=time.time() - t_wall[0])
         log.append(row)
-        sections.append((t, asnumpy(m.lbm.fill[:, jc, :]).astype(np.float16), asnumpy(T[:, jc, :]).astype(np.float16)))
+        # the section's temperature only where there is metal (emptied cells keep a stale T): NaN elsewhere
+        T_sec = np.where(asnumpy(m.metal()[:, jc, :]), asnumpy(m.T[:, jc, :]), np.nan)
+        sections.append((t, asnumpy(m.lbm.fill[:, jc, :]).astype(np.float16), T_sec.astype(np.float16)))
         if len(log) % 10 == 0:
             d = row.get("depth", float("nan"))
             print(f"t {t * 1e6:7.1f} us  depth {d * 1e6:6.1f} um  absorbed {row.get('ray_absorbed', float('nan')):.2f}  "
                   f"bubbles {len(row.get('bubbles', []))} (pores {sum(b['pore'] for b in row.get('bubbles', []))})  "
                   f"T_max {row['T_max']:6.0f} C  u_max {row['u_max']:5.1f} m/s  "
+                  f"drops {row['drops']} (u {row['u_max_drops']:4.1f} m/s)  "
                   f"lim {row['limited']} clip {row['recoil_clipped']}  ({row['wall_s']:.0f} s)", flush=True)
         if time.time() - t_wall[1] > 60.0 * args.checkpoint:
             md.save_state(ck)

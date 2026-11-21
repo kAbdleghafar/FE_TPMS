@@ -455,6 +455,51 @@ def surface_heights(fill, dx):
     return np.where(any_m, (k + 0.5 + frac) * dx, 0.0)
 
 
+def melt_diagnostics(md):
+    """Peak temperature and flow speeds of the free-surface melt pool ``md``, counting metal
+    only and keeping detached droplets apart from the pool.
+
+    * ``T_max`` [degC]: hottest metal (interface or liquid) cell. Cells that emptied keep their
+      last temperature in ``md.T``; they are not counted.
+    * The metal is split into 18-connected bodies (the D3Q19 links); the largest is the plate
+      with its melt pool. ``u_max`` [m/s] is the fastest cell of that body.
+    * ``drops``: detached bodies holding molten metal (T >= solidus) - spatter. Their count,
+      volume [um^3] (fill-weighted) and fastest cell ``u_max_drops`` [m/s]. Detached bodies that
+      are all below the solidus (powder particles, frozen spatter) are not counted.
+    * ``u_max_all`` [m/s] and ``u_max_all_at_um`` [x, y, z, um]: fastest metal cell anywhere."""
+    from .freesurface import C, INTERFACE, LIQUID
+    xp = get_xp()
+    ndi = _ndimage(xp)
+    flag, T, fill = md.lbm.flag, md.T, md.lbm.fill
+    metal = (flag == LIQUID) | (flag == INTERFACE)
+    nan = float("nan")
+    out = dict(T_max=nan, u_max=nan, u_max_all=nan, u_max_drops=0.0, drops=0, drop_volume_um3=0.0,
+               u_max_all_at_um=[nan, nan, nan])
+    if not bool(metal.any()):
+        return out
+    scale = md.dx / md.dt
+    sp = xp.where(metal, xp.sqrt((md.lbm.u ** 2).sum(axis=0)), 0.0) * scale
+    out["T_max"] = float(xp.where(metal, T, -xp.inf).max())
+    k = int(xp.argmax(sp))
+    out["u_max_all"] = float(sp.ravel()[k])
+    out["u_max_all_at_um"] = [float((c + 0.5) * md.dx * 1e6) for c in np.unravel_index(k, sp.shape)]
+    g = np.indices((3, 3, 3)) - 1
+    struct = xp.asarray((np.abs(g).sum(axis=0) <= 2).astype(np.int32))
+    lab, n = ndi.label(metal, structure=struct)
+    sizes = xp.bincount(lab.ravel(), minlength=int(n) + 1)
+    sizes[0] = 0
+    main = lab == int(xp.argmax(sizes))
+    out["u_max"] = float(xp.where(main, sp, 0.0).max())
+    hot = metal & ~main & (T >= md.Ts)
+    if bool(hot.any()):
+        drop_labels = xp.unique(lab[hot])
+        drop = xp.isin(lab, drop_labels)
+        out["drops"] = int(drop_labels.size)
+        out["drop_volume_um3"] = float(xp.where(drop, fill, 0.0).sum()) * (md.dx * 1e6) ** 3
+        out["u_max_drops"] = float(xp.where(drop, sp, 0.0).max())
+    return out
+
+
 def keyhole_metrics(md, x_l, y_l, radius, z_surface, window=3.0):
     """Keyhole depth and shape from the free-surface melt pool ``md`` with the beam at
     (x_l, y_l) [m], 1/e^2 radius ``radius`` [m] and the original surface at ``z_surface`` [m].

@@ -41,7 +41,7 @@ import tpmsfem as tf  # noqa: E402
 from tpmsfem.backend import asnumpy  # noqa: E402
 from tpmsfem.process import Evaporation, Laser, ScanVector  # noqa: E402
 from tpmsfem.process.freesurface import FreeSurfaceMeltPool  # noqa: E402
-from tpmsfem.process.keyhole import BubbleModel, RayTracer, keyhole_metrics, open_gas_reaches  # noqa: E402
+from tpmsfem.process.keyhole import BubbleModel, RayTracer, keyhole_metrics, melt_diagnostics, open_gas_reaches  # noqa: E402
 from tpmsfem.process.powder import rain_powder, voxelise  # noqa: E402
 
 P, V, R0, ETA_M = 200.0, 0.75, 35e-6, 0.33
@@ -140,15 +140,18 @@ def main():
         row["bubbles"] = [dict(volume_um3=x["volume"] * (dx * 1e6) ** 3, centroid_um=[c * dx * 1e6 for c in x["centroid"]],
                                frozen=x["frozen"], pore=x["pore"], pressure=x["pressure"]) for x in b.bubbles]
         row["formed"], row["released"] = b.formed, b.released
-        row.update(T_max=float(m.T.max()), limited=int(m.lbm.limited), recoil_clipped=int(m.recoil_clipped),
+        row.update(melt_diagnostics(m))          # T_max over metal; u_max of the pool, droplets apart
+        row.update(limited=int(m.lbm.limited), recoil_clipped=int(m.recoil_clipped),
                    mass=float(m.lbm.total_mass()), wall_s=time.time() - t_wall[0])
         log.append(row)
-        sections.append((t, asnumpy(m.lbm.fill[:, jc, :]).astype(np.float16), asnumpy(m.T[:, jc, :]).astype(np.float16)))
+        T_sec = np.where(asnumpy(m.metal()[:, jc, :]), asnumpy(m.T[:, jc, :]), np.nan)
+        sections.append((t, asnumpy(m.lbm.fill[:, jc, :]).astype(np.float16), T_sec.astype(np.float16)))
         if len(log) % 10 == 0:
             print(f"t {t * 1e6:7.1f} us  depth {row.get('depth', float('nan')) * 1e6:6.1f} um  "
                   f"open below {row.get('open_below')} ({row.get('open_below_cells', 0)} cells)  "
                   f"bubbles {len(row['bubbles'])} (pores {sum(x['pore'] for x in row['bubbles'])})  "
-                  f"T_max {row['T_max']:6.0f} C  lim {row['limited']}  ({row['wall_s']:.0f} s)", flush=True)
+                  f"T_max {row['T_max']:6.0f} C  u_max {row['u_max']:5.1f} m/s  drops {row['drops']}  "
+                  f"lim {row['limited']}  ({row['wall_s']:.0f} s)", flush=True)
         if time.time() - t_wall[1] > 60.0 * a.checkpoint:
             md.save_state(ck)
             save()

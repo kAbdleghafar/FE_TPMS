@@ -254,3 +254,38 @@ def test_open_sides_and_breakthrough():
     kh = _close(np.where(kh == INTERFACE, LIQUID, kh).astype(np.int8))
     reach, cells = open_gas_reaches(kh, 10)
     assert reach and cells > 50
+
+
+def test_melt_diagnostics_counts_metal_only_and_separates_droplets():
+    """T_max ignores stale temperatures of emptied cells; u_max is the pool's, a hot detached
+    droplet is reported apart and a cold detached particle (powder) is not a droplet."""
+    from types import SimpleNamespace
+
+    from tpmsfem.backend import to_device
+    from tpmsfem.process.keyhole import melt_diagnostics
+
+    n = 20
+    flag = np.full((n, n, n), GAS, np.int8)
+    flag[:, :, :6] = LIQUID                                   # plate with its pool
+    flag[:, :, 6] = INTERFACE
+    flag[4:6, 4:6, 12:14] = INTERFACE                         # hot droplet, detached
+    flag[14:16, 14:16, 12:14] = INTERFACE                     # cold particle, detached
+    fill = np.where(flag == LIQUID, 1.0, np.where(flag == INTERFACE, 0.8, 0.0))
+    T = np.full(flag.shape, 1000.0)
+    T[10, 10, 3] = 2500.0                                     # hottest metal
+    T[10, 10, 15] = 9000.0                                    # stale value in a gas cell
+    T[4:6, 4:6, 12:14] = 2000.0
+    u = np.zeros((3,) + flag.shape)
+    u[0, 8, 8, 4] = 0.1                                       # pool: 0.1 lattice -> 10 m/s
+    u[2, 4, 4, 12] = 0.3                                      # droplet: 30 m/s
+    u[1, 10, 10, 15] = 0.5                                    # gas cell (never counted)
+    md = SimpleNamespace(lbm=SimpleNamespace(flag=to_device(flag), fill=to_device(fill), u=to_device(u)),
+                         T=to_device(T), dx=1e-6, dt=1e-8, Ts=1600.0)
+    d = melt_diagnostics(md)
+    assert d["T_max"] == pytest.approx(2500.0)
+    assert d["u_max"] == pytest.approx(10.0)
+    assert d["drops"] == 1
+    assert d["u_max_drops"] == pytest.approx(30.0)
+    assert d["drop_volume_um3"] == pytest.approx(8 * 0.8)
+    assert d["u_max_all"] == pytest.approx(30.0)
+    assert d["u_max_all_at_um"] == pytest.approx([4.5, 4.5, 12.5])
